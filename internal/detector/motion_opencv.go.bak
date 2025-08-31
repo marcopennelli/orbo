@@ -1,0 +1,380 @@
+package detector
+
+import (
+	"context"
+	"fmt"
+	"image"
+	"image/jpeg"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+
+	"gocv.io/x/gocv"
+)
+
+// MotionEvent represents a detected motion event
+type MotionEvent struct {
+	ID            string
+	CameraID      string
+	Timestamp     time.Time
+	Confidence    float32
+	BoundingBoxes []BoundingBox
+	FramePath     string
+}
+
+// BoundingBox represents a detected motion area
+type BoundingBox struct {
+	X      int
+	Y      int
+	Width  int
+	Height int
+}
+
+// MotionDetector handles motion detection for cameras
+type MotionDetector struct {
+	mu              sync.RWMutex
+	isRunning       bool
+	cameras         map[string]*CameraDetector
+	eventsChan      chan MotionEvent
+	stopCh          chan struct{}
+	frameStorePath  string
+	minConfidence   float32
+}
+
+// CameraDetector handles motion detection for a single camera
+type CameraDetector struct {
+	cameraID        string
+	backgroundMOG   gocv.BackgroundSubtractorMOG2
+	isRunning       bool
+	stopCh          chan struct{}
+	minContourArea  float64
+	dilationKernel  gocv.Mat
+}
+
+// MotionDetectorConfig holds configuration for motion detection
+type MotionDetectorConfig struct {
+	MinConfidence    float32
+	MinContourArea   float64
+	FrameStorePath   string
+	BackgroundHistory int
+	VarThreshold     float64
+}
+
+// NewMotionDetector creates a new motion detector
+func NewMotionDetector(config MotionDetectorConfig) *MotionDetector {
+	if config.MinConfidence == 0 {
+		config.MinConfidence = 0.5
+	}
+	if config.MinContourArea == 0 {
+		config.MinContourArea = 1000
+	}
+	if config.FrameStorePath == "" {
+		config.FrameStorePath = "./frames"
+	}
+
+	// Ensure frame storage directory exists
+	os.MkdirAll(config.FrameStorePath, 0755)
+
+	return &MotionDetector{
+		cameras:        make(map[string]*CameraDetector),
+		eventsChan:     make(chan MotionEvent, 100),
+		frameStorePath: config.FrameStorePath,
+		minConfidence:  config.MinConfidence,
+	}
+}
+
+// Start begins motion detection
+func (md *MotionDetector) Start(ctx context.Context) error {
+	md.mu.Lock()
+	defer md.mu.Unlock()
+
+	if md.isRunning {
+		return fmt.Errorf("motion detector is already running")
+	}
+
+	md.isRunning = true
+	md.stopCh = make(chan struct{})
+
+	return nil
+}
+
+// Stop ends motion detection
+func (md *MotionDetector) Stop() {
+	md.mu.Lock()
+	defer md.mu.Unlock()
+
+	if !md.isRunning {
+		return
+	}
+
+	close(md.stopCh)
+	md.isRunning = false
+
+	// Stop all camera detectors
+	for _, detector := range md.cameras {
+		detector.stop()
+	}
+}
+
+// AddCamera adds a camera for motion detection
+func (md *MotionDetector) AddCamera(cameraID string, framesChan <-chan *gocv.Mat) error {
+	md.mu.Lock()
+	defer md.mu.Unlock()
+
+	if _, exists := md.cameras[cameraID]; exists {
+		return fmt.Errorf("camera %s already added for motion detection", cameraID)
+	}
+
+	detector := &CameraDetector{
+		cameraID:       cameraID,
+		backgroundMOG:  gocv.NewBackgroundSubtractorMOG2WithParams(500, 16, false),
+		minContourArea: 1000,
+		dilationKernel: gocv.GetStructuringElement(gocv.MorphRect, image.Pt(3, 3)),
+	}
+
+	md.cameras[cameraID] = detector
+
+	// Start detection for this camera
+	go md.detectMotion(cameraID, framesChan)
+
+	return nil
+}
+
+// RemoveCamera removes a camera from motion detection
+func (md *MotionDetector) RemoveCamera(cameraID string) error {
+	md.mu.Lock()
+	defer md.mu.Unlock()
+
+	detector, exists := md.cameras[cameraID]
+	if !exists {
+		return fmt.Errorf("camera %s not found in motion detection", cameraID)
+	}
+
+	detector.stop()
+	delete(md.cameras, cameraID)
+
+	return nil
+}
+
+// GetEventsChannel returns the channel for receiving motion events
+func (md *MotionDetector) GetEventsChannel() <-chan MotionEvent {
+	return md.eventsChan
+}
+
+// IsRunning returns whether motion detection is active
+func (md *MotionDetector) IsRunning() bool {
+	md.mu.RLock()
+	defer md.mu.RUnlock()
+	return md.isRunning
+}
+
+// detectMotion processes frames from a camera to detect motion
+func (md *MotionDetector) detectMotion(cameraID string, framesChan <-chan *gocv.Mat) {
+	detector := md.cameras[cameraID]
+	detector.isRunning = true
+	detector.stopCh = make(chan struct{})
+
+	defer func() {
+		detector.isRunning = false
+		detector.backgroundMOG.Close()
+		detector.dilationKernel.Close()
+	}()
+
+	// Prepare matrices for processing
+	fgmask := gocv.NewMat()
+	defer fgmask.Close()
+
+	dilated := gocv.NewMat()
+	defer dilated.Close()
+
+	for {
+		select {
+		case <-detector.stopCh:
+			return
+		case <-md.stopCh:
+			return
+		case frame, ok := <-framesChan:
+			if !ok {
+				return
+			}
+
+			// Process frame for motion detection
+			event := md.processFrame(cameraID, frame, detector, &fgmask, &dilated)
+			frame.Close() // Clean up the frame
+
+			if event != nil {
+				// Send event to channel (non-blocking)
+				select {
+				case md.eventsChan <- *event:
+				default:
+					// Event channel is full, could log this
+				}
+			}
+		}
+	}
+}
+
+// processFrame analyzes a single frame for motion
+func (md *MotionDetector) processFrame(cameraID string, frame *gocv.Mat, detector *CameraDetector, fgmask, dilated *gocv.Mat) *MotionEvent {
+	// Apply background subtraction
+	detector.backgroundMOG.Apply(*frame, fgmask)
+
+	// Dilate to fill holes
+	gocv.Dilate(*fgmask, dilated, detector.dilationKernel)
+
+	// Find contours
+	contours := gocv.FindContours(*dilated, gocv.RetrievalExternal, gocv.ChainApproxSimple)
+	defer contours.Close()
+
+	var boundingBoxes []BoundingBox
+	var totalArea float64
+
+	// Process contours
+	for i := 0; i < contours.Size(); i++ {
+		contour := contours.At(i)
+		area := gocv.ContourArea(contour)
+
+		if area < detector.minContourArea {
+			continue
+		}
+
+		rect := gocv.BoundingRect(contour)
+		boundingBoxes = append(boundingBoxes, BoundingBox{
+			X:      rect.Min.X,
+			Y:      rect.Min.Y,
+			Width:  rect.Dx(),
+			Height: rect.Dy(),
+		})
+
+		totalArea += area
+		contour.Close()
+	}
+
+	// No significant motion detected
+	if len(boundingBoxes) == 0 {
+		return nil
+	}
+
+	// Calculate confidence based on total motion area
+	frameArea := float64(frame.Rows() * frame.Cols())
+	confidence := float32(totalArea / frameArea)
+
+	// Check if confidence meets threshold
+	if confidence < md.minConfidence {
+		return nil
+	}
+
+	// Save frame with motion detected
+	framePath, err := md.saveFrame(cameraID, frame)
+	if err != nil {
+		// Log error but continue
+		framePath = ""
+	}
+
+	return &MotionEvent{
+		ID:            generateEventID(),
+		CameraID:      cameraID,
+		Timestamp:     time.Now(),
+		Confidence:    confidence,
+		BoundingBoxes: boundingBoxes,
+		FramePath:     framePath,
+	}
+}
+
+// saveFrame saves a frame to disk and returns the path
+func (md *MotionDetector) saveFrame(cameraID string, frame *gocv.Mat) (string, error) {
+	timestamp := time.Now().Format("20060102_150405")
+	filename := fmt.Sprintf("%s_%s.jpg", cameraID, timestamp)
+	filepath := filepath.Join(md.frameStorePath, filename)
+
+	// Convert Mat to image
+	img, err := frame.ToImage()
+	if err != nil {
+		return "", fmt.Errorf("failed to convert frame to image: %w", err)
+	}
+
+	// Save as JPEG
+	file, err := os.Create(filepath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create frame file: %w", err)
+	}
+	defer file.Close()
+
+	err = jpeg.Encode(file, img, &jpeg.Options{Quality: 90})
+	if err != nil {
+		return "", fmt.Errorf("failed to encode frame as JPEG: %w", err)
+	}
+
+	return filepath, nil
+}
+
+// stop stops the camera detector
+func (cd *CameraDetector) stop() {
+	if cd.isRunning && cd.stopCh != nil {
+		close(cd.stopCh)
+	}
+	cd.isRunning = false
+}
+
+// generateEventID generates a unique event ID
+func generateEventID() string {
+	return fmt.Sprintf("event_%d", time.Now().UnixNano())
+}
+
+// GetFrameBytes reads and returns frame bytes from disk
+func GetFrameBytes(framePath string) ([]byte, error) {
+	if framePath == "" {
+		return nil, fmt.Errorf("frame path is empty")
+	}
+
+	data, err := os.ReadFile(framePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read frame file: %w", err)
+	}
+
+	return data, nil
+}
+
+// CleanupOldFrames removes frame files older than the specified duration
+func (md *MotionDetector) CleanupOldFrames(maxAge time.Duration) error {
+	entries, err := os.ReadDir(md.frameStorePath)
+	if err != nil {
+		return fmt.Errorf("failed to read frames directory: %w", err)
+	}
+
+	now := time.Now()
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		if now.Sub(info.ModTime()) > maxAge {
+			filepath := filepath.Join(md.frameStorePath, entry.Name())
+			if err := os.Remove(filepath); err != nil {
+				// Log error but continue cleanup
+				continue
+			}
+		}
+	}
+
+	return nil
+}
+
+// GetCameraDetectorStatus returns status information for all camera detectors
+func (md *MotionDetector) GetCameraDetectorStatus() map[string]bool {
+	md.mu.RLock()
+	defer md.mu.RUnlock()
+
+	status := make(map[string]bool)
+	for cameraID, detector := range md.cameras {
+		status[cameraID] = detector.isRunning
+	}
+
+	return status
+}

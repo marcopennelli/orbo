@@ -1,0 +1,396 @@
+package camera
+
+import (
+	"fmt"
+	"image"
+	"image/jpeg"
+	"os"
+	"sync"
+	"time"
+
+	"gocv.io/x/gocv"
+)
+
+// Camera represents a USB camera device with OpenCV support
+type Camera struct {
+	ID         string
+	Name       string
+	Device     string
+	Resolution string
+	FPS        int
+	Status     string
+	CreatedAt  time.Time
+	
+	// Internal fields for OpenCV
+	capture    *gocv.VideoCapture
+	mu         sync.RWMutex
+	isActive   bool
+	framesChan chan *gocv.Mat
+	stopCh     chan struct{}
+}
+
+// CameraManager manages multiple cameras
+type CameraManager struct {
+	cameras map[string]*Camera
+	mu      sync.RWMutex
+}
+
+// NewCameraManager creates a new camera manager
+func NewCameraManager() *CameraManager {
+	return &CameraManager{
+		cameras: make(map[string]*Camera),
+	}
+}
+
+// NewCamera creates a new camera instance
+func NewCamera(id, name, device, resolution string, fps int) *Camera {
+	return &Camera{
+		ID:         id,
+		Name:       name,
+		Device:     device,
+		Resolution: resolution,
+		FPS:        fps,
+		Status:     "inactive",
+		CreatedAt:  time.Now(),
+		framesChan: make(chan *gocv.Mat, 10),
+		stopCh:     make(chan struct{}),
+	}
+}
+
+// AddCamera adds a camera to the manager
+func (cm *CameraManager) AddCamera(camera *Camera) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	
+	// Check if device exists
+	if !cm.deviceExists(camera.Device) {
+		return fmt.Errorf("camera device %s does not exist", camera.Device)
+	}
+	
+	cm.cameras[camera.ID] = camera
+	return nil
+}
+
+// GetCamera retrieves a camera by ID
+func (cm *CameraManager) GetCamera(id string) (*Camera, error) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	
+	camera, exists := cm.cameras[id]
+	if !exists {
+		return nil, fmt.Errorf("camera with ID %s not found", id)
+	}
+	return camera, nil
+}
+
+// ListCameras returns all cameras
+func (cm *CameraManager) ListCameras() []*Camera {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	
+	cameras := make([]*Camera, 0, len(cm.cameras))
+	for _, camera := range cm.cameras {
+		cameras = append(cameras, camera)
+	}
+	return cameras
+}
+
+// RemoveCamera removes a camera from the manager
+func (cm *CameraManager) RemoveCamera(id string) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	
+	camera, exists := cm.cameras[id]
+	if !exists {
+		return fmt.Errorf("camera with ID %s not found", id)
+	}
+	
+	// Stop the camera if it's active
+	if camera.isActive {
+		camera.stop()
+	}
+	
+	delete(cm.cameras, id)
+	return nil
+}
+
+// ActivateCamera starts video capture for a camera
+func (cm *CameraManager) ActivateCamera(id string) error {
+	camera, err := cm.GetCamera(id)
+	if err != nil {
+		return err
+	}
+	
+	return camera.activate()
+}
+
+// DeactivateCamera stops video capture for a camera
+func (cm *CameraManager) DeactivateCamera(id string) error {
+	camera, err := cm.GetCamera(id)
+	if err != nil {
+		return err
+	}
+	
+	camera.deactivate()
+	return nil
+}
+
+// GetFrameChannel returns the channel for receiving frames from a camera
+func (cm *CameraManager) GetFrameChannel(id string) (<-chan *gocv.Mat, error) {
+	camera, err := cm.GetCamera(id)
+	if err != nil {
+		return nil, err
+	}
+	
+	if !camera.isActive {
+		return nil, fmt.Errorf("camera %s is not active", id)
+	}
+	
+	return camera.framesChan, nil
+}
+
+// activate starts the camera capture with OpenCV
+func (c *Camera) activate() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	if c.isActive {
+		return fmt.Errorf("camera %s is already active", c.ID)
+	}
+	
+	// Open the camera device using OpenCV - THIS WILL TURN ON THE LED!
+	capture, err := gocv.OpenVideoCapture(c.Device)
+	if err != nil {
+		c.Status = "error"
+		return fmt.Errorf("failed to open camera device %s: %w", c.Device, err)
+	}
+	
+	// Verify the camera is actually opened
+	if !capture.IsOpened() {
+		capture.Close()
+		c.Status = "error"
+		return fmt.Errorf("camera device %s could not be opened", c.Device)
+	}
+	
+	// Set camera properties
+	if c.Resolution != "" {
+		// Parse resolution (e.g., "640x480")
+		var width, height float64
+		if _, err := fmt.Sscanf(c.Resolution, "%fx%f", &width, &height); err == nil {
+			capture.Set(gocv.VideoCaptureFrameWidth, width)
+			capture.Set(gocv.VideoCaptureFrameHeight, height)
+		}
+	}
+	
+	if c.FPS > 0 {
+		capture.Set(gocv.VideoCaptureFPS, float64(c.FPS))
+	}
+	
+	c.capture = &capture
+	c.isActive = true
+	c.Status = "active"
+	c.stopCh = make(chan struct{})
+	
+	// Start frame capture goroutine
+	go c.captureFrames()
+	
+	return nil
+}
+
+// deactivate stops the camera capture
+func (c *Camera) deactivate() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	if !c.isActive {
+		return
+	}
+	
+	c.stop()
+}
+
+// stop internal method to stop capture (must be called with lock held)
+func (c *Camera) stop() {
+	if c.stopCh != nil {
+		close(c.stopCh)
+	}
+	
+	if c.capture != nil {
+		c.capture.Close()
+		c.capture = nil
+	}
+	
+	c.isActive = false
+	c.Status = "inactive"
+}
+
+// captureFrames continuously captures frames from the camera
+func (c *Camera) captureFrames() {
+	defer func() {
+		// Clean up frame channel
+		for len(c.framesChan) > 0 {
+			frame := <-c.framesChan
+			frame.Close()
+		}
+	}()
+	
+	img := gocv.NewMat()
+	defer img.Close()
+	
+	ticker := time.NewTicker(time.Second / time.Duration(c.FPS))
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-c.stopCh:
+			return
+		case <-ticker.C:
+			if ok := c.capture.Read(&img); !ok {
+				continue
+			}
+			
+			if img.Empty() {
+				continue
+			}
+			
+			// Clone the frame for sending to the channel
+			frameCopy := img.Clone()
+			
+			// Non-blocking send to avoid blocking the capture loop
+			select {
+			case c.framesChan <- &frameCopy:
+			default:
+				// Channel is full, drop the oldest frame
+				select {
+				case oldFrame := <-c.framesChan:
+					oldFrame.Close()
+				default:
+				}
+				// Try to send the new frame again
+				select {
+				case c.framesChan <- &frameCopy:
+				default:
+					frameCopy.Close()
+				}
+			}
+		}
+	}
+}
+
+// CaptureFrame captures a single frame and returns it as JPEG bytes
+func (c *Camera) CaptureFrame() ([]byte, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	
+	if !c.isActive || c.capture == nil {
+		return nil, fmt.Errorf("camera %s is not active", c.ID)
+	}
+	
+	img := gocv.NewMat()
+	defer img.Close()
+	
+	if ok := c.capture.Read(&img); !ok {
+		return nil, fmt.Errorf("failed to read frame from camera %s", c.ID)
+	}
+	
+	if img.Empty() {
+		return nil, fmt.Errorf("captured empty frame from camera %s", c.ID)
+	}
+	
+	// Convert Mat to Go image.Image
+	goImg, err := img.ToImage()
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert frame to image: %w", err)
+	}
+	
+	// Encode as JPEG
+	return encodeJPEG(goImg)
+}
+
+// deviceExists checks if a camera device exists
+func (cm *CameraManager) deviceExists(device string) bool {
+	if _, err := os.Stat(device); os.IsNotExist(err) {
+		return false
+	}
+	
+	// Try to open the device with OpenCV to check if it's accessible
+	capture, err := gocv.OpenVideoCapture(device)
+	if err != nil {
+		return false
+	}
+	defer capture.Close()
+	
+	return capture.IsOpened()
+}
+
+// encodeJPEG encodes an image as JPEG bytes
+func encodeJPEG(img image.Image) ([]byte, error) {
+	buf := make([]byte, 0, 1024*1024) // Pre-allocate 1MB buffer
+	
+	// Create a bytes buffer from the slice
+	buffer := &bytesBuffer{buf: buf}
+	
+	// Encode as JPEG with 90% quality
+	err := jpeg.Encode(buffer, img, &jpeg.Options{Quality: 90})
+	if err != nil {
+		return nil, err
+	}
+	
+	return buffer.buf, nil
+}
+
+// bytesBuffer implements io.Writer for efficient byte accumulation
+type bytesBuffer struct {
+	buf []byte
+}
+
+func (b *bytesBuffer) Write(p []byte) (n int, err error) {
+	b.buf = append(b.buf, p...)
+	return len(p), nil
+}
+
+// IsActive returns whether the camera is currently active
+func (c *Camera) IsActive() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.isActive
+}
+
+// GetStatus returns the current camera status
+func (c *Camera) GetStatus() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.Status
+}
+
+// UpdateConfiguration updates camera settings
+func (c *Camera) UpdateConfiguration(name, resolution string, fps int) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	
+	wasActive := c.isActive
+	
+	// Stop camera if active
+	if c.isActive {
+		c.stop()
+	}
+	
+	// Update configuration
+	if name != "" {
+		c.Name = name
+	}
+	if resolution != "" {
+		c.Resolution = resolution
+	}
+	if fps > 0 {
+		c.FPS = fps
+	}
+	
+	// Restart camera if it was active
+	if wasActive {
+		c.mu.Unlock() // Unlock before calling activate which needs the lock
+		return c.activate()
+	}
+	
+	return nil
+}

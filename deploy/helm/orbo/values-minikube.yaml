@@ -1,0 +1,29 @@
+service:
+  type: NodePort
+
+config:
+  server:
+    debug: true
+  logLevel: "debug"
+  
+resources:
+  limits:
+    cpu: 300m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Enable privileged mode for camera access in development
+camera:
+  privileged: true
+
+# Smaller storage for development
+persistence:
+  size: 2Gi
+
+# Allow host path access for camera device
+hostDevices:
+  - name: video0
+    hostPath: /dev/video0
+    containerPath: /dev/video0

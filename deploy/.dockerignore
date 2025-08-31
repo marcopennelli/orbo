@@ -1,0 +1,11 @@
+.git
+.gitignore
+*.md
+docs/
+deploy/helm/
+.env*
+*_test.go
+*.test
+coverage.*
+bin/
+*.log

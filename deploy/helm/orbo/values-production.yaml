@@ -1,0 +1,75 @@
+replicaCount: 2
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+config:
+  server:
+    secure: true
+    debug: false
+  logLevel: "info"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Production ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: orbo.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: orbo-tls
+      hosts:
+        - orbo.yourdomain.com
+
+# Larger storage for production
+persistence:
+  size: 50Gi
+  storageClass: "ssd"
+
+# Strict camera access (no privileged mode)
+camera:
+  privileged: false
+
+# Node affinity for camera-equipped nodes
+nodeSelector:
+  camera: "enabled"
+
+# Tolerations for dedicated camera nodes
+tolerations:
+  - key: "camera-node"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"

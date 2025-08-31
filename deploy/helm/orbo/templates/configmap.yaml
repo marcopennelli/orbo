@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "orbo.fullname" . }}-config
+  labels:
+    {{- include "orbo.labels" . | nindent 4 }}
+data:
+  log-level: {{ .Values.config.logLevel | quote }}
+  server-host: {{ .Values.config.server.host | quote }}
+  server-port: {{ .Values.config.server.httpPort | quote }}
+  server-secure: {{ .Values.config.server.secure | quote }}
+  server-debug: {{ .Values.config.server.debug | quote }}
+  telegram-enabled: {{ .Values.config.telegram.enabled | quote }}
+  telegram-cooldown: {{ .Values.config.telegram.cooldownSeconds | quote }}
+  motion-enabled: {{ .Values.config.motionDetection.enabled | quote }}
+  motion-min-confidence: {{ .Values.config.motionDetection.minConfidence | quote }}
+  motion-min-contour-area: {{ .Values.config.motionDetection.minContourArea | quote }}
+  motion-frame-store-path: {{ .Values.config.motionDetection.frameStorePath | quote }}
+  motion-background-history: {{ .Values.config.motionDetection.backgroundHistory | quote }}
+  motion-var-threshold: {{ .Values.config.motionDetection.varThreshold | quote }}

@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Main Orbo Go service
+  orbo-main:
+    build: 
+      context: ..
+      dockerfile: deploy/Dockerfile.slim
+    ports:
+      - "8080:8080"
+    devices:
+      - "/dev/video0:/dev/video0"  # USB camera access
+    group_add:
+      - keep-groups
+    privileged: true  # Required for camera access
+    volumes:
+      - orbo-frames:/app/frames
+      - /tmp/orbo-frames:/app/frames  # Host access to frames
+    environment:
+      - LOG_LEVEL=info
+      - YOLO_SERVICE_URL=http://yolo-service:8081
+    depends_on:
+      - yolo-service
+    restart: unless-stopped
+    networks:
+      - orbo-network
+
+  # AMD GPU-accelerated YOLOv8 service  
+  yolo-service:
+    build:
+      context: ../yolo-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    devices:
+      - "/dev/kfd:/dev/kfd"        # AMD GPU kernel driver
+      - "/dev/dri:/dev/dri"        # AMD GPU rendering devices
+    group_add:
+      - video
+      - render
+    volumes:
+      - yolo-models:/app/models     # Persistent model storage
+      - orbo-frames:/app/frames:ro  # Read access to captured frames
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=10.3.0  # AMD GPU compatibility
+      - PYTORCH_ROCM_ARCH=gfx1030;gfx1031;gfx1032;gfx1100;gfx1101;gfx1102
+      - YOLO_MODEL=yolov8n.pt       # Model size (n=nano, s=small, m=medium)
+      - PORT=8081
+      - HOST=0.0.0.0
+    restart: unless-stopped
+    networks:
+      - orbo-network
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import requests; requests.get('http://localhost:8081/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  orbo-frames:
+    driver: local
+  yolo-models:
+    driver: local
+
+networks:
+  orbo-network:
+    driver: bridge

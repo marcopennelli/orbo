@@ -1,0 +1,1776 @@
+swagger: "2.0"
+info:
+    title: Orbo Video Alarm System
+    description: Open source video alarm system with motion detection and Telegram integration
+    version: "1.0"
+host: localhost:8080
+consumes:
+    - application/json
+    - application/xml
+    - application/gob
+produces:
+    - application/json
+    - application/xml
+    - application/gob
+paths:
+    /api/v1/cameras:
+        get:
+            tags:
+                - camera
+            summary: list camera
+            description: List all configured cameras
+            operationId: camera#list
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        type: array
+                        items:
+                            $ref: '#/definitions/CameraInfoResponse'
+            schemes:
+                - http
+        post:
+            tags:
+                - camera
+            summary: create camera
+            description: Add a new camera
+            operationId: camera#create
+            parameters:
+                - name: CreateRequestBody
+                  in: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/CameraCreateRequestBody'
+                    required:
+                        - name
+                        - device
+            responses:
+                "201":
+                    description: Created response.
+                    schema:
+                        $ref: '#/definitions/CameraCreateResponseBody'
+                        required:
+                            - id
+                            - name
+                            - device
+                            - status
+                "400":
+                    description: Bad Request response.
+                    schema:
+                        $ref: '#/definitions/CameraCreateBadRequestResponseBody'
+                        required:
+                            - message
+            schemes:
+                - http
+    /api/v1/cameras/{id}:
+        get:
+            tags:
+                - camera
+            summary: get camera
+            description: Get camera information by ID
+            operationId: camera#get
+            parameters:
+                - name: id
+                  in: path
+                  description: Camera ID
+                  required: true
+                  type: string
+                  format: uuid
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/CameraGetResponseBody'
+                        required:
+                            - id
+                            - name
+                            - device
+                            - status
+                "404":
+                    description: Not Found response.
+                    schema:
+                        $ref: '#/definitions/CameraGetNotFoundResponseBody'
+                        required:
+                            - message
+                            - id
+            schemes:
+                - http
+        put:
+            tags:
+                - camera
+            summary: update camera
+            description: Update camera configuration
+            operationId: camera#update
+            parameters:
+                - name: id
+                  in: path
+                  description: Camera ID
+                  required: true
+                  type: string
+                  format: uuid
+                - name: UpdateRequestBody
+                  in: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/CameraUpdateRequestBody'
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/CameraUpdateResponseBody'
+                        required:
+                            - id
+                            - name
+                            - device
+                            - status
+                "400":
+                    description: Bad Request response.
+                    schema:
+                        $ref: '#/definitions/CameraUpdateBadRequestResponseBody'
+                        required:
+                            - message
+                "404":
+                    description: Not Found response.
+                    schema:
+                        $ref: '#/definitions/CameraUpdateNotFoundResponseBody'
+                        required:
+                            - message
+                            - id
+            schemes:
+                - http
+        delete:
+            tags:
+                - camera
+            summary: delete camera
+            description: Remove a camera
+            operationId: camera#delete
+            parameters:
+                - name: id
+                  in: path
+                  description: Camera ID
+                  required: true
+                  type: string
+                  format: uuid
+            responses:
+                "204":
+                    description: No Content response.
+                "404":
+                    description: Not Found response.
+                    schema:
+                        $ref: '#/definitions/CameraDeleteNotFoundResponseBody'
+                        required:
+                            - message
+                            - id
+            schemes:
+                - http
+    /api/v1/cameras/{id}/activate:
+        post:
+            tags:
+                - camera
+            summary: activate camera
+            description: Activate camera for motion detection
+            operationId: camera#activate
+            parameters:
+                - name: id
+                  in: path
+                  description: Camera ID
+                  required: true
+                  type: string
+                  format: uuid
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/CameraActivateResponseBody'
+                        required:
+                            - id
+                            - name
+                            - device
+                            - status
+                "404":
+                    description: Not Found response.
+                    schema:
+                        $ref: '#/definitions/CameraActivateNotFoundResponseBody'
+                        required:
+                            - message
+                            - id
+                "500":
+                    description: Internal Server Error response.
+                    schema:
+                        $ref: '#/definitions/CameraActivateInternalResponseBody'
+                        required:
+                            - message
+            schemes:
+                - http
+    /api/v1/cameras/{id}/deactivate:
+        post:
+            tags:
+                - camera
+            summary: deactivate camera
+            description: Deactivate camera
+            operationId: camera#deactivate
+            parameters:
+                - name: id
+                  in: path
+                  description: Camera ID
+                  required: true
+                  type: string
+                  format: uuid
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/CameraDeactivateResponseBody'
+                        required:
+                            - id
+                            - name
+                            - device
+                            - status
+                "404":
+                    description: Not Found response.
+                    schema:
+                        $ref: '#/definitions/CameraDeactivateNotFoundResponseBody'
+                        required:
+                            - message
+                            - id
+            schemes:
+                - http
+    /api/v1/cameras/{id}/frame:
+        get:
+            tags:
+                - camera
+            summary: capture camera
+            description: Capture a single frame from camera as JPEG
+            operationId: camera#capture
+            produces:
+                - image/jpeg
+            parameters:
+                - name: id
+                  in: path
+                  description: Camera ID
+                  required: true
+                  type: string
+                  format: uuid
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        type: string
+                        format: byte
+                "404":
+                    description: Not Found response.
+                    schema:
+                        $ref: '#/definitions/CameraCaptureNotFoundResponseBody'
+                        required:
+                            - message
+                            - id
+                "500":
+                    description: Internal Server Error response.
+                    schema:
+                        $ref: '#/definitions/CameraCaptureInternalResponseBody'
+                        required:
+                            - message
+            schemes:
+                - http
+    /api/v1/config/notifications:
+        get:
+            tags:
+                - config
+            summary: get config
+            description: Get current notification configuration
+            operationId: config#get
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/ConfigGetResponseBody'
+                        required:
+                            - telegram_enabled
+            schemes:
+                - http
+        put:
+            tags:
+                - config
+            summary: update config
+            description: Update notification configuration
+            operationId: config#update
+            parameters:
+                - name: UpdateRequestBody
+                  in: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/ConfigUpdateRequestBody'
+                    required:
+                        - telegram_enabled
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/ConfigUpdateResponseBody'
+                        required:
+                            - telegram_enabled
+                "400":
+                    description: Bad Request response.
+                    schema:
+                        $ref: '#/definitions/ConfigUpdateBadRequestResponseBody'
+                        required:
+                            - message
+            schemes:
+                - http
+    /api/v1/config/notifications/test:
+        post:
+            tags:
+                - config
+            summary: test_notification config
+            description: Send test notification
+            operationId: config#test_notification
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/ConfigTestNotificationResponseBody'
+                        required:
+                            - success
+                            - message
+                "500":
+                    description: Internal Server Error response.
+                    schema:
+                        $ref: '#/definitions/ConfigTestNotificationInternalResponseBody'
+                        required:
+                            - message
+            schemes:
+                - http
+    /api/v1/motion/events:
+        get:
+            tags:
+                - motion
+            summary: events motion
+            description: List motion detection events
+            operationId: motion#events
+            parameters:
+                - name: camera_id
+                  in: query
+                  description: Filter by camera ID
+                  required: false
+                  type: string
+                  format: uuid
+                - name: since
+                  in: query
+                  description: Show events since timestamp
+                  required: false
+                  type: string
+                  format: date-time
+                - name: limit
+                  in: query
+                  description: Maximum number of events to return
+                  required: false
+                  type: integer
+                  default: 50
+                  maximum: 500
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        type: array
+                        items:
+                            $ref: '#/definitions/MotionEventResponse'
+            schemes:
+                - http
+    /api/v1/motion/events/{id}:
+        get:
+            tags:
+                - motion
+            summary: event motion
+            description: Get motion event by ID
+            operationId: motion#event
+            parameters:
+                - name: id
+                  in: path
+                  description: Event ID
+                  required: true
+                  type: string
+                  format: uuid
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/MotionEventResponseBody'
+                        required:
+                            - id
+                            - camera_id
+                            - timestamp
+                            - confidence
+                "404":
+                    description: Not Found response.
+                    schema:
+                        $ref: '#/definitions/MotionEventNotFoundResponseBody'
+                        required:
+                            - message
+                            - id
+            schemes:
+                - http
+    /api/v1/motion/events/{id}/frame:
+        get:
+            tags:
+                - motion
+            summary: frame motion
+            description: Get captured frame for motion event
+            operationId: motion#frame
+            parameters:
+                - name: id
+                  in: path
+                  description: Event ID
+                  required: true
+                  type: string
+                  format: uuid
+            responses:
+                "200":
+                    description: OK response.
+                    headers:
+                        image/jpeg:
+                            type: bytes
+                "404":
+                    description: Not Found response.
+                    schema:
+                        $ref: '#/definitions/MotionFrameNotFoundResponseBody'
+                        required:
+                            - message
+                            - id
+            schemes:
+                - http
+    /api/v1/system/detection/start:
+        post:
+            tags:
+                - system
+            summary: start_detection system
+            description: Start motion detection on all active cameras
+            operationId: system#start_detection
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/SystemStartDetectionResponseBody'
+                        required:
+                            - cameras
+                            - motion_detection_active
+                            - notifications_active
+                            - uptime_seconds
+                "500":
+                    description: Internal Server Error response.
+                    schema:
+                        $ref: '#/definitions/SystemStartDetectionInternalResponseBody'
+                        required:
+                            - message
+            schemes:
+                - http
+    /api/v1/system/detection/stop:
+        post:
+            tags:
+                - system
+            summary: stop_detection system
+            description: Stop motion detection
+            operationId: system#stop_detection
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/SystemStopDetectionResponseBody'
+                        required:
+                            - cameras
+                            - motion_detection_active
+                            - notifications_active
+                            - uptime_seconds
+            schemes:
+                - http
+    /api/v1/system/status:
+        get:
+            tags:
+                - system
+            summary: status system
+            description: Get overall system status
+            operationId: system#status
+            responses:
+                "200":
+                    description: OK response.
+                    schema:
+                        $ref: '#/definitions/SystemStatusResponseBody'
+                        required:
+                            - cameras
+                            - motion_detection_active
+                            - notifications_active
+                            - uptime_seconds
+            schemes:
+                - http
+    /healthz:
+        get:
+            tags:
+                - health
+            summary: healthz health
+            description: Liveness probe endpoint - indicates if the service is alive
+            operationId: health#healthz
+            responses:
+                "200":
+                    description: OK response.
+            schemes:
+                - http
+    /readyz:
+        get:
+            tags:
+                - health
+            summary: readyz health
+            description: Readiness probe endpoint - indicates if the service is ready to serve traffic
+            operationId: health#readyz
+            responses:
+                "200":
+                    description: OK response.
+                "503":
+                    description: Service Unavailable response.
+                    schema:
+                        $ref: '#/definitions/HealthReadyzNotReadyResponseBody'
+                        required:
+                            - message
+            schemes:
+                - http
+definitions:
+    BoundingBoxResponse:
+        title: BoundingBoxResponse
+        type: object
+        properties:
+            height:
+                type: integer
+                description: Height
+                example: 5918944235713784260
+                format: int64
+            width:
+                type: integer
+                description: Width
+                example: 6978005919016018648
+                format: int64
+            x:
+                type: integer
+                description: X coordinate
+                example: 7681794666707811853
+                format: int64
+            "y":
+                type: integer
+                description: Y coordinate
+                example: 8147816553828822266
+                format: int64
+        description: Bounding box coordinates
+        example:
+            height: 2369420242659701926
+            width: 6390420125617921760
+            x: 4457245298276313381
+            "y": 9215798785881259852
+        required:
+            - x
+            - "y"
+            - width
+            - height
+    BoundingBoxResponseBody:
+        title: BoundingBoxResponseBody
+        type: object
+        properties:
+            height:
+                type: integer
+                description: Height
+                example: 7846733923453920141
+                format: int64
+            width:
+                type: integer
+                description: Width
+                example: 9209594088399086260
+                format: int64
+            x:
+                type: integer
+                description: X coordinate
+                example: 1953645017096323970
+                format: int64
+            "y":
+                type: integer
+                description: Y coordinate
+                example: 854147307748126172
+                format: int64
+        description: Bounding box coordinates
+        example:
+            height: 7652135572232251284
+            width: 1657325638041685532
+            x: 6535493391877718728
+            "y": 2421862849656539970
+        required:
+            - x
+            - "y"
+            - width
+            - height
+    CameraActivateInternalResponseBody:
+        title: CameraActivateInternalResponseBody
+        type: object
+        properties:
+            message:
+                type: string
+                description: Error message
+                example: Hic error.
+        description: Failed to activate camera
+        example:
+            message: Ullam et.
+        required:
+            - message
+    CameraActivateNotFoundResponseBody:
+        title: CameraActivateNotFoundResponseBody
+        type: object
+        properties:
+            id:
+                type: string
+                description: Resource ID
+                example: Ex suscipit dolores.
+            message:
+                type: string
+                description: Error message
+                example: Quia consequatur.
+        description: Camera not found
+        example:
+            id: Est corporis porro illum est explicabo.
+            message: Possimus ut aperiam nihil voluptatem veritatis.
+        required:
+            - message
+            - id
+    CameraActivateResponseBody:
+        title: CameraActivateResponseBody
+        type: object
+        properties:
+            created_at:
+                type: string
+                description: Creation timestamp
+                example: "1983-11-04T22:25:23Z"
+                format: date-time
+            device:
+                type: string
+                description: Camera device path (e.g., /dev/video0)
+                example: Rerum officiis impedit quia reiciendis.
+            fps:
+                type: integer
+                description: Frames per second
+                example: 6952317809486756184
+                format: int64
+            id:
+                type: string
+                description: Camera unique identifier
+                example: b48cbed7-85ed-11f0-b1d0-5847ca7b8ce1
+                format: uuid
+            name:
+                type: string
+                description: Camera name
+                example: Doloremque earum ipsa provident non.
+            resolution:
+                type: string
+                description: Camera resolution
+                example: Rerum qui esse earum aliquam.
+            status:
+                type: string
+                description: Camera status
+                example: inactive
+                enum:
+                    - active
+                    - inactive
+                    - error
+        example:
+            created_at: "1972-10-30T17:47:29Z"
+            device: Qui praesentium.
+            fps: 3119717540381623171
+            id: b48cc07f-85ed-11f0-b1d0-5847ca7b8ce1
+            name: Qui voluptas.
+            resolution: Rem id aliquid illo ratione deleniti earum.
+            status: inactive
+        required:
+            - id
+            - name
+            - device
+            - status
+    CameraCaptureInternalResponseBody:
+        title: CameraCaptureInternalResponseBody
+        type: object
+        properties:
+            message:
+                type: string
+                description: Error message
+                example: Occaecati aliquam rerum ut.
+        description: Failed to capture frame
+        example:
+            message: Qui culpa necessitatibus incidunt.
+        required:
+            - message
+    CameraCaptureNotFoundResponseBody:
+        title: CameraCaptureNotFoundResponseBody
+        type: object
+        properties:
+            id:
+                type: string
+                description: Resource ID
+                example: Aspernatur quae officia sed ea.
+            message:
+                type: string
+                description: Error message
+                example: Sint tempora architecto.
+        description: Camera not found
+        example:
+            id: Et perspiciatis voluptatem eveniet omnis.
+            message: Dolorum a voluptas dicta autem vel pariatur.
+        required:
+            - message
+            - id
+    CameraCreateBadRequestResponseBody:
+        title: CameraCreateBadRequestResponseBody
+        type: object
+        properties:
+            details:
+                type: string
+                description: Error details
+                example: Nesciunt explicabo unde.
+            message:
+                type: string
+                description: Error message
+                example: Id rem sint perspiciatis corporis sit ut.
+        description: Invalid camera configuration
+        example:
+            details: Et suscipit.
+            message: Praesentium quod necessitatibus quas.
+        required:
+            - message
+    CameraCreateRequestBody:
+        title: CameraCreateRequestBody
+        type: object
+        properties:
+            device:
+                type: string
+                description: Camera device path
+                example: Dolores nesciunt nisi aspernatur voluptatum provident eveniet.
+            fps:
+                type: integer
+                description: Frames per second
+                default: 30
+                example: 6567923121998407343
+                format: int64
+            name:
+                type: string
+                description: Camera name
+                example: Quas corporis eveniet aliquid.
+            resolution:
+                type: string
+                description: Camera resolution
+                default: 640x480
+                example: Nulla voluptates laudantium quam omnis.
+        example:
+            device: Quia quo aut asperiores delectus.
+            fps: 5420072967353387909
+            name: Optio nulla ab minus est autem eos.
+            resolution: Temporibus quidem provident.
+        required:
+            - name
+            - device
+    CameraCreateResponseBody:
+        title: CameraCreateResponseBody
+        type: object
+        properties:
+            created_at:
+                type: string
+                description: Creation timestamp
+                example: "1990-05-29T11:07:43Z"
+                format: date-time
+            device:
+                type: string
+                description: Camera device path (e.g., /dev/video0)
+                example: Qui illum perferendis aut.
+            fps:
+                type: integer
+                description: Frames per second
+                example: 5884665282163742444
+                format: int64
+            id:
+                type: string
+                description: Camera unique identifier
+                example: b48cb727-85ed-11f0-b1d0-5847ca7b8ce1
+                format: uuid
+            name:
+                type: string
+                description: Camera name
+                example: Ut libero aliquam ut illo error deserunt.
+            resolution:
+                type: string
+                description: Camera resolution
+                example: Ea magnam.
+            status:
+                type: string
+                description: Camera status
+                example: inactive
+                enum:
+                    - active
+                    - inactive
+                    - error
+        example:
+            created_at: "1997-07-05T10:03:59Z"
+            device: Molestias quis illum similique placeat et.
+            fps: 7618353487222314747
+            id: b48cb8b0-85ed-11f0-b1d0-5847ca7b8ce1
+            name: Deleniti eum animi ullam cupiditate fugiat.
+            resolution: Explicabo sunt rem.
+            status: inactive
+        required:
+            - id
+            - name
+            - device
+            - status
+    CameraDeactivateNotFoundResponseBody:
+        title: CameraDeactivateNotFoundResponseBody
+        type: object
+        properties:
+            id:
+                type: string
+                description: Resource ID
+                example: Et corrupti molestiae sunt vel quia molestiae.
+            message:
+                type: string
+                description: Error message
+                example: Ut excepturi quia totam laboriosam quis.
+        description: Camera not found
+        example:
+            id: Ipsam tempore vel saepe mollitia maxime.
+            message: Tempora qui id tempora rerum minus repellendus.
+        required:
+            - message
+            - id
+    CameraDeactivateResponseBody:
+        title: CameraDeactivateResponseBody
+        type: object
+        properties:
+            created_at:
+                type: string
+                description: Creation timestamp
+                example: "2006-08-04T23:33:25Z"
+                format: date-time
+            device:
+                type: string
+                description: Camera device path (e.g., /dev/video0)
+                example: Id pariatur et tempore soluta.
+            fps:
+                type: integer
+                description: Frames per second
+                example: 1910143900521356154
+                format: int64
+            id:
+                type: string
+                description: Camera unique identifier
+                example: b48cc27c-85ed-11f0-b1d0-5847ca7b8ce1
+                format: uuid
+            name:
+                type: string
+                description: Camera name
+                example: Nulla qui.
+            resolution:
+                type: string
+                description: Camera resolution
+                example: Sit quod quas rerum eligendi.
+            status:
+                type: string
+                description: Camera status
+                example: inactive
+                enum:
+                    - active
+                    - inactive
+                    - error
+        example:
+            created_at: "1995-11-22T14:15:00Z"
+            device: Dolor et minus magni iusto aut.
+            fps: 8313556497336173527
+            id: b48cc3fe-85ed-11f0-b1d0-5847ca7b8ce1
+            name: Molestiae assumenda.
+            resolution: Saepe minima et laudantium.
+            status: inactive
+        required:
+            - id
+            - name
+            - device
+            - status
+    CameraDeleteNotFoundResponseBody:
+        title: CameraDeleteNotFoundResponseBody
+        type: object
+        properties:
+            id:
+                type: string
+                description: Resource ID
+                example: Similique ea.
+            message:
+                type: string
+                description: Error message
+                example: Molestias numquam neque.
+        description: Camera not found
+        example:
+            id: Laboriosam ut sequi enim.
+            message: Quisquam alias.
+        required:
+            - message
+            - id
+    CameraGetNotFoundResponseBody:
+        title: CameraGetNotFoundResponseBody
+        type: object
+        properties:
+            id:
+                type: string
+                description: Resource ID
+                example: Sed mollitia voluptas voluptatum.
+            message:
+                type: string
+                description: Error message
+                example: Nihil cupiditate quidem ipsa nobis ducimus.
+        description: Camera not found
+        example:
+            id: Aut dolor neque.
+            message: Vitae qui beatae.
+        required:
+            - message
+            - id
+    CameraGetResponseBody:
+        title: CameraGetResponseBody
+        type: object
+        properties:
+            created_at:
+                type: string
+                description: Creation timestamp
+                example: "2002-11-04T23:52:30Z"
+                format: date-time
+            device:
+                type: string
+                description: Camera device path (e.g., /dev/video0)
+                example: Dignissimos amet eveniet qui aut.
+            fps:
+                type: integer
+                description: Frames per second
+                example: 1410490234955203943
+                format: int64
+            id:
+                type: string
+                description: Camera unique identifier
+                example: b48cb3d1-85ed-11f0-b1d0-5847ca7b8ce1
+                format: uuid
+            name:
+                type: string
+                description: Camera name
+                example: In quia perspiciatis.
+            resolution:
+                type: string
+                description: Camera resolution
+                example: Veritatis deserunt consequuntur cupiditate non et.
+            status:
+                type: string
+                description: Camera status
+                example: error
+                enum:
+                    - active
+                    - inactive
+                    - error
+        example:
+            created_at: "2010-10-22T18:46:05Z"
+            device: Ipsam dolores omnis.
+            fps: 4904388282945940231
+            id: b48cb562-85ed-11f0-b1d0-5847ca7b8ce1
+            name: Consequatur et ullam eum.
+            resolution: Consequatur itaque eaque quod modi.
+            status: inactive
+        required:
+            - id
+            - name
+            - device
+            - status
+    CameraInfoResponse:
+        title: CameraInfoResponse
+        type: object
+        properties:
+            created_at:
+                type: string
+                description: Creation timestamp
+                example: "1973-09-14T04:47:34Z"
+                format: date-time
+            device:
+                type: string
+                description: Camera device path (e.g., /dev/video0)
+                example: Et pariatur nobis dolor.
+            fps:
+                type: integer
+                description: Frames per second
+                example: 3022327210308446825
+                format: int64
+            id:
+                type: string
+                description: Camera unique identifier
+                example: b48cb050-85ed-11f0-b1d0-5847ca7b8ce1
+                format: uuid
+            name:
+                type: string
+                description: Camera name
+                example: Animi ut voluptatibus.
+            resolution:
+                type: string
+                description: Camera resolution
+                example: Temporibus dolorum.
+            status:
+                type: string
+                description: Camera status
+                example: error
+                enum:
+                    - active
+                    - inactive
+                    - error
+        description: Camera information
+        example:
+            created_at: "2005-11-07T08:31:00Z"
+            device: Deleniti rerum non culpa voluptatem fugit sint.
+            fps: 2128811551076672982
+            id: b48cb218-85ed-11f0-b1d0-5847ca7b8ce1
+            name: Sit deserunt placeat voluptas minus atque corporis.
+            resolution: Fugit minima aliquam et et earum.
+            status: inactive
+        required:
+            - id
+            - name
+            - device
+            - status
+    CameraInfoResponseBody:
+        title: CameraInfoResponseBody
+        type: object
+        properties:
+            created_at:
+                type: string
+                description: Creation timestamp
+                example: "2013-01-28T03:19:13Z"
+                format: date-time
+            device:
+                type: string
+                description: Camera device path (e.g., /dev/video0)
+                example: Ipsa et minus voluptatem voluptatum et.
+            fps:
+                type: integer
+                description: Frames per second
+                example: 1298215417012623014
+                format: int64
+            id:
+                type: string
+                description: Camera unique identifier
+                example: b48cd1f4-85ed-11f0-b1d0-5847ca7b8ce1
+                format: uuid
+            name:
+                type: string
+                description: Camera name
+                example: Eum ex atque dolor est deleniti.
+            resolution:
+                type: string
+                description: Camera resolution
+                example: Vitae autem unde tempora ipsa et.
+            status:
+                type: string
+                description: Camera status
+                example: active
+                enum:
+                    - active
+                    - inactive
+                    - error
+        description: Camera information
+        example:
+            created_at: "1979-08-11T14:23:52Z"
+            device: Error in ut dolor.
+            fps: 2486154053371428639
+            id: b48cd3a3-85ed-11f0-b1d0-5847ca7b8ce1
+            name: Minima in ut.
+            resolution: Aliquid totam eveniet maiores non.
+            status: error
+        required:
+            - id
+            - name
+            - device
+            - status
+    CameraUpdateBadRequestResponseBody:
+        title: CameraUpdateBadRequestResponseBody
+        type: object
+        properties:
+            details:
+                type: string
+                description: Error details
+                example: Voluptates doloremque beatae deleniti commodi velit.
+            message:
+                type: string
+                description: Error message
+                example: Nobis eius distinctio ipsum porro eius.
+        description: Invalid camera configuration
+        example:
+            details: Incidunt et.
+            message: Odio sed.
+        required:
+            - message
+    CameraUpdateNotFoundResponseBody:
+        title: CameraUpdateNotFoundResponseBody
+        type: object
+        properties:
+            id:
+                type: string
+                description: Resource ID
+                example: Ea quam.
+            message:
+                type: string
+                description: Error message
+                example: Incidunt quia perspiciatis est aut.
+        description: Camera not found
+        example:
+            id: Blanditiis iure atque omnis quae aut.
+            message: Maiores odio eaque vel.
+        required:
+            - message
+            - id
+    CameraUpdateRequestBody:
+        title: CameraUpdateRequestBody
+        type: object
+        properties:
+            fps:
+                type: integer
+                description: Frames per second
+                example: 8592967244546174323
+                format: int64
+            name:
+                type: string
+                description: Camera name
+                example: Amet vel dolore omnis.
+            resolution:
+                type: string
+                description: Camera resolution
+                example: Sit et esse amet esse aut in.
+        example:
+            fps: 871018779678465369
+            name: Expedita facilis aut.
+            resolution: Nihil aspernatur sunt sunt quidem provident.
+    CameraUpdateResponseBody:
+        title: CameraUpdateResponseBody
+        type: object
+        properties:
+            created_at:
+                type: string
+                description: Creation timestamp
+                example: "1978-07-14T01:01:39Z"
+                format: date-time
+            device:
+                type: string
+                description: Camera device path (e.g., /dev/video0)
+                example: Nemo aut ut expedita consequatur.
+            fps:
+                type: integer
+                description: Frames per second
+                example: 5968341323471009394
+                format: int64
+            id:
+                type: string
+                description: Camera unique identifier
+                example: b48cbac0-85ed-11f0-b1d0-5847ca7b8ce1
+                format: uuid
+            name:
+                type: string
+                description: Camera name
+                example: In et ut aperiam ab.
+            resolution:
+                type: string
+                description: Camera resolution
+                example: Magnam in et natus sit nostrum corrupti.
+            status:
+                type: string
+                description: Camera status
+                example: inactive
+                enum:
+                    - active
+                    - inactive
+                    - error
+        example:
+            created_at: "2000-05-07T16:25:19Z"
+            device: Dolor esse nisi aspernatur beatae laborum necessitatibus.
+            fps: 995813291961614702
+            id: b48cbc44-85ed-11f0-b1d0-5847ca7b8ce1
+            name: Minima et voluptate rerum sint.
+            resolution: Sunt eos iusto vel voluptate unde.
+            status: inactive
+        required:
+            - id
+            - name
+            - device
+            - status
+    ConfigGetResponseBody:
+        title: ConfigGetResponseBody
+        type: object
+        properties:
+            cooldown_seconds:
+                type: integer
+                description: Cooldown period between notifications
+                example: 8693310012190389267
+                format: int64
+            min_confidence:
+                type: number
+                description: Minimum confidence threshold for notifications
+                example: 0.08519207
+                format: float
+            telegram_bot_token:
+                type: string
+                description: Telegram bot token
+                example: Voluptates ut non dolore qui sapiente.
+            telegram_chat_id:
+                type: string
+                description: Telegram chat ID
+                example: Exercitationem et ad repellat quo.
+            telegram_enabled:
+                type: boolean
+                description: Enable Telegram notifications
+                example: true
+        example:
+            cooldown_seconds: 1939828430124887156
+            min_confidence: 0.02466238
+            telegram_bot_token: Magni ea culpa excepturi quas est tenetur.
+            telegram_chat_id: Quia sit esse velit deleniti corrupti.
+            telegram_enabled: false
+        required:
+            - telegram_enabled
+    ConfigTestNotificationInternalResponseBody:
+        title: ConfigTestNotificationInternalResponseBody
+        type: object
+        properties:
+            message:
+                type: string
+                description: Error message
+                example: Eaque qui impedit ad.
+        description: Failed to send test notification
+        example:
+            message: Ratione neque esse.
+        required:
+            - message
+    ConfigTestNotificationResponseBody:
+        title: ConfigTestNotificationResponseBody
+        type: object
+        properties:
+            message:
+                type: string
+                description: Result message
+                example: Ut unde.
+            success:
+                type: boolean
+                description: Test result
+                example: true
+        example:
+            message: Nulla accusantium sint quia assumenda.
+            success: false
+        required:
+            - success
+            - message
+    ConfigUpdateBadRequestResponseBody:
+        title: ConfigUpdateBadRequestResponseBody
+        type: object
+        properties:
+            details:
+                type: string
+                description: Error details
+                example: Iste qui voluptas.
+            message:
+                type: string
+                description: Error message
+                example: Et sit fugiat dolor.
+        description: Invalid configuration
+        example:
+            details: Quia quibusdam quasi praesentium voluptas.
+            message: Repellat odio harum nobis consectetur tempore qui.
+        required:
+            - message
+    ConfigUpdateRequestBody:
+        title: ConfigUpdateRequestBody
+        type: object
+        properties:
+            cooldown_seconds:
+                type: integer
+                description: Cooldown period between notifications
+                example: 2184082556564002194
+                format: int64
+            min_confidence:
+                type: number
+                description: Minimum confidence threshold for notifications
+                example: 0.9570557
+                format: float
+            telegram_bot_token:
+                type: string
+                description: Telegram bot token
+                example: Alias ut.
+            telegram_chat_id:
+                type: string
+                description: Telegram chat ID
+                example: Nostrum ducimus iste accusantium.
+            telegram_enabled:
+                type: boolean
+                description: Enable Telegram notifications
+                example: true
+        example:
+            cooldown_seconds: 8143791044803975470
+            min_confidence: 0.6044439
+            telegram_bot_token: Dolorum accusantium harum inventore atque voluptatem.
+            telegram_chat_id: Eaque quidem ea nostrum ratione.
+            telegram_enabled: true
+        required:
+            - telegram_enabled
+    ConfigUpdateResponseBody:
+        title: ConfigUpdateResponseBody
+        type: object
+        properties:
+            cooldown_seconds:
+                type: integer
+                description: Cooldown period between notifications
+                example: 8954350330952672243
+                format: int64
+            min_confidence:
+                type: number
+                description: Minimum confidence threshold for notifications
+                example: 0.4063316
+                format: float
+            telegram_bot_token:
+                type: string
+                description: Telegram bot token
+                example: Et excepturi dolor officiis libero sit et.
+            telegram_chat_id:
+                type: string
+                description: Telegram chat ID
+                example: Non est ducimus.
+            telegram_enabled:
+                type: boolean
+                description: Enable Telegram notifications
+                example: true
+        example:
+            cooldown_seconds: 3229381583260738034
+            min_confidence: 0.96684986
+            telegram_bot_token: Voluptatum quam.
+            telegram_chat_id: Doloribus et quisquam qui quibusdam minus.
+            telegram_enabled: true
+        required:
+            - telegram_enabled
+    HealthReadyzNotReadyResponseBody:
+        title: HealthReadyzNotReadyResponseBody
+        type: object
+        properties:
+            details:
+                type: string
+                description: Additional error details
+                example: Minus perferendis et nobis sunt.
+            message:
+                type: string
+                description: Error message
+                example: Aliquid dolores consequatur qui sit voluptatem.
+        description: Service is not ready
+        example:
+            details: Sunt et aut qui aut ex.
+            message: Quae explicabo.
+        required:
+            - message
+    MotionEventNotFoundResponseBody:
+        title: MotionEventNotFoundResponseBody
+        type: object
+        properties:
+            id:
+                type: string
+                description: Resource ID
+                example: Eos ea perferendis.
+            message:
+                type: string
+                description: Error message
+                example: Est aut voluptatum error doloribus.
+        description: Event not found
+        example:
+            id: Accusantium quis optio culpa ex.
+            message: Mollitia nesciunt.
+        required:
+            - message
+            - id
+    MotionEventResponse:
+        title: MotionEventResponse
+        type: object
+        properties:
+            bounding_boxes:
+                type: array
+                items:
+                    $ref: '#/definitions/BoundingBoxResponse'
+                description: Detected motion areas
+                example:
+                    - height: 8374021465054359798
+                      width: 3889337126327955980
+                      x: 839337491387689382
+                      "y": 7164428059449762984
+                    - height: 8374021465054359798
+                      width: 3889337126327955980
+                      x: 839337491387689382
+                      "y": 7164428059449762984
+                    - height: 8374021465054359798
+                      width: 3889337126327955980
+                      x: 839337491387689382
+                      "y": 7164428059449762984
+            camera_id:
+                type: string
+                description: Camera ID
+                example: b48cc6f3-85ed-11f0-b1d0-5847ca7b8ce1
+                format: uuid
+            confidence:
+                type: number
+                description: Motion confidence score (0-1)
+                example: 0.5925878
+                format: float
+            frame_path:
+                type: string
+                description: Path to captured frame
+                example: Sint corrupti numquam vitae.
+            id:
+                type: string
+                description: Event unique identifier
+                example: b48cc644-85ed-11f0-b1d0-5847ca7b8ce1
+                format: uuid
+            notification_sent:
+                type: boolean
+                description: Whether notification was sent
+                example: true
+            timestamp:
+                type: string
+                description: Event timestamp
+                example: "1976-06-27T08:31:53Z"
+                format: date-time
+        description: Motion detection event
+        example:
+            bounding_boxes:
+                - height: 8374021465054359798
+                  width: 3889337126327955980
+                  x: 839337491387689382
+                  "y": 7164428059449762984
+                - height: 8374021465054359798
+                  width: 3889337126327955980
+                  x: 839337491387689382
+                  "y": 7164428059449762984
+                - height: 8374021465054359798
+                  width: 3889337126327955980
+                  x: 839337491387689382
+                  "y": 7164428059449762984
+                - height: 8374021465054359798
+                  width: 3889337126327955980
+                  x: 839337491387689382
+                  "y": 7164428059449762984
+            camera_id: b48cc956-85ed-11f0-b1d0-5847ca7b8ce1
+            confidence: 0.44652814
+            frame_path: Hic quos et occaecati iste laudantium.
+            id: b48cc8a7-85ed-11f0-b1d0-5847ca7b8ce1
+            notification_sent: true
+            timestamp: "1989-09-05T13:41:51Z"
+        required:
+            - id
+            - camera_id
+            - timestamp
+            - confidence
+    MotionEventResponseBody:
+        title: MotionEventResponseBody
+        type: object
+        properties:
+            bounding_boxes:
+                type: array
+                items:
+                    $ref: '#/definitions/BoundingBoxResponseBody'
+                description: Detected motion areas
+                example:
+                    - height: 4663411613589086343
+                      width: 2348713965450682576
+                      x: 7029590923994583667
+                      "y": 6292279998008267414
+                    - height: 4663411613589086343
+                      width: 2348713965450682576
+                      x: 7029590923994583667
+                      "y": 6292279998008267414
+            camera_id:
+                type: string
+                description: Camera ID
+                example: b48ccb9e-85ed-11f0-b1d0-5847ca7b8ce1
+                format: uuid
+            confidence:
+                type: number
+                description: Motion confidence score (0-1)
+                example: 0.10058352
+                format: float
+            frame_path:
+                type: string
+                description: Path to captured frame
+                example: Laborum hic earum vel ut ipsum.
+            id:
+                type: string
+                description: Event unique identifier
+                example: b48ccae9-85ed-11f0-b1d0-5847ca7b8ce1
+                format: uuid
+            notification_sent:
+                type: boolean
+                description: Whether notification was sent
+                example: false
+            timestamp:
+                type: string
+                description: Event timestamp
+                example: "1987-03-18T04:56:54Z"
+                format: date-time
+        example:
+            bounding_boxes:
+                - height: 4663411613589086343
+                  width: 2348713965450682576
+                  x: 7029590923994583667
+                  "y": 6292279998008267414
+                - height: 4663411613589086343
+                  width: 2348713965450682576
+                  x: 7029590923994583667
+                  "y": 6292279998008267414
+            camera_id: b48cce23-85ed-11f0-b1d0-5847ca7b8ce1
+            confidence: 0.84649354
+            frame_path: Molestiae et reprehenderit facilis atque consectetur quibusdam.
+            id: b48ccd7a-85ed-11f0-b1d0-5847ca7b8ce1
+            notification_sent: true
+            timestamp: "1975-03-07T20:13:06Z"
+        required:
+            - id
+            - camera_id
+            - timestamp
+            - confidence
+    MotionFrameNotFoundResponseBody:
+        title: MotionFrameNotFoundResponseBody
+        type: object
+        properties:
+            id:
+                type: string
+                description: Resource ID
+                example: Culpa sit nam voluptatibus beatae odit.
+            message:
+                type: string
+                description: Error message
+                example: Voluptatem tenetur voluptatem voluptas mollitia corporis dolorem.
+        description: Event or frame not found
+        example:
+            id: Omnis est placeat magni in.
+            message: Ut soluta unde non repudiandae iusto et.
+        required:
+            - message
+            - id
+    SystemStartDetectionInternalResponseBody:
+        title: SystemStartDetectionInternalResponseBody
+        type: object
+        properties:
+            message:
+                type: string
+                description: Error message
+                example: Voluptatem ad assumenda.
+        description: Failed to start motion detection
+        example:
+            message: Quia nemo neque.
+        required:
+            - message
+    SystemStartDetectionResponseBody:
+        title: SystemStartDetectionResponseBody
+        type: object
+        properties:
+            cameras:
+                type: array
+                items:
+                    $ref: '#/definitions/CameraInfoResponseBody'
+                description: Camera status list
+                example:
+                    - created_at: "2004-06-01T18:23:46Z"
+                      device: Suscipit voluptatibus debitis modi.
+                      fps: 4345309881723331338
+                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                      name: Officiis non et similique.
+                      resolution: Ut sit sit.
+                      status: inactive
+                    - created_at: "2004-06-01T18:23:46Z"
+                      device: Suscipit voluptatibus debitis modi.
+                      fps: 4345309881723331338
+                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                      name: Officiis non et similique.
+                      resolution: Ut sit sit.
+                      status: inactive
+            motion_detection_active:
+                type: boolean
+                description: Motion detection status
+                example: false
+            notifications_active:
+                type: boolean
+                description: Notification status
+                example: true
+            uptime_seconds:
+                type: integer
+                description: System uptime in seconds
+                example: 4221467888397973170
+                format: int64
+        example:
+            cameras:
+                - created_at: "2004-06-01T18:23:46Z"
+                  device: Suscipit voluptatibus debitis modi.
+                  fps: 4345309881723331338
+                  id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                  name: Officiis non et similique.
+                  resolution: Ut sit sit.
+                  status: inactive
+                - created_at: "2004-06-01T18:23:46Z"
+                  device: Suscipit voluptatibus debitis modi.
+                  fps: 4345309881723331338
+                  id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                  name: Officiis non et similique.
+                  resolution: Ut sit sit.
+                  status: inactive
+            motion_detection_active: false
+            notifications_active: true
+            uptime_seconds: 1796850915396718978
+        required:
+            - cameras
+            - motion_detection_active
+            - notifications_active
+            - uptime_seconds
+    SystemStatusResponseBody:
+        title: SystemStatusResponseBody
+        type: object
+        properties:
+            cameras:
+                type: array
+                items:
+                    $ref: '#/definitions/CameraInfoResponseBody'
+                description: Camera status list
+                example:
+                    - created_at: "2004-06-01T18:23:46Z"
+                      device: Suscipit voluptatibus debitis modi.
+                      fps: 4345309881723331338
+                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                      name: Officiis non et similique.
+                      resolution: Ut sit sit.
+                      status: inactive
+                    - created_at: "2004-06-01T18:23:46Z"
+                      device: Suscipit voluptatibus debitis modi.
+                      fps: 4345309881723331338
+                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                      name: Officiis non et similique.
+                      resolution: Ut sit sit.
+                      status: inactive
+                    - created_at: "2004-06-01T18:23:46Z"
+                      device: Suscipit voluptatibus debitis modi.
+                      fps: 4345309881723331338
+                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                      name: Officiis non et similique.
+                      resolution: Ut sit sit.
+                      status: inactive
+                    - created_at: "2004-06-01T18:23:46Z"
+                      device: Suscipit voluptatibus debitis modi.
+                      fps: 4345309881723331338
+                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                      name: Officiis non et similique.
+                      resolution: Ut sit sit.
+                      status: inactive
+            motion_detection_active:
+                type: boolean
+                description: Motion detection status
+                example: false
+            notifications_active:
+                type: boolean
+                description: Notification status
+                example: false
+            uptime_seconds:
+                type: integer
+                description: System uptime in seconds
+                example: 5139090596270731019
+                format: int64
+        example:
+            cameras:
+                - created_at: "2004-06-01T18:23:46Z"
+                  device: Suscipit voluptatibus debitis modi.
+                  fps: 4345309881723331338
+                  id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                  name: Officiis non et similique.
+                  resolution: Ut sit sit.
+                  status: inactive
+                - created_at: "2004-06-01T18:23:46Z"
+                  device: Suscipit voluptatibus debitis modi.
+                  fps: 4345309881723331338
+                  id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                  name: Officiis non et similique.
+                  resolution: Ut sit sit.
+                  status: inactive
+            motion_detection_active: true
+            notifications_active: true
+            uptime_seconds: 1992913388547027588
+        required:
+            - cameras
+            - motion_detection_active
+            - notifications_active
+            - uptime_seconds
+    SystemStopDetectionResponseBody:
+        title: SystemStopDetectionResponseBody
+        type: object
+        properties:
+            cameras:
+                type: array
+                items:
+                    $ref: '#/definitions/CameraInfoResponseBody'
+                description: Camera status list
+                example:
+                    - created_at: "2004-06-01T18:23:46Z"
+                      device: Suscipit voluptatibus debitis modi.
+                      fps: 4345309881723331338
+                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                      name: Officiis non et similique.
+                      resolution: Ut sit sit.
+                      status: inactive
+                    - created_at: "2004-06-01T18:23:46Z"
+                      device: Suscipit voluptatibus debitis modi.
+                      fps: 4345309881723331338
+                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                      name: Officiis non et similique.
+                      resolution: Ut sit sit.
+                      status: inactive
+                    - created_at: "2004-06-01T18:23:46Z"
+                      device: Suscipit voluptatibus debitis modi.
+                      fps: 4345309881723331338
+                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                      name: Officiis non et similique.
+                      resolution: Ut sit sit.
+                      status: inactive
+                    - created_at: "2004-06-01T18:23:46Z"
+                      device: Suscipit voluptatibus debitis modi.
+                      fps: 4345309881723331338
+                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                      name: Officiis non et similique.
+                      resolution: Ut sit sit.
+                      status: inactive
+            motion_detection_active:
+                type: boolean
+                description: Motion detection status
+                example: true
+            notifications_active:
+                type: boolean
+                description: Notification status
+                example: true
+            uptime_seconds:
+                type: integer
+                description: System uptime in seconds
+                example: 74453451826455921
+                format: int64
+        example:
+            cameras:
+                - created_at: "2004-06-01T18:23:46Z"
+                  device: Suscipit voluptatibus debitis modi.
+                  fps: 4345309881723331338
+                  id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                  name: Officiis non et similique.
+                  resolution: Ut sit sit.
+                  status: inactive
+                - created_at: "2004-06-01T18:23:46Z"
+                  device: Suscipit voluptatibus debitis modi.
+                  fps: 4345309881723331338
+                  id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
+                  name: Officiis non et similique.
+                  resolution: Ut sit sit.
+                  status: inactive
+            motion_detection_active: true
+            notifications_active: true
+            uptime_seconds: 7877812996142233188
+        required:
+            - cameras
+            - motion_detection_active
+            - notifications_active
+            - uptime_seconds

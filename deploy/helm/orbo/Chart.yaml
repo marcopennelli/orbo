@@ -1,0 +1,20 @@
+apiVersion: v2
+name: orbo
+description: A Helm chart for Orbo - Open source video alarm system with motion detection and Telegram integration
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - microservice
+  - video
+  - alarm
+  - motion-detection
+  - opencv
+  - telegram
+  - surveillance
+home: https://github.com/yourorg/orbo
+sources:
+  - https://github.com/yourorg/orbo
+maintainers:
+  - name: Tech Team
+    email: tech@yourorg.com
