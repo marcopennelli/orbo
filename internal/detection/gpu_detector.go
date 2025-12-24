@@ -16,7 +16,18 @@ type GPUDetector struct {
 	endpoint    string
 	client      *http.Client
 	enabled     bool
+	drawBoxes   bool
 	healthCheck time.Time
+}
+
+// AnnotatedSecurityResult represents detection result with annotated image
+type AnnotatedSecurityResult struct {
+	ImageData       []byte
+	Detections      []Detection
+	Count           int
+	InferenceTimeMs float32
+	Device          string
+	ThreatAnalysis  *ThreatAnalysis
 }
 
 // Detection represents a detected object
@@ -220,4 +231,86 @@ func (gd *GPUDetector) GetThreatLevel(detection Detection) string {
 	default:
 		return "none"
 	}
+}
+
+// SetDrawBoxes enables or disables bounding box drawing
+func (gd *GPUDetector) SetDrawBoxes(enabled bool) {
+	gd.drawBoxes = enabled
+}
+
+// DrawBoxesEnabled returns whether bounding boxes should be drawn
+func (gd *GPUDetector) DrawBoxesEnabled() bool {
+	return gd.drawBoxes
+}
+
+// DetectSecurityObjectsAnnotated performs security detection and returns annotated image
+func (gd *GPUDetector) DetectSecurityObjectsAnnotated(imageData []byte, confThreshold float32) (*AnnotatedSecurityResult, error) {
+	if !gd.IsHealthy() {
+		return nil, fmt.Errorf("GPU detection service unavailable")
+	}
+
+	// Create multipart form data
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	// Add image file with proper Content-Type header
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="file"; filename="frame.jpg"`)
+	h.Set("Content-Type", "image/jpeg")
+	fw, err := w.CreatePart(h)
+	if err != nil {
+		return nil, err
+	}
+	fw.Write(imageData)
+
+	// Add confidence threshold
+	w.WriteField("conf_threshold", fmt.Sprintf("%.2f", confThreshold))
+	w.Close()
+
+	// Make request to security annotated endpoint
+	req, err := http.NewRequest("POST", gd.endpoint+"/detect/security/annotated?format=image", &b)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	resp, err := gd.client.Do(req)
+	if err != nil {
+		gd.enabled = false
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("annotated security detection failed: %s", string(body))
+	}
+
+	// Read annotated image
+	annotatedImage, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read annotated image: %w", err)
+	}
+
+	// Parse detection metadata from headers
+	count := 0
+	if countStr := resp.Header.Get("X-Detection-Count"); countStr != "" {
+		fmt.Sscanf(countStr, "%d", &count)
+	}
+
+	var inferenceTime float32
+	if timeStr := resp.Header.Get("X-Inference-Time-Ms"); timeStr != "" {
+		fmt.Sscanf(timeStr, "%f", &inferenceTime)
+	}
+
+	device := resp.Header.Get("X-Device")
+
+	result := &AnnotatedSecurityResult{
+		ImageData:       annotatedImage,
+		Count:           count,
+		InferenceTimeMs: inferenceTime,
+		Device:          device,
+	}
+
+	return result, nil
 }

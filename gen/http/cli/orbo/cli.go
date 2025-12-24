@@ -38,7 +38,7 @@ system (status|start-detection|stop-detection)
 func UsageExamples() string {
 	return os.Args[0] + ` health healthz` + "\n" +
 		os.Args[0] + ` camera list` + "\n" +
-		os.Args[0] + ` motion events --camera-id "86580355-e0c1-11f0-9fb7-5847ca7b8ce1" --since "1999-07-29T12:41:31Z" --limit -622138068857724697` + "\n" +
+		os.Args[0] + ` motion events --camera-id "f3a3bce2-e0de-11f0-98fa-5847ca7b8ce1" --since "2011-09-21T06:07:31Z" --limit -5601431881419779325` + "\n" +
 		os.Args[0] + ` config get` + "\n" +
 		os.Args[0] + ` system status` + "\n" +
 		""
@@ -514,7 +514,7 @@ Get camera information by ID
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera get --id "86575d70-e0c1-11f0-9fb7-5847ca7b8ce1"
+    %[1]s camera get --id "f3a30bfd-e0de-11f0-98fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -526,10 +526,10 @@ Add a new camera
 
 Example:
     %[1]s camera create --body '{
-      "device": "Laboriosam distinctio exercitationem.",
-      "fps": 4338044084510968211,
-      "name": "Consequatur quam excepturi voluptatem iusto excepturi.",
-      "resolution": "Illo et tempora unde similique fuga ut."
+      "device": "Illo et tempora unde similique fuga ut.",
+      "fps": 1063017646729038636,
+      "name": "Excepturi velit laboriosam distinctio exercitationem.",
+      "resolution": "Consequatur reiciendis."
    }'
 `, os.Args[0])
 }
@@ -543,10 +543,10 @@ Update camera configuration
 
 Example:
     %[1]s camera update --body '{
-      "fps": 2317895728662192209,
-      "name": "Inventore excepturi numquam repellendus harum similique.",
-      "resolution": "Repellendus et accusantium."
-   }' --id "865793c8-e0c1-11f0-9fb7-5847ca7b8ce1"
+      "fps": 6793418233542172098,
+      "name": "Accusantium magni eum cum.",
+      "resolution": "Cumque possimus quia repudiandae neque magni consectetur."
+   }' --id "f3a33396-e0de-11f0-98fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -557,7 +557,7 @@ Remove a camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera delete --id "8657a924-e0c1-11f0-9fb7-5847ca7b8ce1"
+    %[1]s camera delete --id "f3a36fae-e0de-11f0-98fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -568,7 +568,7 @@ Activate camera for motion detection
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera activate --id "8657ba9f-e0c1-11f0-9fb7-5847ca7b8ce1"
+    %[1]s camera activate --id "f3a37733-e0de-11f0-98fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -579,7 +579,7 @@ Deactivate camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera deactivate --id "8657e40f-e0c1-11f0-9fb7-5847ca7b8ce1"
+    %[1]s camera deactivate --id "f3a38b10-e0de-11f0-98fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -590,7 +590,7 @@ Capture a single frame from camera as base64
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera capture --id "8657f629-e0c1-11f0-9fb7-5847ca7b8ce1"
+    %[1]s camera capture --id "f3a39dd6-e0de-11f0-98fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -618,7 +618,7 @@ List motion detection events
     -limit INT: 
 
 Example:
-    %[1]s motion events --camera-id "86580355-e0c1-11f0-9fb7-5847ca7b8ce1" --since "1999-07-29T12:41:31Z" --limit -622138068857724697
+    %[1]s motion events --camera-id "f3a3bce2-e0de-11f0-98fa-5847ca7b8ce1" --since "2011-09-21T06:07:31Z" --limit -5601431881419779325
 `, os.Args[0])
 }
 
@@ -629,7 +629,7 @@ Get motion event by ID
     -id STRING: Event ID
 
 Example:
-    %[1]s motion event --id "86581cb2-e0c1-11f0-9fb7-5847ca7b8ce1"
+    %[1]s motion event --id "f3a3e01c-e0de-11f0-98fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -640,7 +640,7 @@ Get captured frame for motion event as base64
     -id STRING: Event ID
 
 Example:
-    %[1]s motion frame --id "8658391a-e0c1-11f0-9fb7-5847ca7b8ce1"
+    %[1]s motion frame --id "f3a41d8e-e0de-11f0-98fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -685,11 +685,11 @@ Update notification configuration
 
 Example:
     %[1]s config update --body '{
-      "cooldown_seconds": 7135647574342476924,
-      "min_confidence": 0.42412287,
-      "telegram_bot_token": "Id dolore.",
-      "telegram_chat_id": "Rerum cum qui dolore.",
-      "telegram_enabled": false
+      "cooldown_seconds": 2217979236458041470,
+      "min_confidence": 0.32006893,
+      "telegram_bot_token": "Possimus dolorem officia nulla necessitatibus.",
+      "telegram_chat_id": "Sed maiores quia delectus.",
+      "telegram_enabled": true
    }'
 `, os.Args[0])
 }
@@ -722,12 +722,12 @@ Update DINOv3 AI configuration
 
 Example:
     %[1]s config update-dinov3 --body '{
-      "confidence_threshold": 0.8294231,
-      "enable_scene_analysis": false,
+      "confidence_threshold": 0.76601183,
+      "enable_scene_analysis": true,
       "enabled": true,
-      "fallback_to_basic": true,
-      "motion_threshold": 0.51341873,
-      "service_endpoint": "Aperiam eveniet quisquam laudantium aliquid dolores."
+      "fallback_to_basic": false,
+      "motion_threshold": 0.5300217,
+      "service_endpoint": "Commodi commodi ipsa non dolore officiis."
    }'
 `, os.Args[0])
 }
@@ -760,11 +760,12 @@ Update YOLO detection configuration
 
 Example:
     %[1]s config update-yolo --body '{
-      "classes_filter": "Est temporibus.",
-      "confidence_threshold": 0.58341485,
-      "enabled": true,
+      "classes_filter": "Beatae et doloremque distinctio autem ipsam.",
+      "confidence_threshold": 0.7212448,
+      "draw_boxes": true,
+      "enabled": false,
       "security_mode": true,
-      "service_endpoint": "Distinctio et pariatur."
+      "service_endpoint": "Occaecati et omnis."
    }'
 `, os.Args[0])
 }
@@ -798,21 +799,22 @@ Update combined detection configuration
 Example:
     %[1]s config update-detection --body '{
       "dinov3": {
-         "confidence_threshold": 0.62306696,
+         "confidence_threshold": 0.14756961,
          "enable_scene_analysis": false,
-         "enabled": false,
-         "fallback_to_basic": false,
-         "motion_threshold": 0.9232003,
-         "service_endpoint": "Aut sit deserunt."
+         "enabled": true,
+         "fallback_to_basic": true,
+         "motion_threshold": 0.31562462,
+         "service_endpoint": "Quis et aliquid."
       },
-      "fallback_enabled": true,
+      "fallback_enabled": false,
       "primary_detector": "basic",
       "yolo": {
-         "classes_filter": "Sed cumque reprehenderit laudantium harum.",
-         "confidence_threshold": 0.48796725,
-         "enabled": false,
+         "classes_filter": "Porro ullam ipsa nesciunt porro atque ut.",
+         "confidence_threshold": 0.94479585,
+         "draw_boxes": true,
+         "enabled": true,
          "security_mode": false,
-         "service_endpoint": "Non pariatur delectus dolore blanditiis et."
+         "service_endpoint": "Ad necessitatibus quo deleniti."
       }
    }'
 `, os.Args[0])

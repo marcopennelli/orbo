@@ -94,18 +94,26 @@ func main() {
 	if yoloEndpoint == "" {
 		yoloEndpoint = "http://yolo-service:8081"
 	}
+	drawBoxes := os.Getenv("YOLO_DRAW_BOXES") == "true"
 	yoloDetector := detection.NewYOLODetectorWithConfig(detection.YOLOConfig{
 		Enabled:             os.Getenv("YOLO_ENABLED") == "true",
 		ServiceEndpoint:     yoloEndpoint,
 		ConfidenceThreshold: 0.5,
 		SecurityMode:        true,
+		DrawBoxes:           drawBoxes,
 	})
+
+	// Apply initial draw boxes setting to motion detector
+	motionDetector.SetDrawBoxes(drawBoxes)
+
+	// Set Telegram bot on motion detector for notifications
+	motionDetector.SetTelegramBot(telegramBot)
 
 	// Log detector configuration
 	logger.Printf("Detection configuration:")
 	logger.Printf("  Primary detector: %s", os.Getenv("PRIMARY_DETECTOR"))
 	logger.Printf("  DINOv3 endpoint: %s (enabled: %v)", dinov3Endpoint, os.Getenv("DINOV3_ENABLED") == "true")
-	logger.Printf("  YOLO endpoint: %s (enabled: %v)", yoloEndpoint, os.Getenv("YOLO_ENABLED") == "true")
+	logger.Printf("  YOLO endpoint: %s (enabled: %v, draw_boxes: %v)", yoloEndpoint, os.Getenv("YOLO_ENABLED") == "true", drawBoxes)
 
 	// Initialize the services.
 	var (
@@ -120,7 +128,7 @@ func main() {
 		cameraSvc = services.NewCameraService(cameraManager)
 		motionSvc = services.NewMotionService(motionDetector, cameraManager)
 		systemSvc = services.NewSystemService(cameraManager, motionDetector)
-		configSvc = services.NewConfigService(telegramBot, dinov3Detector, yoloDetector, db)
+		configSvc = services.NewConfigService(telegramBot, dinov3Detector, yoloDetector, motionDetector, db)
 	}
 
 	// Wrap the services in endpoints that can be invoked from other services

@@ -20,22 +20,25 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
-      {{- with .Values.yolo.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       serviceAccountName: {{ include "orbo.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.yolo.podSecurityContext | nindent 8 }}
+        runAsNonRoot: {{ .Values.yolo.securityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.yolo.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.yolo.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.yolo.securityContext.fsGroup }}
       containers:
         - name: yolo-service
           securityContext:
-            {{- toYaml .Values.yolo.securityContext | nindent 12 }}
+            allowPrivilegeEscalation: {{ .Values.yolo.securityContext.allowPrivilegeEscalation }}
+            readOnlyRootFilesystem: {{ .Values.yolo.securityContext.readOnlyRootFilesystem }}
+            capabilities:
+              drop:
+                {{- toYaml .Values.yolo.securityContext.capabilities.drop | nindent 16 }}
           image: "{{ .Values.yolo.image.repository }}:{{ .Values.yolo.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.yolo.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 8081
+              containerPort: {{ .Values.yolo.service.port }}
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -54,27 +57,28 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 3
           resources:
-            {{- if .Values.yolo.cpuOnly }}
-            limits:
-              cpu: {{ .Values.yolo.resources.limits.cpu | default "2000m" }}
-              memory: {{ .Values.yolo.resources.limits.memory | default "4Gi" }}
-            requests:
-              cpu: {{ .Values.yolo.resources.requests.cpu | default "500m" }}
-              memory: {{ .Values.yolo.resources.requests.memory | default "2Gi" }}
-            {{- else }}
             {{- toYaml .Values.yolo.resources | nindent 12 }}
-            {{- end }}
           env:
-            - name: CUDA_VISIBLE_DEVICES
-              value: {{ .Values.yolo.cudaDevices | quote }}
             - name: PORT
-              value: "8081"
+              value: {{ .Values.yolo.service.port | quote }}
             - name: HOST
               value: "0.0.0.0"
-          {{- if .Values.yolo.extraEnv }}
-            {{- toYaml .Values.yolo.extraEnv | nindent 12 }}
-          {{- end }}
-      {{- if not .Values.yolo.cpuOnly }}
+            {{- if .Values.yolo.gpu.enabled }}
+            - name: CUDA_VISIBLE_DEVICES
+              value: {{ .Values.yolo.gpu.cudaDevices | quote }}
+            {{- end }}
+            {{- if .Values.yolo.config.classesFilter }}
+            - name: CLASSES_FILTER
+              value: {{ .Values.yolo.config.classesFilter | quote }}
+            {{- end }}
+            - name: YOLO_MODEL
+              value: {{ .Values.yolo.config.model | quote }}
+      {{- if .Values.yolo.gpu.enabled }}
+      {{- with .Values.yolo.gpu.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- else }}
       {{- with .Values.yolo.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

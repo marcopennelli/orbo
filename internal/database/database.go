@@ -260,6 +260,16 @@ func (d *Database) GetMotionEvent(id string) (*MotionEventRecord, error) {
 	return &event, nil
 }
 
+// MarkNotificationSent marks a motion event as having sent its notification
+func (d *Database) MarkNotificationSent(eventID string) error {
+	query := `UPDATE motion_events SET notification_sent = 1 WHERE id = ?`
+	_, err := d.db.Exec(query, eventID)
+	if err != nil {
+		return fmt.Errorf("failed to mark notification sent: %w", err)
+	}
+	return nil
+}
+
 // ListMotionEvents returns motion events with optional filtering
 func (d *Database) ListMotionEvents(cameraID string, since *time.Time, limit int) ([]*MotionEventRecord, error) {
 	query := `SELECT id, camera_id, timestamp, confidence, bounding_boxes, frame_path,

@@ -155,6 +155,8 @@ type YOLOConfig struct {
 	SecurityMode bool
 	// Comma-separated class names to filter (empty = all)
 	ClassesFilter *string
+	// Draw bounding boxes on images (for Telegram, API)
+	DrawBoxes bool
 }
 
 // Error returns an error description.

@@ -56,8 +56,10 @@ spec:
           resources:
             {{- toYaml .Values.dinov3.resources | nindent 12 }}
           env:
+            {{- if .Values.dinov3.gpu.enabled }}
             - name: CUDA_VISIBLE_DEVICES
-              value: {{ .Values.dinov3.cudaDevices | quote }}
+              value: {{ .Values.dinov3.gpu.cudaDevices | quote }}
+            {{- end }}
           {{- if .Values.dinov3.extraEnv }}
             {{- toYaml .Values.dinov3.extraEnv | nindent 12 }}
           {{- end }}

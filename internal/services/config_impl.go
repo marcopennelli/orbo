@@ -11,6 +11,7 @@ import (
 	config "orbo/gen/config"
 	"orbo/internal/database"
 	"orbo/internal/detection"
+	"orbo/internal/motion"
 	"orbo/internal/telegram"
 )
 
@@ -20,6 +21,7 @@ type ConfigImplementation struct {
 	telegramBot     *telegram.TelegramBot
 	dinov3Detector  *detection.DINOv3Detector
 	yoloDetector    *detection.YOLODetector
+	motionDetector  *motion.MotionDetector
 	notificationCfg *config.NotificationConfig
 	dinov3Cfg       *config.DINOv3Config
 	yoloCfg         *config.YOLOConfig
@@ -28,7 +30,7 @@ type ConfigImplementation struct {
 }
 
 // NewConfigService creates a new config service implementation
-func NewConfigService(telegramBot *telegram.TelegramBot, dinov3Detector *detection.DINOv3Detector, yoloDetector *detection.YOLODetector, db *database.Database) config.Service {
+func NewConfigService(telegramBot *telegram.TelegramBot, dinov3Detector *detection.DINOv3Detector, yoloDetector *detection.YOLODetector, motionDetector *motion.MotionDetector, db *database.Database) config.Service {
 	// Initialize with defaults from environment
 	defaultMinConfidence := float32(0.5)
 	defaultCooldownSeconds := 30
@@ -71,6 +73,7 @@ func NewConfigService(telegramBot *telegram.TelegramBot, dinov3Detector *detecti
 		ConfidenceThreshold: defaultYoloConfThreshold,
 		SecurityMode:        true,
 		ClassesFilter:       nil,
+		DrawBoxes:           os.Getenv("YOLO_DRAW_BOXES") == "true",
 	}
 
 	// Determine primary detector from environment
@@ -90,6 +93,7 @@ func NewConfigService(telegramBot *telegram.TelegramBot, dinov3Detector *detecti
 		telegramBot:     telegramBot,
 		dinov3Detector:  dinov3Detector,
 		yoloDetector:    yoloDetector,
+		motionDetector:  motionDetector,
 		notificationCfg: notificationCfg,
 		dinov3Cfg:       dinov3Cfg,
 		yoloCfg:         yoloCfg,
@@ -138,6 +142,11 @@ func (c *ConfigImplementation) loadConfigFromDB() {
 			c.yoloCfg.ConfidenceThreshold = cfg.ConfidenceThreshold
 			c.yoloCfg.SecurityMode = cfg.SecurityMode
 			c.yoloCfg.ClassesFilter = cfg.ClassesFilter
+			c.yoloCfg.DrawBoxes = cfg.DrawBoxes
+			// Apply draw boxes setting to motion detector
+			if c.motionDetector != nil {
+				c.motionDetector.SetDrawBoxes(cfg.DrawBoxes)
+			}
 			// Endpoint comes from env var
 			fmt.Println("Loaded YOLO config from database")
 		}
@@ -202,6 +211,7 @@ func (c *ConfigImplementation) saveYoloConfigToDB() {
 		ConfidenceThreshold: c.yoloCfg.ConfidenceThreshold,
 		SecurityMode:        c.yoloCfg.SecurityMode,
 		ClassesFilter:       c.yoloCfg.ClassesFilter,
+		DrawBoxes:           c.yoloCfg.DrawBoxes,
 	}
 	if jsonBytes, err := json.Marshal(cfg); err == nil {
 		if err := c.db.SaveConfig("yolo_config", string(jsonBytes)); err != nil {
@@ -478,6 +488,7 @@ func (c *ConfigImplementation) GetYolo(ctx context.Context) (*config.YOLOConfig,
 		ConfidenceThreshold: c.yoloCfg.ConfidenceThreshold,
 		SecurityMode:        c.yoloCfg.SecurityMode,
 		ClassesFilter:       c.yoloCfg.ClassesFilter,
+		DrawBoxes:           c.yoloCfg.DrawBoxes,
 	}, nil
 }
 
@@ -505,6 +516,7 @@ func (c *ConfigImplementation) UpdateYolo(ctx context.Context, cfg *config.YOLOC
 	c.yoloCfg.ConfidenceThreshold = cfg.ConfidenceThreshold
 	c.yoloCfg.SecurityMode = cfg.SecurityMode
 	c.yoloCfg.ClassesFilter = cfg.ClassesFilter
+	c.yoloCfg.DrawBoxes = cfg.DrawBoxes
 
 	// Update the YOLO detector if available
 	if c.yoloDetector != nil {
@@ -523,7 +535,13 @@ func (c *ConfigImplementation) UpdateYolo(ctx context.Context, cfg *config.YOLOC
 			ConfidenceThreshold: c.yoloCfg.ConfidenceThreshold,
 			SecurityMode:        c.yoloCfg.SecurityMode,
 			ClassesFilter:       classesFilter,
+			DrawBoxes:           c.yoloCfg.DrawBoxes,
 		})
+	}
+
+	// Update motion detector draw boxes setting
+	if c.motionDetector != nil {
+		c.motionDetector.SetDrawBoxes(c.yoloCfg.DrawBoxes)
 	}
 
 	// Update detection config
@@ -538,6 +556,7 @@ func (c *ConfigImplementation) UpdateYolo(ctx context.Context, cfg *config.YOLOC
 		ConfidenceThreshold: c.yoloCfg.ConfidenceThreshold,
 		SecurityMode:        c.yoloCfg.SecurityMode,
 		ClassesFilter:       c.yoloCfg.ClassesFilter,
+		DrawBoxes:           c.yoloCfg.DrawBoxes,
 	}, nil
 }
 

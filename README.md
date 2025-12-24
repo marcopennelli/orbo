@@ -4,7 +4,7 @@
   <img src="assets/cover.png" alt="Orbo Cover" width="400">
 </p>
 
-Orbo is a modern, open-source video alarm system built with Go and OpenCV, featuring real-time motion detection, USB camera support, and Telegram notifications. It's designed as a microservice following cloud-native principles and can be deployed on Kubernetes.
+Orbo is a modern, open-source video alarm system built with Go and OpenCV, featuring real-time motion detection, USB camera support, and Telegram notifications. It's designed as a microservice following cloud-native principles and can be deployed on Kubernetes, Docker, or Podman (including embedded Linux systems built with Yocto using [meta-container-deploy](https://github.com/marcopennelli/meta-container-deploy)).
 
 ## Features
 
@@ -12,11 +12,13 @@ Orbo is a modern, open-source video alarm system built with Go and OpenCV, featu
 - **HTTP/RTSP Camera Support**: Network camera integration via HTTP image endpoints or RTSP streams
 - **Real-time Motion Detection**: Advanced motion detection using OpenCV with configurable sensitivity
 - **AI-Powered Object Detection**: YOLO integration for identifying persons, vehicles, and other objects
+- **Bounding Box Visualization**: Configurable bounding boxes drawn on detection images for Telegram and API
 - **Telegram Integration**: Instant notifications with captured frames sent directly to Telegram
 - **REST API**: Complete HTTP REST API for camera management and system control
 - **Database Persistence**: SQLite database for persisting cameras, events, and configuration across restarts
 - **Health Monitoring**: Kubernetes-ready health check endpoints
-- **Cloud Native**: Docker containers and Helm charts for easy deployment
+- **Cloud Native**: Docker and Podman containers with Helm charts for easy deployment
+- **Embedded Linux Support**: Podman deployment for Yocto-based embedded systems
 - **Security Focused**: Runs as non-root user with minimal privileges
 
 ## Quick Start
@@ -25,7 +27,7 @@ Orbo is a modern, open-source video alarm system built with Go and OpenCV, featu
 
 - Go 1.24.5+
 - OpenCV 4.8.0+
-- Docker (for containerized deployment)
+- Docker or Podman (for containerized deployment)
 - Kubernetes + Helm (for production deployment)
 
 ### Development Setup
@@ -147,10 +149,8 @@ The YOLO service runs as a separate pod and provides object detection endpoints:
 - `show_labels=true/false` - Toggle class labels on boxes
 - `show_confidence=true/false` - Toggle confidence percentages
 
-**Color coding for security detections:**
-- Red: person (high priority)
-- Orange: car, truck, bus (medium priority)
-- Yellow: bicycle, motorcycle (low priority)
+**Bounding box visualization:**
+Uses YOLO's built-in `plot()` function for efficient annotation with automatic color coding by class.
 
 ## Configuration
 
@@ -165,6 +165,8 @@ The YOLO service runs as a separate pod and provides object detection endpoints:
 | `FRAME_DIR` | Directory for storing captured frames | `/app/frames` |
 | `YOLO_ENABLED` | Enable YOLO object detection | false |
 | `YOLO_ENDPOINT` | YOLO service endpoint | `http://yolo-service:8081` |
+| `YOLO_DRAW_BOXES` | Draw bounding boxes on detection images | false |
+| `YOLO_CLASSES_FILTER` | Comma-separated list of classes to detect (e.g., "person,car") | - (all classes) |
 | `PRIMARY_DETECTOR` | Primary detection method (basic, yolo, dinov3) | basic |
 
 ### Command Line Flags
@@ -175,6 +177,34 @@ The YOLO service runs as a separate pod and provides object detection endpoints:
 | `--http-port` | HTTP port | 8080 |
 | `--secure` | Use HTTPS | false |
 | `--debug` | Enable debug logging | false |
+
+### Helm Values Structure
+
+The Helm chart uses a structured values file with the following sections:
+
+| Section | Description |
+|---------|-------------|
+| `global` | Environment name, log level |
+| `orbo` | Main application: replicas, image, server config, resources, security context |
+| `detection` | Detection settings: primary detector, fallback, motion parameters |
+| `yolo` | YOLO service: enabled, config (confidence, classes filter, model), GPU settings |
+| `dinov3` | DINOv3 service: enabled, config, GPU settings |
+| `notifications` | Telegram: enabled, cooldown |
+| `storage` | Persistence: enabled, size, paths for database and frames |
+| `camera` | Device path, privileged mode |
+| `service` | ClusterIP/NodePort, port |
+| `ingress` | Enabled, className, hosts, TLS |
+| `probes` | Liveness and readiness probe configuration |
+| `autoscaling` | HPA settings |
+| `serviceAccount` | Create, annotations, name |
+| `secrets` | Telegram bot token and chat ID |
+
+**Example: Filter YOLO to detect only persons (faster inference):**
+```bash
+helm install orbo deploy/helm/orbo \
+  -f deploy/helm/orbo/values-cpu.yaml \
+  --set yolo.config.classesFilter="person"
+```
 
 ### Telegram Setup
 
@@ -324,11 +354,92 @@ services:
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
 ```
 
+### Podman Deployment
+
+Orbo supports Podman as an alternative to Docker, making it ideal for embedded Linux systems built with Yocto.
+
+#### Basic Podman Run
+```bash
+# Build the container
+cd deploy
+podman build -t orbo:latest -f Dockerfile ..
+
+# Run with camera access
+podman run -d \
+  --name orbo \
+  --device /dev/video0:/dev/video0 \
+  -p 8080:8080 \
+  -v ./frames:/app/frames:Z \
+  -e TELEGRAM_BOT_TOKEN="your_token" \
+  -e TELEGRAM_CHAT_ID="your_chat_id" \
+  -e YOLO_ENABLED=true \
+  -e YOLO_DRAW_BOXES=true \
+  orbo:latest
+```
+
+#### Podman with Quadlet (systemd integration)
+
+For production deployments, use Podman Quadlet for systemd integration:
+
+```ini
+# /etc/containers/systemd/orbo.container
+[Unit]
+Description=Orbo Video Alarm System
+After=network-online.target
+
+[Container]
+Image=orbo:latest
+ContainerName=orbo
+PublishPort=8080:8080
+AddDevice=/dev/video0:/dev/video0
+Volume=/var/lib/orbo/frames:/app/frames:Z
+Environment=TELEGRAM_BOT_TOKEN=your_token
+Environment=TELEGRAM_CHAT_ID=your_chat_id
+Environment=YOLO_ENABLED=true
+Environment=YOLO_DRAW_BOXES=true
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### Yocto/Embedded Linux Deployment
+
+For deploying Orbo on Yocto-based embedded Linux systems, use [meta-container-deploy](https://github.com/marcopennelli/meta-container-deploy):
+
+1. **Add the layer to your Yocto build:**
+   ```bash
+   git clone https://github.com/marcopennelli/meta-container-deploy.git
+   bitbake-layers add-layer meta-container-deploy
+   ```
+
+2. **Add Orbo container to your image:**
+   ```bash
+   # In your local.conf or image recipe
+   IMAGE_INSTALL:append = " orbo-container"
+   ```
+
+3. **Configure container deployment:**
+   The meta-container-deploy layer handles:
+   - Container image import during boot
+   - Systemd service creation via Quadlet
+   - Automatic container updates
+   - Device passthrough for cameras
+
+4. **Build and deploy:**
+   ```bash
+   bitbake your-image
+   ```
+
+This approach enables running Orbo on resource-constrained embedded devices with proper systemd integration and automatic startup.
+
 ### Kubernetes (Production)
 ```bash
 # Install with custom values
 helm install orbo deploy/helm/orbo \
-  --set config.telegram.enabled=true \
+  --set notifications.telegram.enabled=true \
   --set secrets.telegramBotToken="your_token" \
   --set secrets.telegramChatId="your_chat_id"
 ```
@@ -425,8 +536,12 @@ Structured logging with request correlation:
 # Check available cameras
 ls -la /dev/video*
 
-# Test camera access
+# Test camera access (Docker)
 docker run --rm -it --device=/dev/video0:/dev/video0 orbo:latest \
+  sh -c "ls -la /dev/video*"
+
+# Test camera access (Podman)
+podman run --rm -it --device=/dev/video0:/dev/video0 orbo:latest \
   sh -c "ls -la /dev/video*"
 ```
 
@@ -435,8 +550,11 @@ docker run --rm -it --device=/dev/video0:/dev/video0 orbo:latest \
 # Add user to video group
 sudo usermod -a -G video $USER
 
-# Or run with appropriate permissions
+# Or run with appropriate permissions (Docker)
 sudo docker run ... orbo:latest
+
+# Or run with appropriate permissions (Podman - rootless)
+podman run --device /dev/video0 ... orbo:latest
 ```
 
 **OpenCV compilation errors:**

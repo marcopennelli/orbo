@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"orbo/internal/database"
+	"orbo/internal/telegram"
 )
 
 // MotionEvent represents a detected motion event
@@ -77,4 +78,19 @@ func (md *MotionDetector) GetEventFrame(eventID string) ([]byte, error) {
 // IsDetectionRunning checks if motion detection is running for a camera
 func (md *MotionDetector) IsDetectionRunning(cameraID string) bool {
 	return md.streamDetector.IsDetectionRunning(cameraID)
+}
+
+// SetDrawBoxes enables or disables bounding box drawing on detection images
+func (md *MotionDetector) SetDrawBoxes(enabled bool) {
+	md.streamDetector.SetDrawBoxes(enabled)
+}
+
+// DrawBoxesEnabled returns whether bounding boxes are drawn on detection images
+func (md *MotionDetector) DrawBoxesEnabled() bool {
+	return md.streamDetector.DrawBoxesEnabled()
+}
+
+// SetTelegramBot sets the Telegram bot for notifications
+func (md *MotionDetector) SetTelegramBot(bot *telegram.TelegramBot) {
+	md.streamDetector.SetTelegramBot(bot)
 }

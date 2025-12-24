@@ -5,22 +5,51 @@ metadata:
   labels:
     {{- include "orbo.labels" . | nindent 4 }}
 data:
-  log-level: {{ .Values.config.logLevel | quote }}
-  server-host: {{ .Values.config.server.host | quote }}
-  server-port: {{ .Values.config.server.httpPort | quote }}
-  server-secure: {{ .Values.config.server.secure | quote }}
-  server-debug: {{ .Values.config.server.debug | quote }}
-  telegram-enabled: {{ .Values.config.telegram.enabled | quote }}
-  telegram-cooldown: {{ .Values.config.telegram.cooldownSeconds | quote }}
-  motion-enabled: {{ .Values.config.motionDetection.enabled | quote }}
-  motion-min-confidence: {{ .Values.config.motionDetection.minConfidence | quote }}
-  motion-min-contour-area: {{ .Values.config.motionDetection.minContourArea | quote }}
-  motion-frame-store-path: {{ .Values.config.motionDetection.frameStorePath | quote }}
-  motion-background-history: {{ .Values.config.motionDetection.backgroundHistory | quote }}
-  motion-var-threshold: {{ .Values.config.motionDetection.varThreshold | quote }}
-  dinov3-enabled: {{ .Values.config.dinov3.enabled | quote }}
-  dinov3-endpoint: {{ .Values.config.dinov3.serviceEndpoint | quote }}
-  dinov3-motion-threshold: {{ .Values.config.dinov3.motionThreshold | quote }}
-  dinov3-confidence-threshold: {{ .Values.config.dinov3.confidenceThreshold | quote }}
-  dinov3-fallback-enabled: {{ .Values.config.dinov3.fallbackToBasic | quote }}
-  dinov3-scene-analysis-enabled: {{ .Values.config.dinov3.enableSceneAnalysis | quote }}
+  # Global settings
+  log-level: {{ .Values.global.logLevel | quote }}
+
+  # Server configuration
+  server-host: {{ .Values.orbo.server.host | quote }}
+  server-port: {{ .Values.orbo.server.httpPort | quote }}
+  server-debug: {{ .Values.orbo.server.debug | quote }}
+
+  # Telegram notifications
+  telegram-enabled: {{ .Values.notifications.telegram.enabled | quote }}
+  telegram-cooldown: {{ .Values.notifications.telegram.cooldownSeconds | quote }}
+
+  # Motion detection
+  motion-enabled: {{ .Values.detection.motion.enabled | quote }}
+  motion-min-confidence: {{ .Values.detection.motion.minConfidence | quote }}
+  motion-min-contour-area: {{ .Values.detection.motion.minContourArea | quote }}
+  motion-background-history: {{ .Values.detection.motion.backgroundHistory | quote }}
+  motion-var-threshold: {{ .Values.detection.motion.varThreshold | quote }}
+
+  # Detection configuration
+  primary-detector: {{ .Values.detection.primaryDetector | quote }}
+  fallback-enabled: {{ .Values.detection.fallbackEnabled | quote }}
+
+  # Storage paths
+  frame-store-path: {{ .Values.storage.frames.path | quote }}
+  database-path: {{ .Values.storage.database.path | quote }}
+
+  # DINOv3 configuration
+  dinov3-enabled: {{ .Values.dinov3.enabled | quote }}
+  {{- if .Values.dinov3.enabled }}
+  dinov3-endpoint: "http://{{ include "orbo.fullname" . }}-dinov3:{{ .Values.dinov3.service.port }}"
+  dinov3-motion-threshold: {{ .Values.dinov3.config.motionThreshold | quote }}
+  dinov3-confidence-threshold: {{ .Values.dinov3.config.confidenceThreshold | quote }}
+  dinov3-fallback-enabled: {{ .Values.dinov3.config.fallbackToBasic | quote }}
+  dinov3-scene-analysis-enabled: {{ .Values.dinov3.config.enableSceneAnalysis | quote }}
+  {{- end }}
+
+  # YOLO configuration
+  yolo-enabled: {{ .Values.yolo.enabled | quote }}
+  {{- if .Values.yolo.enabled }}
+  yolo-endpoint: "http://{{ include "orbo.fullname" . }}-yolo:{{ .Values.yolo.service.port }}"
+  yolo-confidence-threshold: {{ .Values.yolo.config.confidenceThreshold | quote }}
+  yolo-security-mode: {{ .Values.yolo.config.securityMode | quote }}
+  yolo-draw-boxes: {{ .Values.yolo.config.drawBoxes | default false | quote }}
+  {{- if .Values.yolo.config.classesFilter }}
+  yolo-classes-filter: {{ .Values.yolo.config.classesFilter | quote }}
+  {{- end }}
+  {{- end }}
