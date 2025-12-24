@@ -1,0 +1,82 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+orbo
+orbo-*
+
+# Test binaries
+*.test
+
+# Output of go coverage tool
+*.out
+coverage.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# YOLO models
+*.pt
+*.onnx
+yolov*.pt
+
+# Frames and data
+frames/
+*.jpg
+*.jpeg
+*.png
+*.gif
+!web/static/**/*.png
+!web/static/**/*.jpg
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Helm
+deploy/helm/orbo/charts/
+
+# Test values (environment-specific)
+deploy/helm/orbo/values-test.yaml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Debug
+debug/
+*.prof
