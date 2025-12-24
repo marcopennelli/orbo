@@ -18,6 +18,14 @@ type Endpoints struct {
 	Get              goa.Endpoint
 	Update           goa.Endpoint
 	TestNotification goa.Endpoint
+	GetDinov3        goa.Endpoint
+	UpdateDinov3     goa.Endpoint
+	TestDinov3       goa.Endpoint
+	GetYolo          goa.Endpoint
+	UpdateYolo       goa.Endpoint
+	TestYolo         goa.Endpoint
+	GetDetection     goa.Endpoint
+	UpdateDetection  goa.Endpoint
 }
 
 // NewEndpoints wraps the methods of the "config" service with endpoints.
@@ -26,6 +34,14 @@ func NewEndpoints(s Service) *Endpoints {
 		Get:              NewGetEndpoint(s),
 		Update:           NewUpdateEndpoint(s),
 		TestNotification: NewTestNotificationEndpoint(s),
+		GetDinov3:        NewGetDinov3Endpoint(s),
+		UpdateDinov3:     NewUpdateDinov3Endpoint(s),
+		TestDinov3:       NewTestDinov3Endpoint(s),
+		GetYolo:          NewGetYoloEndpoint(s),
+		UpdateYolo:       NewUpdateYoloEndpoint(s),
+		TestYolo:         NewTestYoloEndpoint(s),
+		GetDetection:     NewGetDetectionEndpoint(s),
+		UpdateDetection:  NewUpdateDetectionEndpoint(s),
 	}
 }
 
@@ -34,6 +50,14 @@ func (e *Endpoints) Use(m func(goa.Endpoint) goa.Endpoint) {
 	e.Get = m(e.Get)
 	e.Update = m(e.Update)
 	e.TestNotification = m(e.TestNotification)
+	e.GetDinov3 = m(e.GetDinov3)
+	e.UpdateDinov3 = m(e.UpdateDinov3)
+	e.TestDinov3 = m(e.TestDinov3)
+	e.GetYolo = m(e.GetYolo)
+	e.UpdateYolo = m(e.UpdateYolo)
+	e.TestYolo = m(e.TestYolo)
+	e.GetDetection = m(e.GetDetection)
+	e.UpdateDetection = m(e.UpdateDetection)
 }
 
 // NewGetEndpoint returns an endpoint function that calls the method "get" of
@@ -58,5 +82,72 @@ func NewUpdateEndpoint(s Service) goa.Endpoint {
 func NewTestNotificationEndpoint(s Service) goa.Endpoint {
 	return func(ctx context.Context, req any) (any, error) {
 		return s.TestNotification(ctx)
+	}
+}
+
+// NewGetDinov3Endpoint returns an endpoint function that calls the method
+// "get_dinov3" of service "config".
+func NewGetDinov3Endpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		return s.GetDinov3(ctx)
+	}
+}
+
+// NewUpdateDinov3Endpoint returns an endpoint function that calls the method
+// "update_dinov3" of service "config".
+func NewUpdateDinov3Endpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		p := req.(*DINOv3Config)
+		return s.UpdateDinov3(ctx, p)
+	}
+}
+
+// NewTestDinov3Endpoint returns an endpoint function that calls the method
+// "test_dinov3" of service "config".
+func NewTestDinov3Endpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		return s.TestDinov3(ctx)
+	}
+}
+
+// NewGetYoloEndpoint returns an endpoint function that calls the method
+// "get_yolo" of service "config".
+func NewGetYoloEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		return s.GetYolo(ctx)
+	}
+}
+
+// NewUpdateYoloEndpoint returns an endpoint function that calls the method
+// "update_yolo" of service "config".
+func NewUpdateYoloEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		p := req.(*YOLOConfig)
+		return s.UpdateYolo(ctx, p)
+	}
+}
+
+// NewTestYoloEndpoint returns an endpoint function that calls the method
+// "test_yolo" of service "config".
+func NewTestYoloEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		return s.TestYolo(ctx)
+	}
+}
+
+// NewGetDetectionEndpoint returns an endpoint function that calls the method
+// "get_detection" of service "config".
+func NewGetDetectionEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		return s.GetDetection(ctx)
+	}
+}
+
+// NewUpdateDetectionEndpoint returns an endpoint function that calls the
+// method "update_detection" of service "config".
+func NewUpdateDetectionEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		p := req.(*DetectionConfig)
+		return s.UpdateDetection(ctx, p)
 	}
 }

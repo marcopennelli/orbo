@@ -28,6 +28,51 @@ type UpdateRequestBody struct {
 	CooldownSeconds *int `form:"cooldown_seconds,omitempty" json:"cooldown_seconds,omitempty" xml:"cooldown_seconds,omitempty"`
 }
 
+// UpdateDinov3RequestBody is the type of the "config" service "update_dinov3"
+// endpoint HTTP request body.
+type UpdateDinov3RequestBody struct {
+	// Enable DINOv3 AI detection
+	Enabled *bool `form:"enabled,omitempty" json:"enabled,omitempty" xml:"enabled,omitempty"`
+	// DINOv3 service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Motion detection threshold (0-1)
+	MotionThreshold *float32 `form:"motion_threshold,omitempty" json:"motion_threshold,omitempty" xml:"motion_threshold,omitempty"`
+	// Minimum confidence for alerts (0-1)
+	ConfidenceThreshold *float32 `form:"confidence_threshold,omitempty" json:"confidence_threshold,omitempty" xml:"confidence_threshold,omitempty"`
+	// Fallback to basic detection when DINOv3 unavailable
+	FallbackToBasic *bool `form:"fallback_to_basic,omitempty" json:"fallback_to_basic,omitempty" xml:"fallback_to_basic,omitempty"`
+	// Enable advanced scene analysis
+	EnableSceneAnalysis *bool `form:"enable_scene_analysis,omitempty" json:"enable_scene_analysis,omitempty" xml:"enable_scene_analysis,omitempty"`
+}
+
+// UpdateYoloRequestBody is the type of the "config" service "update_yolo"
+// endpoint HTTP request body.
+type UpdateYoloRequestBody struct {
+	// Enable YOLO object detection
+	Enabled *bool `form:"enabled,omitempty" json:"enabled,omitempty" xml:"enabled,omitempty"`
+	// YOLO service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Minimum confidence for detections (0-1)
+	ConfidenceThreshold *float32 `form:"confidence_threshold,omitempty" json:"confidence_threshold,omitempty" xml:"confidence_threshold,omitempty"`
+	// Use security-focused detection (person, car, etc.)
+	SecurityMode *bool `form:"security_mode,omitempty" json:"security_mode,omitempty" xml:"security_mode,omitempty"`
+	// Comma-separated class names to filter (empty = all)
+	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
+}
+
+// UpdateDetectionRequestBody is the type of the "config" service
+// "update_detection" endpoint HTTP request body.
+type UpdateDetectionRequestBody struct {
+	// Primary detector to use
+	PrimaryDetector *string `form:"primary_detector,omitempty" json:"primary_detector,omitempty" xml:"primary_detector,omitempty"`
+	// YOLO configuration
+	Yolo *YOLOConfigRequestBody `form:"yolo,omitempty" json:"yolo,omitempty" xml:"yolo,omitempty"`
+	// DINOv3 configuration
+	Dinov3 *DINOv3ConfigRequestBody `form:"dinov3,omitempty" json:"dinov3,omitempty" xml:"dinov3,omitempty"`
+	// Enable fallback to basic detection
+	FallbackEnabled *bool `form:"fallback_enabled,omitempty" json:"fallback_enabled,omitempty" xml:"fallback_enabled,omitempty"`
+}
+
 // GetResponseBody is the type of the "config" service "get" endpoint HTTP
 // response body.
 type GetResponseBody struct {
@@ -67,6 +112,128 @@ type TestNotificationResponseBody struct {
 	Message string `form:"message" json:"message" xml:"message"`
 }
 
+// GetDinov3ResponseBody is the type of the "config" service "get_dinov3"
+// endpoint HTTP response body.
+type GetDinov3ResponseBody struct {
+	// Enable DINOv3 AI detection
+	Enabled bool `form:"enabled" json:"enabled" xml:"enabled"`
+	// DINOv3 service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Motion detection threshold (0-1)
+	MotionThreshold float32 `form:"motion_threshold" json:"motion_threshold" xml:"motion_threshold"`
+	// Minimum confidence for alerts (0-1)
+	ConfidenceThreshold float32 `form:"confidence_threshold" json:"confidence_threshold" xml:"confidence_threshold"`
+	// Fallback to basic detection when DINOv3 unavailable
+	FallbackToBasic bool `form:"fallback_to_basic" json:"fallback_to_basic" xml:"fallback_to_basic"`
+	// Enable advanced scene analysis
+	EnableSceneAnalysis bool `form:"enable_scene_analysis" json:"enable_scene_analysis" xml:"enable_scene_analysis"`
+}
+
+// UpdateDinov3ResponseBody is the type of the "config" service "update_dinov3"
+// endpoint HTTP response body.
+type UpdateDinov3ResponseBody struct {
+	// Enable DINOv3 AI detection
+	Enabled bool `form:"enabled" json:"enabled" xml:"enabled"`
+	// DINOv3 service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Motion detection threshold (0-1)
+	MotionThreshold float32 `form:"motion_threshold" json:"motion_threshold" xml:"motion_threshold"`
+	// Minimum confidence for alerts (0-1)
+	ConfidenceThreshold float32 `form:"confidence_threshold" json:"confidence_threshold" xml:"confidence_threshold"`
+	// Fallback to basic detection when DINOv3 unavailable
+	FallbackToBasic bool `form:"fallback_to_basic" json:"fallback_to_basic" xml:"fallback_to_basic"`
+	// Enable advanced scene analysis
+	EnableSceneAnalysis bool `form:"enable_scene_analysis" json:"enable_scene_analysis" xml:"enable_scene_analysis"`
+}
+
+// TestDinov3ResponseBody is the type of the "config" service "test_dinov3"
+// endpoint HTTP response body.
+type TestDinov3ResponseBody struct {
+	// Service health status
+	Healthy bool `form:"healthy" json:"healthy" xml:"healthy"`
+	// Service endpoint
+	Endpoint *string `form:"endpoint,omitempty" json:"endpoint,omitempty" xml:"endpoint,omitempty"`
+	// Response time in milliseconds
+	ResponseTimeMs *float32 `form:"response_time_ms,omitempty" json:"response_time_ms,omitempty" xml:"response_time_ms,omitempty"`
+	// Detection device
+	Device *string `form:"device,omitempty" json:"device,omitempty" xml:"device,omitempty"`
+	// Status message
+	Message string `form:"message" json:"message" xml:"message"`
+}
+
+// GetYoloResponseBody is the type of the "config" service "get_yolo" endpoint
+// HTTP response body.
+type GetYoloResponseBody struct {
+	// Enable YOLO object detection
+	Enabled bool `form:"enabled" json:"enabled" xml:"enabled"`
+	// YOLO service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Minimum confidence for detections (0-1)
+	ConfidenceThreshold float32 `form:"confidence_threshold" json:"confidence_threshold" xml:"confidence_threshold"`
+	// Use security-focused detection (person, car, etc.)
+	SecurityMode bool `form:"security_mode" json:"security_mode" xml:"security_mode"`
+	// Comma-separated class names to filter (empty = all)
+	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
+}
+
+// UpdateYoloResponseBody is the type of the "config" service "update_yolo"
+// endpoint HTTP response body.
+type UpdateYoloResponseBody struct {
+	// Enable YOLO object detection
+	Enabled bool `form:"enabled" json:"enabled" xml:"enabled"`
+	// YOLO service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Minimum confidence for detections (0-1)
+	ConfidenceThreshold float32 `form:"confidence_threshold" json:"confidence_threshold" xml:"confidence_threshold"`
+	// Use security-focused detection (person, car, etc.)
+	SecurityMode bool `form:"security_mode" json:"security_mode" xml:"security_mode"`
+	// Comma-separated class names to filter (empty = all)
+	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
+}
+
+// TestYoloResponseBody is the type of the "config" service "test_yolo"
+// endpoint HTTP response body.
+type TestYoloResponseBody struct {
+	// Service health status
+	Healthy bool `form:"healthy" json:"healthy" xml:"healthy"`
+	// Service endpoint
+	Endpoint *string `form:"endpoint,omitempty" json:"endpoint,omitempty" xml:"endpoint,omitempty"`
+	// Response time in milliseconds
+	ResponseTimeMs *float32 `form:"response_time_ms,omitempty" json:"response_time_ms,omitempty" xml:"response_time_ms,omitempty"`
+	// Detection device (cpu/cuda)
+	Device *string `form:"device,omitempty" json:"device,omitempty" xml:"device,omitempty"`
+	// Model loaded status
+	ModelLoaded *bool `form:"model_loaded,omitempty" json:"model_loaded,omitempty" xml:"model_loaded,omitempty"`
+	// Status message
+	Message string `form:"message" json:"message" xml:"message"`
+}
+
+// GetDetectionResponseBody is the type of the "config" service "get_detection"
+// endpoint HTTP response body.
+type GetDetectionResponseBody struct {
+	// Primary detector to use
+	PrimaryDetector string `form:"primary_detector" json:"primary_detector" xml:"primary_detector"`
+	// YOLO configuration
+	Yolo *YOLOConfigResponseBody `form:"yolo,omitempty" json:"yolo,omitempty" xml:"yolo,omitempty"`
+	// DINOv3 configuration
+	Dinov3 *DINOv3ConfigResponseBody `form:"dinov3,omitempty" json:"dinov3,omitempty" xml:"dinov3,omitempty"`
+	// Enable fallback to basic detection
+	FallbackEnabled bool `form:"fallback_enabled" json:"fallback_enabled" xml:"fallback_enabled"`
+}
+
+// UpdateDetectionResponseBody is the type of the "config" service
+// "update_detection" endpoint HTTP response body.
+type UpdateDetectionResponseBody struct {
+	// Primary detector to use
+	PrimaryDetector string `form:"primary_detector" json:"primary_detector" xml:"primary_detector"`
+	// YOLO configuration
+	Yolo *YOLOConfigResponseBody `form:"yolo,omitempty" json:"yolo,omitempty" xml:"yolo,omitempty"`
+	// DINOv3 configuration
+	Dinov3 *DINOv3ConfigResponseBody `form:"dinov3,omitempty" json:"dinov3,omitempty" xml:"dinov3,omitempty"`
+	// Enable fallback to basic detection
+	FallbackEnabled bool `form:"fallback_enabled" json:"fallback_enabled" xml:"fallback_enabled"`
+}
+
 // UpdateBadRequestResponseBody is the type of the "config" service "update"
 // endpoint HTTP response body for the "bad_request" error.
 type UpdateBadRequestResponseBody struct {
@@ -81,6 +248,107 @@ type UpdateBadRequestResponseBody struct {
 type TestNotificationInternalResponseBody struct {
 	// Error message
 	Message string `form:"message" json:"message" xml:"message"`
+}
+
+// UpdateDinov3BadRequestResponseBody is the type of the "config" service
+// "update_dinov3" endpoint HTTP response body for the "bad_request" error.
+type UpdateDinov3BadRequestResponseBody struct {
+	// Error message
+	Message string `form:"message" json:"message" xml:"message"`
+	// Error details
+	Details *string `form:"details,omitempty" json:"details,omitempty" xml:"details,omitempty"`
+}
+
+// TestDinov3InternalResponseBody is the type of the "config" service
+// "test_dinov3" endpoint HTTP response body for the "internal" error.
+type TestDinov3InternalResponseBody struct {
+	// Error message
+	Message string `form:"message" json:"message" xml:"message"`
+}
+
+// UpdateYoloBadRequestResponseBody is the type of the "config" service
+// "update_yolo" endpoint HTTP response body for the "bad_request" error.
+type UpdateYoloBadRequestResponseBody struct {
+	// Error message
+	Message string `form:"message" json:"message" xml:"message"`
+	// Error details
+	Details *string `form:"details,omitempty" json:"details,omitempty" xml:"details,omitempty"`
+}
+
+// TestYoloInternalResponseBody is the type of the "config" service "test_yolo"
+// endpoint HTTP response body for the "internal" error.
+type TestYoloInternalResponseBody struct {
+	// Error message
+	Message string `form:"message" json:"message" xml:"message"`
+}
+
+// UpdateDetectionBadRequestResponseBody is the type of the "config" service
+// "update_detection" endpoint HTTP response body for the "bad_request" error.
+type UpdateDetectionBadRequestResponseBody struct {
+	// Error message
+	Message string `form:"message" json:"message" xml:"message"`
+	// Error details
+	Details *string `form:"details,omitempty" json:"details,omitempty" xml:"details,omitempty"`
+}
+
+// YOLOConfigResponseBody is used to define fields on response body types.
+type YOLOConfigResponseBody struct {
+	// Enable YOLO object detection
+	Enabled bool `form:"enabled" json:"enabled" xml:"enabled"`
+	// YOLO service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Minimum confidence for detections (0-1)
+	ConfidenceThreshold float32 `form:"confidence_threshold" json:"confidence_threshold" xml:"confidence_threshold"`
+	// Use security-focused detection (person, car, etc.)
+	SecurityMode bool `form:"security_mode" json:"security_mode" xml:"security_mode"`
+	// Comma-separated class names to filter (empty = all)
+	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
+}
+
+// DINOv3ConfigResponseBody is used to define fields on response body types.
+type DINOv3ConfigResponseBody struct {
+	// Enable DINOv3 AI detection
+	Enabled bool `form:"enabled" json:"enabled" xml:"enabled"`
+	// DINOv3 service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Motion detection threshold (0-1)
+	MotionThreshold float32 `form:"motion_threshold" json:"motion_threshold" xml:"motion_threshold"`
+	// Minimum confidence for alerts (0-1)
+	ConfidenceThreshold float32 `form:"confidence_threshold" json:"confidence_threshold" xml:"confidence_threshold"`
+	// Fallback to basic detection when DINOv3 unavailable
+	FallbackToBasic bool `form:"fallback_to_basic" json:"fallback_to_basic" xml:"fallback_to_basic"`
+	// Enable advanced scene analysis
+	EnableSceneAnalysis bool `form:"enable_scene_analysis" json:"enable_scene_analysis" xml:"enable_scene_analysis"`
+}
+
+// YOLOConfigRequestBody is used to define fields on request body types.
+type YOLOConfigRequestBody struct {
+	// Enable YOLO object detection
+	Enabled *bool `form:"enabled,omitempty" json:"enabled,omitempty" xml:"enabled,omitempty"`
+	// YOLO service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Minimum confidence for detections (0-1)
+	ConfidenceThreshold *float32 `form:"confidence_threshold,omitempty" json:"confidence_threshold,omitempty" xml:"confidence_threshold,omitempty"`
+	// Use security-focused detection (person, car, etc.)
+	SecurityMode *bool `form:"security_mode,omitempty" json:"security_mode,omitempty" xml:"security_mode,omitempty"`
+	// Comma-separated class names to filter (empty = all)
+	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
+}
+
+// DINOv3ConfigRequestBody is used to define fields on request body types.
+type DINOv3ConfigRequestBody struct {
+	// Enable DINOv3 AI detection
+	Enabled *bool `form:"enabled,omitempty" json:"enabled,omitempty" xml:"enabled,omitempty"`
+	// DINOv3 service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Motion detection threshold (0-1)
+	MotionThreshold *float32 `form:"motion_threshold,omitempty" json:"motion_threshold,omitempty" xml:"motion_threshold,omitempty"`
+	// Minimum confidence for alerts (0-1)
+	ConfidenceThreshold *float32 `form:"confidence_threshold,omitempty" json:"confidence_threshold,omitempty" xml:"confidence_threshold,omitempty"`
+	// Fallback to basic detection when DINOv3 unavailable
+	FallbackToBasic *bool `form:"fallback_to_basic,omitempty" json:"fallback_to_basic,omitempty" xml:"fallback_to_basic,omitempty"`
+	// Enable advanced scene analysis
+	EnableSceneAnalysis *bool `form:"enable_scene_analysis,omitempty" json:"enable_scene_analysis,omitempty" xml:"enable_scene_analysis,omitempty"`
 }
 
 // NewGetResponseBody builds the HTTP response body from the result of the
@@ -119,6 +387,203 @@ func NewTestNotificationResponseBody(res *config.TestNotificationResult) *TestNo
 	return body
 }
 
+// NewGetDinov3ResponseBody builds the HTTP response body from the result of
+// the "get_dinov3" endpoint of the "config" service.
+func NewGetDinov3ResponseBody(res *config.DINOv3Config) *GetDinov3ResponseBody {
+	body := &GetDinov3ResponseBody{
+		Enabled:             res.Enabled,
+		ServiceEndpoint:     res.ServiceEndpoint,
+		MotionThreshold:     res.MotionThreshold,
+		ConfidenceThreshold: res.ConfidenceThreshold,
+		FallbackToBasic:     res.FallbackToBasic,
+		EnableSceneAnalysis: res.EnableSceneAnalysis,
+	}
+	{
+		var zero float32
+		if body.MotionThreshold == zero {
+			body.MotionThreshold = 0.85
+		}
+	}
+	{
+		var zero float32
+		if body.ConfidenceThreshold == zero {
+			body.ConfidenceThreshold = 0.6
+		}
+	}
+	{
+		var zero bool
+		if body.FallbackToBasic == zero {
+			body.FallbackToBasic = true
+		}
+	}
+	{
+		var zero bool
+		if body.EnableSceneAnalysis == zero {
+			body.EnableSceneAnalysis = true
+		}
+	}
+	return body
+}
+
+// NewUpdateDinov3ResponseBody builds the HTTP response body from the result of
+// the "update_dinov3" endpoint of the "config" service.
+func NewUpdateDinov3ResponseBody(res *config.DINOv3Config) *UpdateDinov3ResponseBody {
+	body := &UpdateDinov3ResponseBody{
+		Enabled:             res.Enabled,
+		ServiceEndpoint:     res.ServiceEndpoint,
+		MotionThreshold:     res.MotionThreshold,
+		ConfidenceThreshold: res.ConfidenceThreshold,
+		FallbackToBasic:     res.FallbackToBasic,
+		EnableSceneAnalysis: res.EnableSceneAnalysis,
+	}
+	{
+		var zero float32
+		if body.MotionThreshold == zero {
+			body.MotionThreshold = 0.85
+		}
+	}
+	{
+		var zero float32
+		if body.ConfidenceThreshold == zero {
+			body.ConfidenceThreshold = 0.6
+		}
+	}
+	{
+		var zero bool
+		if body.FallbackToBasic == zero {
+			body.FallbackToBasic = true
+		}
+	}
+	{
+		var zero bool
+		if body.EnableSceneAnalysis == zero {
+			body.EnableSceneAnalysis = true
+		}
+	}
+	return body
+}
+
+// NewTestDinov3ResponseBody builds the HTTP response body from the result of
+// the "test_dinov3" endpoint of the "config" service.
+func NewTestDinov3ResponseBody(res *config.TestDinov3Result) *TestDinov3ResponseBody {
+	body := &TestDinov3ResponseBody{
+		Healthy:        res.Healthy,
+		Endpoint:       res.Endpoint,
+		ResponseTimeMs: res.ResponseTimeMs,
+		Device:         res.Device,
+		Message:        res.Message,
+	}
+	return body
+}
+
+// NewGetYoloResponseBody builds the HTTP response body from the result of the
+// "get_yolo" endpoint of the "config" service.
+func NewGetYoloResponseBody(res *config.YOLOConfig) *GetYoloResponseBody {
+	body := &GetYoloResponseBody{
+		Enabled:             res.Enabled,
+		ServiceEndpoint:     res.ServiceEndpoint,
+		ConfidenceThreshold: res.ConfidenceThreshold,
+		SecurityMode:        res.SecurityMode,
+		ClassesFilter:       res.ClassesFilter,
+	}
+	{
+		var zero float32
+		if body.ConfidenceThreshold == zero {
+			body.ConfidenceThreshold = 0.5
+		}
+	}
+	{
+		var zero bool
+		if body.SecurityMode == zero {
+			body.SecurityMode = true
+		}
+	}
+	return body
+}
+
+// NewUpdateYoloResponseBody builds the HTTP response body from the result of
+// the "update_yolo" endpoint of the "config" service.
+func NewUpdateYoloResponseBody(res *config.YOLOConfig) *UpdateYoloResponseBody {
+	body := &UpdateYoloResponseBody{
+		Enabled:             res.Enabled,
+		ServiceEndpoint:     res.ServiceEndpoint,
+		ConfidenceThreshold: res.ConfidenceThreshold,
+		SecurityMode:        res.SecurityMode,
+		ClassesFilter:       res.ClassesFilter,
+	}
+	{
+		var zero float32
+		if body.ConfidenceThreshold == zero {
+			body.ConfidenceThreshold = 0.5
+		}
+	}
+	{
+		var zero bool
+		if body.SecurityMode == zero {
+			body.SecurityMode = true
+		}
+	}
+	return body
+}
+
+// NewTestYoloResponseBody builds the HTTP response body from the result of the
+// "test_yolo" endpoint of the "config" service.
+func NewTestYoloResponseBody(res *config.TestYoloResult) *TestYoloResponseBody {
+	body := &TestYoloResponseBody{
+		Healthy:        res.Healthy,
+		Endpoint:       res.Endpoint,
+		ResponseTimeMs: res.ResponseTimeMs,
+		Device:         res.Device,
+		ModelLoaded:    res.ModelLoaded,
+		Message:        res.Message,
+	}
+	return body
+}
+
+// NewGetDetectionResponseBody builds the HTTP response body from the result of
+// the "get_detection" endpoint of the "config" service.
+func NewGetDetectionResponseBody(res *config.DetectionConfig) *GetDetectionResponseBody {
+	body := &GetDetectionResponseBody{
+		PrimaryDetector: res.PrimaryDetector,
+		FallbackEnabled: res.FallbackEnabled,
+	}
+	if res.Yolo != nil {
+		body.Yolo = marshalConfigYOLOConfigToYOLOConfigResponseBody(res.Yolo)
+	}
+	if res.Dinov3 != nil {
+		body.Dinov3 = marshalConfigDINOv3ConfigToDINOv3ConfigResponseBody(res.Dinov3)
+	}
+	{
+		var zero bool
+		if body.FallbackEnabled == zero {
+			body.FallbackEnabled = true
+		}
+	}
+	return body
+}
+
+// NewUpdateDetectionResponseBody builds the HTTP response body from the result
+// of the "update_detection" endpoint of the "config" service.
+func NewUpdateDetectionResponseBody(res *config.DetectionConfig) *UpdateDetectionResponseBody {
+	body := &UpdateDetectionResponseBody{
+		PrimaryDetector: res.PrimaryDetector,
+		FallbackEnabled: res.FallbackEnabled,
+	}
+	if res.Yolo != nil {
+		body.Yolo = marshalConfigYOLOConfigToYOLOConfigResponseBody(res.Yolo)
+	}
+	if res.Dinov3 != nil {
+		body.Dinov3 = marshalConfigDINOv3ConfigToDINOv3ConfigResponseBody(res.Dinov3)
+	}
+	{
+		var zero bool
+		if body.FallbackEnabled == zero {
+			body.FallbackEnabled = true
+		}
+	}
+	return body
+}
+
 // NewUpdateBadRequestResponseBody builds the HTTP response body from the
 // result of the "update" endpoint of the "config" service.
 func NewUpdateBadRequestResponseBody(res *config.BadRequestError) *UpdateBadRequestResponseBody {
@@ -138,6 +603,54 @@ func NewTestNotificationInternalResponseBody(res *config.InternalError) *TestNot
 	return body
 }
 
+// NewUpdateDinov3BadRequestResponseBody builds the HTTP response body from the
+// result of the "update_dinov3" endpoint of the "config" service.
+func NewUpdateDinov3BadRequestResponseBody(res *config.BadRequestError) *UpdateDinov3BadRequestResponseBody {
+	body := &UpdateDinov3BadRequestResponseBody{
+		Message: res.Message,
+		Details: res.Details,
+	}
+	return body
+}
+
+// NewTestDinov3InternalResponseBody builds the HTTP response body from the
+// result of the "test_dinov3" endpoint of the "config" service.
+func NewTestDinov3InternalResponseBody(res *config.InternalError) *TestDinov3InternalResponseBody {
+	body := &TestDinov3InternalResponseBody{
+		Message: res.Message,
+	}
+	return body
+}
+
+// NewUpdateYoloBadRequestResponseBody builds the HTTP response body from the
+// result of the "update_yolo" endpoint of the "config" service.
+func NewUpdateYoloBadRequestResponseBody(res *config.BadRequestError) *UpdateYoloBadRequestResponseBody {
+	body := &UpdateYoloBadRequestResponseBody{
+		Message: res.Message,
+		Details: res.Details,
+	}
+	return body
+}
+
+// NewTestYoloInternalResponseBody builds the HTTP response body from the
+// result of the "test_yolo" endpoint of the "config" service.
+func NewTestYoloInternalResponseBody(res *config.InternalError) *TestYoloInternalResponseBody {
+	body := &TestYoloInternalResponseBody{
+		Message: res.Message,
+	}
+	return body
+}
+
+// NewUpdateDetectionBadRequestResponseBody builds the HTTP response body from
+// the result of the "update_detection" endpoint of the "config" service.
+func NewUpdateDetectionBadRequestResponseBody(res *config.BadRequestError) *UpdateDetectionBadRequestResponseBody {
+	body := &UpdateDetectionBadRequestResponseBody{
+		Message: res.Message,
+		Details: res.Details,
+	}
+	return body
+}
+
 // NewUpdateNotificationConfig builds a config service update endpoint payload.
 func NewUpdateNotificationConfig(body *UpdateRequestBody) *config.NotificationConfig {
 	v := &config.NotificationConfig{
@@ -151,10 +664,150 @@ func NewUpdateNotificationConfig(body *UpdateRequestBody) *config.NotificationCo
 	return v
 }
 
+// NewUpdateDinov3DINOv3Config builds a config service update_dinov3 endpoint
+// payload.
+func NewUpdateDinov3DINOv3Config(body *UpdateDinov3RequestBody) *config.DINOv3Config {
+	v := &config.DINOv3Config{
+		Enabled:         *body.Enabled,
+		ServiceEndpoint: body.ServiceEndpoint,
+	}
+	if body.MotionThreshold != nil {
+		v.MotionThreshold = *body.MotionThreshold
+	}
+	if body.ConfidenceThreshold != nil {
+		v.ConfidenceThreshold = *body.ConfidenceThreshold
+	}
+	if body.FallbackToBasic != nil {
+		v.FallbackToBasic = *body.FallbackToBasic
+	}
+	if body.EnableSceneAnalysis != nil {
+		v.EnableSceneAnalysis = *body.EnableSceneAnalysis
+	}
+	if body.MotionThreshold == nil {
+		v.MotionThreshold = 0.85
+	}
+	if body.ConfidenceThreshold == nil {
+		v.ConfidenceThreshold = 0.6
+	}
+	if body.FallbackToBasic == nil {
+		v.FallbackToBasic = true
+	}
+	if body.EnableSceneAnalysis == nil {
+		v.EnableSceneAnalysis = true
+	}
+
+	return v
+}
+
+// NewUpdateYoloYOLOConfig builds a config service update_yolo endpoint payload.
+func NewUpdateYoloYOLOConfig(body *UpdateYoloRequestBody) *config.YOLOConfig {
+	v := &config.YOLOConfig{
+		Enabled:         *body.Enabled,
+		ServiceEndpoint: body.ServiceEndpoint,
+		ClassesFilter:   body.ClassesFilter,
+	}
+	if body.ConfidenceThreshold != nil {
+		v.ConfidenceThreshold = *body.ConfidenceThreshold
+	}
+	if body.SecurityMode != nil {
+		v.SecurityMode = *body.SecurityMode
+	}
+	if body.ConfidenceThreshold == nil {
+		v.ConfidenceThreshold = 0.5
+	}
+	if body.SecurityMode == nil {
+		v.SecurityMode = true
+	}
+
+	return v
+}
+
+// NewUpdateDetectionDetectionConfig builds a config service update_detection
+// endpoint payload.
+func NewUpdateDetectionDetectionConfig(body *UpdateDetectionRequestBody) *config.DetectionConfig {
+	v := &config.DetectionConfig{
+		PrimaryDetector: *body.PrimaryDetector,
+	}
+	if body.FallbackEnabled != nil {
+		v.FallbackEnabled = *body.FallbackEnabled
+	}
+	if body.Yolo != nil {
+		v.Yolo = unmarshalYOLOConfigRequestBodyToConfigYOLOConfig(body.Yolo)
+	}
+	if body.Dinov3 != nil {
+		v.Dinov3 = unmarshalDINOv3ConfigRequestBodyToConfigDINOv3Config(body.Dinov3)
+	}
+	if body.FallbackEnabled == nil {
+		v.FallbackEnabled = true
+	}
+
+	return v
+}
+
 // ValidateUpdateRequestBody runs the validations defined on UpdateRequestBody
 func ValidateUpdateRequestBody(body *UpdateRequestBody) (err error) {
 	if body.TelegramEnabled == nil {
 		err = goa.MergeErrors(err, goa.MissingFieldError("telegram_enabled", "body"))
+	}
+	return
+}
+
+// ValidateUpdateDinov3RequestBody runs the validations defined on
+// update_dinov3_request_body
+func ValidateUpdateDinov3RequestBody(body *UpdateDinov3RequestBody) (err error) {
+	if body.Enabled == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("enabled", "body"))
+	}
+	return
+}
+
+// ValidateUpdateYoloRequestBody runs the validations defined on
+// update_yolo_request_body
+func ValidateUpdateYoloRequestBody(body *UpdateYoloRequestBody) (err error) {
+	if body.Enabled == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("enabled", "body"))
+	}
+	return
+}
+
+// ValidateUpdateDetectionRequestBody runs the validations defined on
+// update_detection_request_body
+func ValidateUpdateDetectionRequestBody(body *UpdateDetectionRequestBody) (err error) {
+	if body.PrimaryDetector == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("primary_detector", "body"))
+	}
+	if body.PrimaryDetector != nil {
+		if !(*body.PrimaryDetector == "basic" || *body.PrimaryDetector == "yolo" || *body.PrimaryDetector == "dinov3") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.primary_detector", *body.PrimaryDetector, []any{"basic", "yolo", "dinov3"}))
+		}
+	}
+	if body.Yolo != nil {
+		if err2 := ValidateYOLOConfigRequestBody(body.Yolo); err2 != nil {
+			err = goa.MergeErrors(err, err2)
+		}
+	}
+	if body.Dinov3 != nil {
+		if err2 := ValidateDINOv3ConfigRequestBody(body.Dinov3); err2 != nil {
+			err = goa.MergeErrors(err, err2)
+		}
+	}
+	return
+}
+
+// ValidateYOLOConfigRequestBody runs the validations defined on
+// YOLOConfigRequestBody
+func ValidateYOLOConfigRequestBody(body *YOLOConfigRequestBody) (err error) {
+	if body.Enabled == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("enabled", "body"))
+	}
+	return
+}
+
+// ValidateDINOv3ConfigRequestBody runs the validations defined on
+// DINOv3ConfigRequestBody
+func ValidateDINOv3ConfigRequestBody(body *DINOv3ConfigRequestBody) (err error) {
+	if body.Enabled == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("enabled", "body"))
 	}
 	return
 }

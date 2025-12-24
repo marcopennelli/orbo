@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -237,8 +238,8 @@ func (c *CameraImplementation) Deactivate(ctx context.Context, p *camera_service
 	}, nil
 }
 
-// Capture captures a single frame from camera as JPEG bytes
-func (c *CameraImplementation) Capture(ctx context.Context, p *camera_service.CapturePayload) ([]byte, error) {
+// Capture captures a single frame from camera as base64-encoded JPEG
+func (c *CameraImplementation) Capture(ctx context.Context, p *camera_service.CapturePayload) (*camera_service.FrameResponse, error) {
 	cam, err := c.cameraManager.GetCamera(p.ID)
 	if err != nil {
 		return nil, &camera_service.NotFoundError{
@@ -254,5 +255,11 @@ func (c *CameraImplementation) Capture(ctx context.Context, p *camera_service.Ca
 		}
 	}
 
-	return frameBytes, nil
+	// Encode frame as base64
+	base64Data := base64.StdEncoding.EncodeToString(frameBytes)
+
+	return &camera_service.FrameResponse{
+		Data:        base64Data,
+		ContentType: "image/jpeg",
+	}, nil
 }

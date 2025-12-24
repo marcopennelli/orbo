@@ -4,8 +4,8 @@ AMD GPU-accelerated YOLOv8 Object Detection Service
 Optimized for Orbo video alarm system
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query
+from fastapi.responses import JSONResponse, Response
 from ultralytics import YOLO
 import torch
 import cv2
@@ -14,8 +14,9 @@ import io
 from PIL import Image
 import time
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple
 import os
+import base64
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -128,9 +129,140 @@ class YOLODetectionService:
                 "model_size": "YOLOv8n",
                 "conf_threshold": conf_threshold
             }
-            
+
         except Exception as e:
             logger.error(f"Detection failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
+
+    def detect_and_annotate(
+        self,
+        image_data: bytes,
+        conf_threshold: float = 0.5,
+        classes_filter: Optional[List[str]] = None,
+        box_color: Tuple[int, int, int] = (0, 255, 0),
+        box_thickness: int = 2,
+        show_labels: bool = True,
+        show_confidence: bool = True
+    ) -> Tuple[bytes, Dict[str, Any]]:
+        """Run YOLOv8 inference and return annotated image with bounding boxes"""
+        if not self.model_loaded:
+            raise HTTPException(status_code=503, detail="Model not loaded")
+
+        start_time = time.time()
+
+        try:
+            # Preprocess image
+            image = self.preprocess_image(image_data)
+            original_image = image.copy()
+
+            # Run inference
+            results = self.model(image, device=self.device, conf=conf_threshold, verbose=False)
+
+            # Color palette for different classes
+            class_colors = {
+                "person": (0, 0, 255),      # Red - high priority
+                "car": (255, 165, 0),       # Orange
+                "truck": (255, 165, 0),     # Orange
+                "bus": (255, 165, 0),       # Orange
+                "bicycle": (0, 255, 255),   # Yellow
+                "motorcycle": (0, 255, 255), # Yellow
+                "dog": (255, 0, 255),       # Magenta
+                "cat": (255, 0, 255),       # Magenta
+            }
+            default_color = box_color  # Green for others
+
+            # Parse results and draw boxes
+            detections = []
+            for r in results:
+                boxes = r.boxes
+                if boxes is not None and len(boxes) > 0:
+                    for i in range(len(boxes)):
+                        cls_id = int(boxes.cls[i])
+                        class_name = r.names[cls_id]
+                        confidence = float(boxes.conf[i])
+                        bbox = boxes.xyxy[i].tolist()  # [x1, y1, x2, y2]
+
+                        # Apply class filter if specified
+                        if classes_filter and class_name.lower() not in [c.lower() for c in classes_filter]:
+                            continue
+
+                        detection = {
+                            "class": class_name,
+                            "class_id": cls_id,
+                            "confidence": confidence,
+                            "bbox": bbox,
+                            "center": [
+                                (bbox[0] + bbox[2]) / 2,
+                                (bbox[1] + bbox[3]) / 2
+                            ],
+                            "area": (bbox[2] - bbox[0]) * (bbox[3] - bbox[1])
+                        }
+                        detections.append(detection)
+
+                        # Draw bounding box
+                        x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+                        color = class_colors.get(class_name, default_color)
+                        cv2.rectangle(original_image, (x1, y1), (x2, y2), color, box_thickness)
+
+                        # Draw label background and text
+                        if show_labels or show_confidence:
+                            label_parts = []
+                            if show_labels:
+                                label_parts.append(class_name)
+                            if show_confidence:
+                                label_parts.append(f"{confidence:.0%}")
+                            label = " ".join(label_parts)
+
+                            # Calculate text size
+                            font = cv2.FONT_HERSHEY_SIMPLEX
+                            font_scale = 0.6
+                            font_thickness = 2
+                            (text_width, text_height), baseline = cv2.getTextSize(
+                                label, font, font_scale, font_thickness
+                            )
+
+                            # Draw label background
+                            label_y1 = max(y1 - text_height - 10, 0)
+                            label_y2 = y1
+                            cv2.rectangle(
+                                original_image,
+                                (x1, label_y1),
+                                (x1 + text_width + 10, label_y2),
+                                color,
+                                -1  # Filled
+                            )
+
+                            # Draw text
+                            cv2.putText(
+                                original_image,
+                                label,
+                                (x1 + 5, y1 - 5),
+                                font,
+                                font_scale,
+                                (255, 255, 255),  # White text
+                                font_thickness
+                            )
+
+            inference_time = time.time() - start_time
+
+            # Convert annotated image to JPEG bytes
+            # Convert RGB to BGR for OpenCV encoding
+            annotated_bgr = cv2.cvtColor(original_image, cv2.COLOR_RGB2BGR)
+            _, jpeg_data = cv2.imencode('.jpg', annotated_bgr, [cv2.IMWRITE_JPEG_QUALITY, 90])
+
+            result_info = {
+                "detections": detections,
+                "count": len(detections),
+                "inference_time_ms": round(inference_time * 1000, 2),
+                "device": str(self.device),
+                "model_size": "YOLOv8n",
+                "conf_threshold": conf_threshold
+            }
+
+            return jpeg_data.tobytes(), result_info
+
+        except Exception as e:
+            logger.error(f"Detection with annotation failed: {e}")
             raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
 
 # Global service instance
@@ -250,11 +382,154 @@ async def get_supported_classes():
     """Get list of supported object classes"""
     if not detection_service.model_loaded:
         raise HTTPException(status_code=503, detail="Model not loaded")
-    
+
     return {
         "classes": list(detection_service.model.names.values()),
         "count": len(detection_service.model.names)
     }
+
+
+@app.post("/detect/annotated")
+async def detect_annotated(
+    file: UploadFile = File(...),
+    conf_threshold: float = Query(0.5, ge=0.0, le=1.0),
+    classes_filter: Optional[str] = Query(None, description="Comma-separated class names"),
+    show_labels: bool = Query(True),
+    show_confidence: bool = Query(True),
+    format: str = Query("image", description="Response format: 'image' for raw JPEG, 'base64' for JSON with base64")
+):
+    """
+    Detect objects and return annotated image with bounding boxes drawn.
+
+    Args:
+        file: Image file (JPEG, PNG, etc.)
+        conf_threshold: Confidence threshold (0.0-1.0)
+        classes_filter: Comma-separated class names to filter (e.g., "person,car")
+        show_labels: Show class labels on boxes
+        show_confidence: Show confidence percentage on boxes
+        format: 'image' returns raw JPEG, 'base64' returns JSON with base64 encoded image
+    """
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    try:
+        image_data = await file.read()
+
+        # Parse class filter
+        filter_list = None
+        if classes_filter:
+            filter_list = [c.strip() for c in classes_filter.split(',')]
+
+        # Run detection with annotation
+        annotated_image, result_info = detection_service.detect_and_annotate(
+            image_data,
+            conf_threshold=conf_threshold,
+            classes_filter=filter_list,
+            show_labels=show_labels,
+            show_confidence=show_confidence
+        )
+
+        if format == "base64":
+            # Return JSON with base64 encoded image
+            base64_image = base64.b64encode(annotated_image).decode('utf-8')
+            return {
+                "image": {
+                    "data": base64_image,
+                    "content_type": "image/jpeg"
+                },
+                **result_info
+            }
+        else:
+            # Return raw JPEG image
+            return Response(
+                content=annotated_image,
+                media_type="image/jpeg",
+                headers={
+                    "X-Detection-Count": str(result_info["count"]),
+                    "X-Inference-Time-Ms": str(result_info["inference_time_ms"]),
+                    "X-Device": result_info["device"]
+                }
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Annotated detection failed: {e}")
+        raise HTTPException(status_code=500, detail="Annotated detection failed")
+
+
+@app.post("/detect/security/annotated")
+async def detect_security_annotated(
+    file: UploadFile = File(...),
+    conf_threshold: float = Query(0.6, ge=0.0, le=1.0),
+    show_labels: bool = Query(True),
+    show_confidence: bool = Query(True),
+    format: str = Query("image", description="Response format: 'image' or 'base64'")
+):
+    """
+    Detect security-relevant objects and return annotated image.
+    Filters for: person, car, truck, bus, bicycle, motorcycle
+
+    Color coding:
+    - Red: person (high priority)
+    - Orange: car, truck, bus (medium priority)
+    - Yellow: bicycle, motorcycle (low priority)
+    """
+    security_classes = ["person", "car", "truck", "bus", "bicycle", "motorcycle"]
+
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    try:
+        image_data = await file.read()
+
+        # Run detection with annotation, filtered to security classes
+        annotated_image, result_info = detection_service.detect_and_annotate(
+            image_data,
+            conf_threshold=conf_threshold,
+            classes_filter=security_classes,
+            show_labels=show_labels,
+            show_confidence=show_confidence
+        )
+
+        # Add threat analysis
+        threat_analysis = {
+            "high_priority": [d for d in result_info["detections"] if d["class"] == "person"],
+            "medium_priority": [d for d in result_info["detections"] if d["class"] in ["car", "truck", "bus"]],
+            "low_priority": [d for d in result_info["detections"] if d["class"] in ["bicycle", "motorcycle"]]
+        }
+        result_info["threat_analysis"] = threat_analysis
+        result_info["security_filter"] = security_classes
+
+        if format == "base64":
+            base64_image = base64.b64encode(annotated_image).decode('utf-8')
+            return {
+                "image": {
+                    "data": base64_image,
+                    "content_type": "image/jpeg"
+                },
+                **result_info
+            }
+        else:
+            return Response(
+                content=annotated_image,
+                media_type="image/jpeg",
+                headers={
+                    "X-Detection-Count": str(result_info["count"]),
+                    "X-Inference-Time-Ms": str(result_info["inference_time_ms"]),
+                    "X-Device": result_info["device"],
+                    "X-High-Priority-Count": str(len(threat_analysis["high_priority"])),
+                    "X-Medium-Priority-Count": str(len(threat_analysis["medium_priority"])),
+                    "X-Low-Priority-Count": str(len(threat_analysis["low_priority"]))
+                }
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Security annotated detection failed: {e}")
+        raise HTTPException(status_code=500, detail="Security annotated detection failed")
+
 
 if __name__ == "__main__":
     import uvicorn

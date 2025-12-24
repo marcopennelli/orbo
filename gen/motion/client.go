@@ -56,11 +56,11 @@ func (c *Client) Event(ctx context.Context, p *EventPayload) (res *MotionEvent, 
 // Frame may return the following errors:
 //   - "not_found" (type *NotFoundError): Event or frame not found
 //   - error: internal error
-func (c *Client) Frame(ctx context.Context, p *FramePayload) (res []byte, err error) {
+func (c *Client) Frame(ctx context.Context, p *FramePayload) (res *FrameResponse, err error) {
 	var ires any
 	ires, err = c.FrameEndpoint(ctx, p)
 	if err != nil {
 		return
 	}
-	return ires.([]byte), nil
+	return ires.(*FrameResponse), nil
 }

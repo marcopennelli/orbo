@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"time"
 )
 
@@ -68,17 +69,14 @@ func NewGPUDetector(endpoint string) *GPUDetector {
 
 // IsHealthy checks if the GPU detection service is available
 func (gd *GPUDetector) IsHealthy() bool {
-	if !gd.enabled {
-		return false
-	}
-
 	// Cache health check for 30 seconds
-	if time.Since(gd.healthCheck) < 30*time.Second {
+	if time.Since(gd.healthCheck) < 30*time.Second && gd.enabled {
 		return true
 	}
 
 	resp, err := gd.client.Get(gd.endpoint + "/health")
 	if err != nil {
+		fmt.Printf("GPU detector health check failed: %v\n", err)
 		gd.enabled = false
 		return false
 	}
@@ -86,9 +84,11 @@ func (gd *GPUDetector) IsHealthy() bool {
 
 	if resp.StatusCode == http.StatusOK {
 		gd.healthCheck = time.Now()
+		gd.enabled = true  // Re-enable if health check succeeds
 		return true
 	}
 
+	fmt.Printf("GPU detector health check returned status %d\n", resp.StatusCode)
 	gd.enabled = false
 	return false
 }
@@ -151,8 +151,11 @@ func (gd *GPUDetector) DetectSecurityObjects(imageData []byte, confThreshold flo
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 
-	// Add image file
-	fw, err := w.CreateFormFile("file", "frame.jpg")
+	// Add image file with proper Content-Type header
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="file"; filename="frame.jpg"`)
+	h.Set("Content-Type", "image/jpeg")
+	fw, err := w.CreatePart(h)
 	if err != nil {
 		return nil, err
 	}

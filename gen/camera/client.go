@@ -130,11 +130,11 @@ func (c *Client) Deactivate(ctx context.Context, p *DeactivatePayload) (res *Cam
 //   - "not_found" (type *NotFoundError): Camera not found
 //   - "internal" (type *InternalError): Failed to capture frame
 //   - error: internal error
-func (c *Client) Capture(ctx context.Context, p *CapturePayload) (res []byte, err error) {
+func (c *Client) Capture(ctx context.Context, p *CapturePayload) (res *FrameResponse, err error) {
 	var ires any
 	ires, err = c.CaptureEndpoint(ctx, p)
 	if err != nil {
 		return
 	}
-	return ires.([]byte), nil
+	return ires.(*FrameResponse), nil
 }

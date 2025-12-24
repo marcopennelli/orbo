@@ -18,3 +18,9 @@ data:
   motion-frame-store-path: {{ .Values.config.motionDetection.frameStorePath | quote }}
   motion-background-history: {{ .Values.config.motionDetection.backgroundHistory | quote }}
   motion-var-threshold: {{ .Values.config.motionDetection.varThreshold | quote }}
+  dinov3-enabled: {{ .Values.config.dinov3.enabled | quote }}
+  dinov3-endpoint: {{ .Values.config.dinov3.serviceEndpoint | quote }}
+  dinov3-motion-threshold: {{ .Values.config.dinov3.motionThreshold | quote }}
+  dinov3-confidence-threshold: {{ .Values.config.dinov3.confidenceThreshold | quote }}
+  dinov3-fallback-enabled: {{ .Values.config.dinov3.fallbackToBasic | quote }}
+  dinov3-scene-analysis-enabled: {{ .Values.config.dinov3.enableSceneAnalysis | quote }}

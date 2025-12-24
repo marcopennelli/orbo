@@ -1,0 +1,19 @@
+{{- if .Values.yolo.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "orbo.fullname" . }}-yolo
+  labels:
+    {{- include "orbo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: yolo-service
+spec:
+  type: {{ .Values.yolo.service.type }}
+  ports:
+    - port: {{ .Values.yolo.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "orbo.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: yolo-service
+{{- end }}

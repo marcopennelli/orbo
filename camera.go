@@ -63,3 +63,10 @@ func (s *camerasrvc) Deactivate(ctx context.Context, p *camera.DeactivatePayload
 	s.logger.Print("camera.deactivate")
 	return
 }
+
+// Capture a single frame from camera as base64
+func (s *camerasrvc) Capture(ctx context.Context, p *camera.CapturePayload) (res *camera.FrameResponse, err error) {
+	res = &camera.FrameResponse{}
+	s.logger.Print("camera.capture")
+	return
+}

@@ -22,6 +22,14 @@ type Server struct {
 	Get              http.Handler
 	Update           http.Handler
 	TestNotification http.Handler
+	GetDinov3        http.Handler
+	UpdateDinov3     http.Handler
+	TestDinov3       http.Handler
+	GetYolo          http.Handler
+	UpdateYolo       http.Handler
+	TestYolo         http.Handler
+	GetDetection     http.Handler
+	UpdateDetection  http.Handler
 }
 
 // MountPoint holds information about the mounted endpoints.
@@ -54,10 +62,26 @@ func New(
 			{"Get", "GET", "/api/v1/config/notifications"},
 			{"Update", "PUT", "/api/v1/config/notifications"},
 			{"TestNotification", "POST", "/api/v1/config/notifications/test"},
+			{"GetDinov3", "GET", "/api/v1/config/dinov3"},
+			{"UpdateDinov3", "PUT", "/api/v1/config/dinov3"},
+			{"TestDinov3", "POST", "/api/v1/config/dinov3/test"},
+			{"GetYolo", "GET", "/api/v1/config/yolo"},
+			{"UpdateYolo", "PUT", "/api/v1/config/yolo"},
+			{"TestYolo", "POST", "/api/v1/config/yolo/test"},
+			{"GetDetection", "GET", "/api/v1/config/detection"},
+			{"UpdateDetection", "PUT", "/api/v1/config/detection"},
 		},
 		Get:              NewGetHandler(e.Get, mux, decoder, encoder, errhandler, formatter),
 		Update:           NewUpdateHandler(e.Update, mux, decoder, encoder, errhandler, formatter),
 		TestNotification: NewTestNotificationHandler(e.TestNotification, mux, decoder, encoder, errhandler, formatter),
+		GetDinov3:        NewGetDinov3Handler(e.GetDinov3, mux, decoder, encoder, errhandler, formatter),
+		UpdateDinov3:     NewUpdateDinov3Handler(e.UpdateDinov3, mux, decoder, encoder, errhandler, formatter),
+		TestDinov3:       NewTestDinov3Handler(e.TestDinov3, mux, decoder, encoder, errhandler, formatter),
+		GetYolo:          NewGetYoloHandler(e.GetYolo, mux, decoder, encoder, errhandler, formatter),
+		UpdateYolo:       NewUpdateYoloHandler(e.UpdateYolo, mux, decoder, encoder, errhandler, formatter),
+		TestYolo:         NewTestYoloHandler(e.TestYolo, mux, decoder, encoder, errhandler, formatter),
+		GetDetection:     NewGetDetectionHandler(e.GetDetection, mux, decoder, encoder, errhandler, formatter),
+		UpdateDetection:  NewUpdateDetectionHandler(e.UpdateDetection, mux, decoder, encoder, errhandler, formatter),
 	}
 }
 
@@ -69,6 +93,14 @@ func (s *Server) Use(m func(http.Handler) http.Handler) {
 	s.Get = m(s.Get)
 	s.Update = m(s.Update)
 	s.TestNotification = m(s.TestNotification)
+	s.GetDinov3 = m(s.GetDinov3)
+	s.UpdateDinov3 = m(s.UpdateDinov3)
+	s.TestDinov3 = m(s.TestDinov3)
+	s.GetYolo = m(s.GetYolo)
+	s.UpdateYolo = m(s.UpdateYolo)
+	s.TestYolo = m(s.TestYolo)
+	s.GetDetection = m(s.GetDetection)
+	s.UpdateDetection = m(s.UpdateDetection)
 }
 
 // MethodNames returns the methods served.
@@ -79,6 +111,14 @@ func Mount(mux goahttp.Muxer, h *Server) {
 	MountGetHandler(mux, h.Get)
 	MountUpdateHandler(mux, h.Update)
 	MountTestNotificationHandler(mux, h.TestNotification)
+	MountGetDinov3Handler(mux, h.GetDinov3)
+	MountUpdateDinov3Handler(mux, h.UpdateDinov3)
+	MountTestDinov3Handler(mux, h.TestDinov3)
+	MountGetYoloHandler(mux, h.GetYolo)
+	MountUpdateYoloHandler(mux, h.UpdateYolo)
+	MountTestYoloHandler(mux, h.TestYolo)
+	MountGetDetectionHandler(mux, h.GetDetection)
+	MountUpdateDetectionHandler(mux, h.UpdateDetection)
 }
 
 // Mount configures the mux to serve the config endpoints.
@@ -213,6 +253,379 @@ func NewTestNotificationHandler(
 		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
 		var err error
 		res, err := endpoint(ctx, nil)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountGetDinov3Handler configures the mux to serve the "config" service
+// "get_dinov3" endpoint.
+func MountGetDinov3Handler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("GET", "/api/v1/config/dinov3", f)
+}
+
+// NewGetDinov3Handler creates a HTTP handler which loads the HTTP request and
+// calls the "config" service "get_dinov3" endpoint.
+func NewGetDinov3Handler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		encodeResponse = EncodeGetDinov3Response(encoder)
+		encodeError    = goahttp.ErrorEncoder(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "get_dinov3")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		var err error
+		res, err := endpoint(ctx, nil)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountUpdateDinov3Handler configures the mux to serve the "config" service
+// "update_dinov3" endpoint.
+func MountUpdateDinov3Handler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("PUT", "/api/v1/config/dinov3", f)
+}
+
+// NewUpdateDinov3Handler creates a HTTP handler which loads the HTTP request
+// and calls the "config" service "update_dinov3" endpoint.
+func NewUpdateDinov3Handler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		decodeRequest  = DecodeUpdateDinov3Request(mux, decoder)
+		encodeResponse = EncodeUpdateDinov3Response(encoder)
+		encodeError    = EncodeUpdateDinov3Error(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "update_dinov3")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		payload, err := decodeRequest(r)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		res, err := endpoint(ctx, payload)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountTestDinov3Handler configures the mux to serve the "config" service
+// "test_dinov3" endpoint.
+func MountTestDinov3Handler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("POST", "/api/v1/config/dinov3/test", f)
+}
+
+// NewTestDinov3Handler creates a HTTP handler which loads the HTTP request and
+// calls the "config" service "test_dinov3" endpoint.
+func NewTestDinov3Handler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		encodeResponse = EncodeTestDinov3Response(encoder)
+		encodeError    = EncodeTestDinov3Error(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "test_dinov3")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		var err error
+		res, err := endpoint(ctx, nil)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountGetYoloHandler configures the mux to serve the "config" service
+// "get_yolo" endpoint.
+func MountGetYoloHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("GET", "/api/v1/config/yolo", f)
+}
+
+// NewGetYoloHandler creates a HTTP handler which loads the HTTP request and
+// calls the "config" service "get_yolo" endpoint.
+func NewGetYoloHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		encodeResponse = EncodeGetYoloResponse(encoder)
+		encodeError    = goahttp.ErrorEncoder(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "get_yolo")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		var err error
+		res, err := endpoint(ctx, nil)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountUpdateYoloHandler configures the mux to serve the "config" service
+// "update_yolo" endpoint.
+func MountUpdateYoloHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("PUT", "/api/v1/config/yolo", f)
+}
+
+// NewUpdateYoloHandler creates a HTTP handler which loads the HTTP request and
+// calls the "config" service "update_yolo" endpoint.
+func NewUpdateYoloHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		decodeRequest  = DecodeUpdateYoloRequest(mux, decoder)
+		encodeResponse = EncodeUpdateYoloResponse(encoder)
+		encodeError    = EncodeUpdateYoloError(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "update_yolo")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		payload, err := decodeRequest(r)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		res, err := endpoint(ctx, payload)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountTestYoloHandler configures the mux to serve the "config" service
+// "test_yolo" endpoint.
+func MountTestYoloHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("POST", "/api/v1/config/yolo/test", f)
+}
+
+// NewTestYoloHandler creates a HTTP handler which loads the HTTP request and
+// calls the "config" service "test_yolo" endpoint.
+func NewTestYoloHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		encodeResponse = EncodeTestYoloResponse(encoder)
+		encodeError    = EncodeTestYoloError(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "test_yolo")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		var err error
+		res, err := endpoint(ctx, nil)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountGetDetectionHandler configures the mux to serve the "config" service
+// "get_detection" endpoint.
+func MountGetDetectionHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("GET", "/api/v1/config/detection", f)
+}
+
+// NewGetDetectionHandler creates a HTTP handler which loads the HTTP request
+// and calls the "config" service "get_detection" endpoint.
+func NewGetDetectionHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		encodeResponse = EncodeGetDetectionResponse(encoder)
+		encodeError    = goahttp.ErrorEncoder(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "get_detection")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		var err error
+		res, err := endpoint(ctx, nil)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountUpdateDetectionHandler configures the mux to serve the "config" service
+// "update_detection" endpoint.
+func MountUpdateDetectionHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("PUT", "/api/v1/config/detection", f)
+}
+
+// NewUpdateDetectionHandler creates a HTTP handler which loads the HTTP
+// request and calls the "config" service "update_detection" endpoint.
+func NewUpdateDetectionHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		decodeRequest  = DecodeUpdateDetectionRequest(mux, decoder)
+		encodeResponse = EncodeUpdateDetectionResponse(encoder)
+		encodeError    = EncodeUpdateDetectionError(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "update_detection")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		payload, err := decodeRequest(r)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		res, err := endpoint(ctx, payload)
 		if err != nil {
 			if err := encodeError(ctx, w, err); err != nil {
 				errhandler(ctx, w, err)

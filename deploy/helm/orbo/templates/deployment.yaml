@@ -11,6 +11,7 @@ spec:
   selector:
     matchLabels:
       {{- include "orbo.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: server
   template:
     metadata:
       annotations:
@@ -20,6 +21,7 @@ spec:
         {{- end }}
       labels:
         {{- include "orbo.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: server
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -37,17 +39,90 @@ spec:
             {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - "./orbo"
           args:
-            - "-host={{ .Values.config.server.host }}"
-            - "-http-port={{ .Values.config.server.httpPort }}"
-            - "-secure={{ .Values.config.server.secure }}"
-            - "-debug={{ .Values.config.server.debug }}"
+            - "--host={{ .Values.config.server.host }}"
+            - "--http-port={{ .Values.config.server.httpPort }}"
+            - "--secure={{ .Values.config.server.secure }}"
+            - "--debug={{ .Values.config.server.debug }}"
           ports:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
           env:
-            {{- toYaml .Values.env | nindent 12 }}
+            - name: LOG_LEVEL
+              value: {{ .Values.config.logLevel | quote }}
+            - name: HOST
+              value: {{ .Values.config.server.host | quote }}
+            - name: HTTP_PORT
+              value: {{ .Values.config.server.httpPort | quote }}
+            - name: DEBUG
+              value: {{ .Values.config.server.debug | quote }}
+            # Telegram configuration
+            - name: TELEGRAM_ENABLED
+              value: {{ .Values.config.telegram.enabled | quote }}
+            {{- if .Values.config.telegram.enabled }}
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orbo.fullname" . }}-secrets
+                  key: telegram-bot-token
+                  optional: true
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orbo.fullname" . }}-secrets
+                  key: telegram-chat-id
+                  optional: true
+            - name: TELEGRAM_COOLDOWN
+              value: {{ .Values.config.telegram.cooldownSeconds | quote }}
+            {{- end }}
+            # Motion detection configuration
+            - name: MOTION_DETECTION_ENABLED
+              value: {{ .Values.config.motionDetection.enabled | quote }}
+            - name: MIN_CONFIDENCE
+              value: {{ .Values.config.motionDetection.minConfidence | quote }}
+            - name: MIN_CONTOUR_AREA
+              value: {{ .Values.config.motionDetection.minContourArea | quote }}
+            - name: FRAME_STORE_PATH
+              value: {{ .Values.config.motionDetection.frameStorePath | quote }}
+            - name: FRAME_DIR
+              value: {{ .Values.persistence.mountPath | quote }}
+            # Database configuration
+            - name: DATABASE_PATH
+              value: {{ .Values.database.path | quote }}
+            # Detection configuration
+            - name: PRIMARY_DETECTOR
+              value: {{ .Values.detection.primaryDetector | quote }}
+            - name: FALLBACK_ENABLED
+              value: {{ .Values.detection.fallbackEnabled | quote }}
+            # DINOv3 configuration
+            {{- if .Values.dinov3.enabled }}
+            - name: DINOV3_ENABLED
+              value: "true"
+            - name: DINOV3_ENDPOINT
+              value: "http://{{ include "orbo.fullname" . }}-dinov3:{{ .Values.dinov3.service.port }}"
+            - name: DINOV3_MOTION_THRESHOLD
+              value: {{ .Values.config.dinov3.motionThreshold | quote }}
+            - name: DINOV3_CONFIDENCE_THRESHOLD
+              value: {{ .Values.config.dinov3.confidenceThreshold | quote }}
+            {{- end }}
+            # YOLO configuration
+            {{- if .Values.yolo.enabled }}
+            - name: YOLO_ENABLED
+              value: "true"
+            - name: YOLO_ENDPOINT
+              value: "http://{{ include "orbo.fullname" . }}-yolo:{{ .Values.yolo.service.port }}"
+            - name: YOLO_CONFIDENCE_THRESHOLD
+              value: {{ .Values.yolo.config.confidenceThreshold | quote }}
+            - name: YOLO_SECURITY_MODE
+              value: {{ .Values.yolo.config.securityMode | quote }}
+            {{- if .Values.yolo.config.classesFilter }}
+            - name: YOLO_CLASSES_FILTER
+              value: {{ .Values.yolo.config.classesFilter | quote }}
+            {{- end }}
+            {{- end }}
           {{- if .Values.healthCheck.enabled }}
           livenessProbe:
             httpGet:

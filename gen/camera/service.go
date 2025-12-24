@@ -27,8 +27,8 @@ type Service interface {
 	Activate(context.Context, *ActivatePayload) (res *CameraInfo, err error)
 	// Deactivate camera
 	Deactivate(context.Context, *DeactivatePayload) (res *CameraInfo, err error)
-	// Capture a single frame from camera as JPEG
-	Capture(context.Context, *CapturePayload) (res []byte, err error)
+	// Capture a single frame from camera as base64
+	Capture(context.Context, *CapturePayload) (res *FrameResponse, err error)
 }
 
 // ServiceName is the name of the service as defined in the design. This is the
@@ -102,6 +102,14 @@ type DeactivatePayload struct {
 type DeletePayload struct {
 	// Camera ID
 	ID string
+}
+
+// FrameResponse is the result type of the camera service capture method.
+type FrameResponse struct {
+	// Base64 encoded JPEG image data
+	Data string
+	// Image MIME type
+	ContentType string
 }
 
 // GetPayload is the payload type of the camera service get method.

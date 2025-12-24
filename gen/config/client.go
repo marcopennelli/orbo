@@ -18,14 +18,30 @@ type Client struct {
 	GetEndpoint              goa.Endpoint
 	UpdateEndpoint           goa.Endpoint
 	TestNotificationEndpoint goa.Endpoint
+	GetDinov3Endpoint        goa.Endpoint
+	UpdateDinov3Endpoint     goa.Endpoint
+	TestDinov3Endpoint       goa.Endpoint
+	GetYoloEndpoint          goa.Endpoint
+	UpdateYoloEndpoint       goa.Endpoint
+	TestYoloEndpoint         goa.Endpoint
+	GetDetectionEndpoint     goa.Endpoint
+	UpdateDetectionEndpoint  goa.Endpoint
 }
 
 // NewClient initializes a "config" service client given the endpoints.
-func NewClient(get, update, testNotification goa.Endpoint) *Client {
+func NewClient(get, update, testNotification, getDinov3, updateDinov3, testDinov3, getYolo, updateYolo, testYolo, getDetection, updateDetection goa.Endpoint) *Client {
 	return &Client{
 		GetEndpoint:              get,
 		UpdateEndpoint:           update,
 		TestNotificationEndpoint: testNotification,
+		GetDinov3Endpoint:        getDinov3,
+		UpdateDinov3Endpoint:     updateDinov3,
+		TestDinov3Endpoint:       testDinov3,
+		GetYoloEndpoint:          getYolo,
+		UpdateYoloEndpoint:       updateYolo,
+		TestYoloEndpoint:         testYolo,
+		GetDetectionEndpoint:     getDetection,
+		UpdateDetectionEndpoint:  updateDetection,
 	}
 }
 
@@ -64,4 +80,100 @@ func (c *Client) TestNotification(ctx context.Context) (res *TestNotificationRes
 		return
 	}
 	return ires.(*TestNotificationResult), nil
+}
+
+// GetDinov3 calls the "get_dinov3" endpoint of the "config" service.
+func (c *Client) GetDinov3(ctx context.Context) (res *DINOv3Config, err error) {
+	var ires any
+	ires, err = c.GetDinov3Endpoint(ctx, nil)
+	if err != nil {
+		return
+	}
+	return ires.(*DINOv3Config), nil
+}
+
+// UpdateDinov3 calls the "update_dinov3" endpoint of the "config" service.
+// UpdateDinov3 may return the following errors:
+//   - "bad_request" (type *BadRequestError): Invalid DINOv3 configuration
+//   - error: internal error
+func (c *Client) UpdateDinov3(ctx context.Context, p *DINOv3Config) (res *DINOv3Config, err error) {
+	var ires any
+	ires, err = c.UpdateDinov3Endpoint(ctx, p)
+	if err != nil {
+		return
+	}
+	return ires.(*DINOv3Config), nil
+}
+
+// TestDinov3 calls the "test_dinov3" endpoint of the "config" service.
+// TestDinov3 may return the following errors:
+//   - "internal" (type *InternalError): Failed to test DINOv3 service
+//   - error: internal error
+func (c *Client) TestDinov3(ctx context.Context) (res *TestDinov3Result, err error) {
+	var ires any
+	ires, err = c.TestDinov3Endpoint(ctx, nil)
+	if err != nil {
+		return
+	}
+	return ires.(*TestDinov3Result), nil
+}
+
+// GetYolo calls the "get_yolo" endpoint of the "config" service.
+func (c *Client) GetYolo(ctx context.Context) (res *YOLOConfig, err error) {
+	var ires any
+	ires, err = c.GetYoloEndpoint(ctx, nil)
+	if err != nil {
+		return
+	}
+	return ires.(*YOLOConfig), nil
+}
+
+// UpdateYolo calls the "update_yolo" endpoint of the "config" service.
+// UpdateYolo may return the following errors:
+//   - "bad_request" (type *BadRequestError): Invalid YOLO configuration
+//   - error: internal error
+func (c *Client) UpdateYolo(ctx context.Context, p *YOLOConfig) (res *YOLOConfig, err error) {
+	var ires any
+	ires, err = c.UpdateYoloEndpoint(ctx, p)
+	if err != nil {
+		return
+	}
+	return ires.(*YOLOConfig), nil
+}
+
+// TestYolo calls the "test_yolo" endpoint of the "config" service.
+// TestYolo may return the following errors:
+//   - "internal" (type *InternalError): Failed to test YOLO service
+//   - error: internal error
+func (c *Client) TestYolo(ctx context.Context) (res *TestYoloResult, err error) {
+	var ires any
+	ires, err = c.TestYoloEndpoint(ctx, nil)
+	if err != nil {
+		return
+	}
+	return ires.(*TestYoloResult), nil
+}
+
+// GetDetection calls the "get_detection" endpoint of the "config" service.
+func (c *Client) GetDetection(ctx context.Context) (res *DetectionConfig, err error) {
+	var ires any
+	ires, err = c.GetDetectionEndpoint(ctx, nil)
+	if err != nil {
+		return
+	}
+	return ires.(*DetectionConfig), nil
+}
+
+// UpdateDetection calls the "update_detection" endpoint of the "config"
+// service.
+// UpdateDetection may return the following errors:
+//   - "bad_request" (type *BadRequestError): Invalid detection configuration
+//   - error: internal error
+func (c *Client) UpdateDetection(ctx context.Context, p *DetectionConfig) (res *DetectionConfig, err error) {
+	var ires any
+	ires, err = c.UpdateDetectionEndpoint(ctx, p)
+	if err != nil {
+		return
+	}
+	return ires.(*DetectionConfig), nil
 }

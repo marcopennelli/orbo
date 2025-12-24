@@ -136,3 +136,455 @@ func EncodeTestNotificationError(encoder func(context.Context, http.ResponseWrit
 		}
 	}
 }
+
+// EncodeGetDinov3Response returns an encoder for responses returned by the
+// config get_dinov3 endpoint.
+func EncodeGetDinov3Response(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.DINOv3Config)
+		enc := encoder(ctx, w)
+		body := NewGetDinov3ResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// EncodeUpdateDinov3Response returns an encoder for responses returned by the
+// config update_dinov3 endpoint.
+func EncodeUpdateDinov3Response(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.DINOv3Config)
+		enc := encoder(ctx, w)
+		body := NewUpdateDinov3ResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// DecodeUpdateDinov3Request returns a decoder for requests sent to the config
+// update_dinov3 endpoint.
+func DecodeUpdateDinov3Request(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
+	return func(r *http.Request) (any, error) {
+		var (
+			body UpdateDinov3RequestBody
+			err  error
+		)
+		err = decoder(r).Decode(&body)
+		if err != nil {
+			if err == io.EOF {
+				return nil, goa.MissingPayloadError()
+			}
+			return nil, goa.DecodePayloadError(err.Error())
+		}
+		err = ValidateUpdateDinov3RequestBody(&body)
+		if err != nil {
+			return nil, err
+		}
+		payload := NewUpdateDinov3DINOv3Config(&body)
+
+		return payload, nil
+	}
+}
+
+// EncodeUpdateDinov3Error returns an encoder for errors returned by the
+// update_dinov3 config endpoint.
+func EncodeUpdateDinov3Error(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+	encodeError := goahttp.ErrorEncoder(encoder, formatter)
+	return func(ctx context.Context, w http.ResponseWriter, v error) error {
+		var en goa.GoaErrorNamer
+		if !errors.As(v, &en) {
+			return encodeError(ctx, w, v)
+		}
+		switch en.GoaErrorName() {
+		case "bad_request":
+			var res *config.BadRequestError
+			errors.As(v, &res)
+			enc := encoder(ctx, w)
+			var body any
+			if formatter != nil {
+				body = formatter(ctx, res)
+			} else {
+				body = NewUpdateDinov3BadRequestResponseBody(res)
+			}
+			w.Header().Set("goa-error", res.GoaErrorName())
+			w.WriteHeader(http.StatusBadRequest)
+			return enc.Encode(body)
+		default:
+			return encodeError(ctx, w, v)
+		}
+	}
+}
+
+// EncodeTestDinov3Response returns an encoder for responses returned by the
+// config test_dinov3 endpoint.
+func EncodeTestDinov3Response(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.TestDinov3Result)
+		enc := encoder(ctx, w)
+		body := NewTestDinov3ResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// EncodeTestDinov3Error returns an encoder for errors returned by the
+// test_dinov3 config endpoint.
+func EncodeTestDinov3Error(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+	encodeError := goahttp.ErrorEncoder(encoder, formatter)
+	return func(ctx context.Context, w http.ResponseWriter, v error) error {
+		var en goa.GoaErrorNamer
+		if !errors.As(v, &en) {
+			return encodeError(ctx, w, v)
+		}
+		switch en.GoaErrorName() {
+		case "internal":
+			var res *config.InternalError
+			errors.As(v, &res)
+			enc := encoder(ctx, w)
+			var body any
+			if formatter != nil {
+				body = formatter(ctx, res)
+			} else {
+				body = NewTestDinov3InternalResponseBody(res)
+			}
+			w.Header().Set("goa-error", res.GoaErrorName())
+			w.WriteHeader(http.StatusInternalServerError)
+			return enc.Encode(body)
+		default:
+			return encodeError(ctx, w, v)
+		}
+	}
+}
+
+// EncodeGetYoloResponse returns an encoder for responses returned by the
+// config get_yolo endpoint.
+func EncodeGetYoloResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.YOLOConfig)
+		enc := encoder(ctx, w)
+		body := NewGetYoloResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// EncodeUpdateYoloResponse returns an encoder for responses returned by the
+// config update_yolo endpoint.
+func EncodeUpdateYoloResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.YOLOConfig)
+		enc := encoder(ctx, w)
+		body := NewUpdateYoloResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// DecodeUpdateYoloRequest returns a decoder for requests sent to the config
+// update_yolo endpoint.
+func DecodeUpdateYoloRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
+	return func(r *http.Request) (any, error) {
+		var (
+			body UpdateYoloRequestBody
+			err  error
+		)
+		err = decoder(r).Decode(&body)
+		if err != nil {
+			if err == io.EOF {
+				return nil, goa.MissingPayloadError()
+			}
+			return nil, goa.DecodePayloadError(err.Error())
+		}
+		err = ValidateUpdateYoloRequestBody(&body)
+		if err != nil {
+			return nil, err
+		}
+		payload := NewUpdateYoloYOLOConfig(&body)
+
+		return payload, nil
+	}
+}
+
+// EncodeUpdateYoloError returns an encoder for errors returned by the
+// update_yolo config endpoint.
+func EncodeUpdateYoloError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+	encodeError := goahttp.ErrorEncoder(encoder, formatter)
+	return func(ctx context.Context, w http.ResponseWriter, v error) error {
+		var en goa.GoaErrorNamer
+		if !errors.As(v, &en) {
+			return encodeError(ctx, w, v)
+		}
+		switch en.GoaErrorName() {
+		case "bad_request":
+			var res *config.BadRequestError
+			errors.As(v, &res)
+			enc := encoder(ctx, w)
+			var body any
+			if formatter != nil {
+				body = formatter(ctx, res)
+			} else {
+				body = NewUpdateYoloBadRequestResponseBody(res)
+			}
+			w.Header().Set("goa-error", res.GoaErrorName())
+			w.WriteHeader(http.StatusBadRequest)
+			return enc.Encode(body)
+		default:
+			return encodeError(ctx, w, v)
+		}
+	}
+}
+
+// EncodeTestYoloResponse returns an encoder for responses returned by the
+// config test_yolo endpoint.
+func EncodeTestYoloResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.TestYoloResult)
+		enc := encoder(ctx, w)
+		body := NewTestYoloResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// EncodeTestYoloError returns an encoder for errors returned by the test_yolo
+// config endpoint.
+func EncodeTestYoloError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+	encodeError := goahttp.ErrorEncoder(encoder, formatter)
+	return func(ctx context.Context, w http.ResponseWriter, v error) error {
+		var en goa.GoaErrorNamer
+		if !errors.As(v, &en) {
+			return encodeError(ctx, w, v)
+		}
+		switch en.GoaErrorName() {
+		case "internal":
+			var res *config.InternalError
+			errors.As(v, &res)
+			enc := encoder(ctx, w)
+			var body any
+			if formatter != nil {
+				body = formatter(ctx, res)
+			} else {
+				body = NewTestYoloInternalResponseBody(res)
+			}
+			w.Header().Set("goa-error", res.GoaErrorName())
+			w.WriteHeader(http.StatusInternalServerError)
+			return enc.Encode(body)
+		default:
+			return encodeError(ctx, w, v)
+		}
+	}
+}
+
+// EncodeGetDetectionResponse returns an encoder for responses returned by the
+// config get_detection endpoint.
+func EncodeGetDetectionResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.DetectionConfig)
+		enc := encoder(ctx, w)
+		body := NewGetDetectionResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// EncodeUpdateDetectionResponse returns an encoder for responses returned by
+// the config update_detection endpoint.
+func EncodeUpdateDetectionResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.DetectionConfig)
+		enc := encoder(ctx, w)
+		body := NewUpdateDetectionResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// DecodeUpdateDetectionRequest returns a decoder for requests sent to the
+// config update_detection endpoint.
+func DecodeUpdateDetectionRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
+	return func(r *http.Request) (any, error) {
+		var (
+			body UpdateDetectionRequestBody
+			err  error
+		)
+		err = decoder(r).Decode(&body)
+		if err != nil {
+			if err == io.EOF {
+				return nil, goa.MissingPayloadError()
+			}
+			return nil, goa.DecodePayloadError(err.Error())
+		}
+		err = ValidateUpdateDetectionRequestBody(&body)
+		if err != nil {
+			return nil, err
+		}
+		payload := NewUpdateDetectionDetectionConfig(&body)
+
+		return payload, nil
+	}
+}
+
+// EncodeUpdateDetectionError returns an encoder for errors returned by the
+// update_detection config endpoint.
+func EncodeUpdateDetectionError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+	encodeError := goahttp.ErrorEncoder(encoder, formatter)
+	return func(ctx context.Context, w http.ResponseWriter, v error) error {
+		var en goa.GoaErrorNamer
+		if !errors.As(v, &en) {
+			return encodeError(ctx, w, v)
+		}
+		switch en.GoaErrorName() {
+		case "bad_request":
+			var res *config.BadRequestError
+			errors.As(v, &res)
+			enc := encoder(ctx, w)
+			var body any
+			if formatter != nil {
+				body = formatter(ctx, res)
+			} else {
+				body = NewUpdateDetectionBadRequestResponseBody(res)
+			}
+			w.Header().Set("goa-error", res.GoaErrorName())
+			w.WriteHeader(http.StatusBadRequest)
+			return enc.Encode(body)
+		default:
+			return encodeError(ctx, w, v)
+		}
+	}
+}
+
+// marshalConfigYOLOConfigToYOLOConfigResponseBody builds a value of type
+// *YOLOConfigResponseBody from a value of type *config.YOLOConfig.
+func marshalConfigYOLOConfigToYOLOConfigResponseBody(v *config.YOLOConfig) *YOLOConfigResponseBody {
+	if v == nil {
+		return nil
+	}
+	res := &YOLOConfigResponseBody{
+		Enabled:             v.Enabled,
+		ServiceEndpoint:     v.ServiceEndpoint,
+		ConfidenceThreshold: v.ConfidenceThreshold,
+		SecurityMode:        v.SecurityMode,
+		ClassesFilter:       v.ClassesFilter,
+	}
+	{
+		var zero float32
+		if res.ConfidenceThreshold == zero {
+			res.ConfidenceThreshold = 0.5
+		}
+	}
+	{
+		var zero bool
+		if res.SecurityMode == zero {
+			res.SecurityMode = true
+		}
+	}
+
+	return res
+}
+
+// marshalConfigDINOv3ConfigToDINOv3ConfigResponseBody builds a value of type
+// *DINOv3ConfigResponseBody from a value of type *config.DINOv3Config.
+func marshalConfigDINOv3ConfigToDINOv3ConfigResponseBody(v *config.DINOv3Config) *DINOv3ConfigResponseBody {
+	if v == nil {
+		return nil
+	}
+	res := &DINOv3ConfigResponseBody{
+		Enabled:             v.Enabled,
+		ServiceEndpoint:     v.ServiceEndpoint,
+		MotionThreshold:     v.MotionThreshold,
+		ConfidenceThreshold: v.ConfidenceThreshold,
+		FallbackToBasic:     v.FallbackToBasic,
+		EnableSceneAnalysis: v.EnableSceneAnalysis,
+	}
+	{
+		var zero float32
+		if res.MotionThreshold == zero {
+			res.MotionThreshold = 0.85
+		}
+	}
+	{
+		var zero float32
+		if res.ConfidenceThreshold == zero {
+			res.ConfidenceThreshold = 0.6
+		}
+	}
+	{
+		var zero bool
+		if res.FallbackToBasic == zero {
+			res.FallbackToBasic = true
+		}
+	}
+	{
+		var zero bool
+		if res.EnableSceneAnalysis == zero {
+			res.EnableSceneAnalysis = true
+		}
+	}
+
+	return res
+}
+
+// unmarshalYOLOConfigRequestBodyToConfigYOLOConfig builds a value of type
+// *config.YOLOConfig from a value of type *YOLOConfigRequestBody.
+func unmarshalYOLOConfigRequestBodyToConfigYOLOConfig(v *YOLOConfigRequestBody) *config.YOLOConfig {
+	if v == nil {
+		return nil
+	}
+	res := &config.YOLOConfig{
+		Enabled:         *v.Enabled,
+		ServiceEndpoint: v.ServiceEndpoint,
+		ClassesFilter:   v.ClassesFilter,
+	}
+	if v.ConfidenceThreshold != nil {
+		res.ConfidenceThreshold = *v.ConfidenceThreshold
+	}
+	if v.SecurityMode != nil {
+		res.SecurityMode = *v.SecurityMode
+	}
+	if v.ConfidenceThreshold == nil {
+		res.ConfidenceThreshold = 0.5
+	}
+	if v.SecurityMode == nil {
+		res.SecurityMode = true
+	}
+
+	return res
+}
+
+// unmarshalDINOv3ConfigRequestBodyToConfigDINOv3Config builds a value of type
+// *config.DINOv3Config from a value of type *DINOv3ConfigRequestBody.
+func unmarshalDINOv3ConfigRequestBodyToConfigDINOv3Config(v *DINOv3ConfigRequestBody) *config.DINOv3Config {
+	if v == nil {
+		return nil
+	}
+	res := &config.DINOv3Config{
+		Enabled:         *v.Enabled,
+		ServiceEndpoint: v.ServiceEndpoint,
+	}
+	if v.MotionThreshold != nil {
+		res.MotionThreshold = *v.MotionThreshold
+	}
+	if v.ConfidenceThreshold != nil {
+		res.ConfidenceThreshold = *v.ConfidenceThreshold
+	}
+	if v.FallbackToBasic != nil {
+		res.FallbackToBasic = *v.FallbackToBasic
+	}
+	if v.EnableSceneAnalysis != nil {
+		res.EnableSceneAnalysis = *v.EnableSceneAnalysis
+	}
+	if v.MotionThreshold == nil {
+		res.MotionThreshold = 0.85
+	}
+	if v.ConfidenceThreshold == nil {
+		res.ConfidenceThreshold = 0.6
+	}
+	if v.FallbackToBasic == nil {
+		res.FallbackToBasic = true
+	}
+	if v.EnableSceneAnalysis == nil {
+		res.EnableSceneAnalysis = true
+	}
+
+	return res
+}

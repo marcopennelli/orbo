@@ -2,12 +2,13 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"time"
 
 	motion_service "orbo/gen/motion"
-	"orbo/internal/motion"
 	"orbo/internal/camera"
+	"orbo/internal/motion"
 )
 
 // MotionImplementation implements the motion service
@@ -69,17 +70,27 @@ func (m *MotionImplementation) Event(ctx context.Context, p *motion_service.Even
 	return m.convertMotionEvent(event), nil
 }
 
-// Frame gets the captured frame for a motion event
-func (m *MotionImplementation) Frame(ctx context.Context, p *motion_service.FramePayload) ([]byte, error) {
+// Frame gets the captured frame for a motion event as base64
+func (m *MotionImplementation) Frame(ctx context.Context, p *motion_service.FramePayload) (*motion_service.FrameResponse, error) {
+	fmt.Printf("Frame request for event ID: %s\n", p.ID)
+
 	frameData, err := m.motionDetector.GetEventFrame(p.ID)
 	if err != nil {
+		fmt.Printf("Frame request failed for event %s: %v\n", p.ID, err)
 		return nil, &motion_service.NotFoundError{
 			Message: "Event or frame not found",
 			ID:      p.ID,
 		}
 	}
 
-	return frameData, nil
+	// Encode frame as base64
+	base64Data := base64.StdEncoding.EncodeToString(frameData)
+	fmt.Printf("Frame request succeeded for event %s: %d bytes -> %d base64 chars\n", p.ID, len(frameData), len(base64Data))
+
+	return &motion_service.FrameResponse{
+		Data:        base64Data,
+		ContentType: "image/jpeg",
+	}, nil
 }
 
 // convertMotionEvent converts internal motion event to service event

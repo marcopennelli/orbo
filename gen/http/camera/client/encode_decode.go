@@ -660,14 +660,19 @@ func DecodeCaptureResponse(decoder func(*http.Response) goahttp.Decoder, restore
 		switch resp.StatusCode {
 		case http.StatusOK:
 			var (
-				body []byte
+				body CaptureResponseBody
 				err  error
 			)
 			err = decoder(resp).Decode(&body)
 			if err != nil {
 				return nil, goahttp.ErrDecodingError("camera", "capture", err)
 			}
-			return body, nil
+			err = ValidateCaptureResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("camera", "capture", err)
+			}
+			res := NewCaptureFrameResponseOK(&body)
+			return res, nil
 		case http.StatusInternalServerError:
 			var (
 				body CaptureInternalResponseBody

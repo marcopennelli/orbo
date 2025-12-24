@@ -1,0 +1,19 @@
+{{- if .Values.dinov3.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "orbo.fullname" . }}-dinov3
+  labels:
+    {{- include "orbo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dinov3-service
+spec:
+  type: {{ .Values.dinov3.service.type }}
+  ports:
+    - port: {{ .Values.dinov3.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "orbo.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: dinov3-service
+{{- end }}

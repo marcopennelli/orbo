@@ -27,6 +27,38 @@ type Client struct {
 	// test_notification endpoint.
 	TestNotificationDoer goahttp.Doer
 
+	// GetDinov3 Doer is the HTTP client used to make requests to the get_dinov3
+	// endpoint.
+	GetDinov3Doer goahttp.Doer
+
+	// UpdateDinov3 Doer is the HTTP client used to make requests to the
+	// update_dinov3 endpoint.
+	UpdateDinov3Doer goahttp.Doer
+
+	// TestDinov3 Doer is the HTTP client used to make requests to the test_dinov3
+	// endpoint.
+	TestDinov3Doer goahttp.Doer
+
+	// GetYolo Doer is the HTTP client used to make requests to the get_yolo
+	// endpoint.
+	GetYoloDoer goahttp.Doer
+
+	// UpdateYolo Doer is the HTTP client used to make requests to the update_yolo
+	// endpoint.
+	UpdateYoloDoer goahttp.Doer
+
+	// TestYolo Doer is the HTTP client used to make requests to the test_yolo
+	// endpoint.
+	TestYoloDoer goahttp.Doer
+
+	// GetDetection Doer is the HTTP client used to make requests to the
+	// get_detection endpoint.
+	GetDetectionDoer goahttp.Doer
+
+	// UpdateDetection Doer is the HTTP client used to make requests to the
+	// update_detection endpoint.
+	UpdateDetectionDoer goahttp.Doer
+
 	// RestoreResponseBody controls whether the response bodies are reset after
 	// decoding so they can be read again.
 	RestoreResponseBody bool
@@ -50,6 +82,14 @@ func NewClient(
 		GetDoer:              doer,
 		UpdateDoer:           doer,
 		TestNotificationDoer: doer,
+		GetDinov3Doer:        doer,
+		UpdateDinov3Doer:     doer,
+		TestDinov3Doer:       doer,
+		GetYoloDoer:          doer,
+		UpdateYoloDoer:       doer,
+		TestYoloDoer:         doer,
+		GetDetectionDoer:     doer,
+		UpdateDetectionDoer:  doer,
 		RestoreResponseBody:  restoreBody,
 		scheme:               scheme,
 		host:                 host,
@@ -115,6 +155,173 @@ func (c *Client) TestNotification() goa.Endpoint {
 		resp, err := c.TestNotificationDoer.Do(req)
 		if err != nil {
 			return nil, goahttp.ErrRequestError("config", "test_notification", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// GetDinov3 returns an endpoint that makes HTTP requests to the config service
+// get_dinov3 server.
+func (c *Client) GetDinov3() goa.Endpoint {
+	var (
+		decodeResponse = DecodeGetDinov3Response(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildGetDinov3Request(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.GetDinov3Doer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "get_dinov3", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// UpdateDinov3 returns an endpoint that makes HTTP requests to the config
+// service update_dinov3 server.
+func (c *Client) UpdateDinov3() goa.Endpoint {
+	var (
+		encodeRequest  = EncodeUpdateDinov3Request(c.encoder)
+		decodeResponse = DecodeUpdateDinov3Response(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildUpdateDinov3Request(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		err = encodeRequest(req, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.UpdateDinov3Doer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "update_dinov3", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// TestDinov3 returns an endpoint that makes HTTP requests to the config
+// service test_dinov3 server.
+func (c *Client) TestDinov3() goa.Endpoint {
+	var (
+		decodeResponse = DecodeTestDinov3Response(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildTestDinov3Request(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.TestDinov3Doer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "test_dinov3", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// GetYolo returns an endpoint that makes HTTP requests to the config service
+// get_yolo server.
+func (c *Client) GetYolo() goa.Endpoint {
+	var (
+		decodeResponse = DecodeGetYoloResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildGetYoloRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.GetYoloDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "get_yolo", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// UpdateYolo returns an endpoint that makes HTTP requests to the config
+// service update_yolo server.
+func (c *Client) UpdateYolo() goa.Endpoint {
+	var (
+		encodeRequest  = EncodeUpdateYoloRequest(c.encoder)
+		decodeResponse = DecodeUpdateYoloResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildUpdateYoloRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		err = encodeRequest(req, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.UpdateYoloDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "update_yolo", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// TestYolo returns an endpoint that makes HTTP requests to the config service
+// test_yolo server.
+func (c *Client) TestYolo() goa.Endpoint {
+	var (
+		decodeResponse = DecodeTestYoloResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildTestYoloRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.TestYoloDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "test_yolo", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// GetDetection returns an endpoint that makes HTTP requests to the config
+// service get_detection server.
+func (c *Client) GetDetection() goa.Endpoint {
+	var (
+		decodeResponse = DecodeGetDetectionResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildGetDetectionRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.GetDetectionDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "get_detection", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// UpdateDetection returns an endpoint that makes HTTP requests to the config
+// service update_detection server.
+func (c *Client) UpdateDetection() goa.Endpoint {
+	var (
+		encodeRequest  = EncodeUpdateDetectionRequest(c.encoder)
+		decodeResponse = DecodeUpdateDetectionResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildUpdateDetectionRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		err = encodeRequest(req, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.UpdateDetectionDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "update_detection", err)
 		}
 		return decodeResponse(resp)
 	}

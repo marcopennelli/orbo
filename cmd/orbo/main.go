@@ -7,18 +7,23 @@ import (
 	"log"
 	"net"
 	"net/url"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"sync"
+	"syscall"
+
 	cameraService "orbo/gen/camera"
 	configService "orbo/gen/config"
 	healthService "orbo/gen/health"
 	motionService "orbo/gen/motion"
 	systemService "orbo/gen/system"
 	"orbo/internal/camera"
+	"orbo/internal/database"
+	"orbo/internal/detection"
 	"orbo/internal/motion"
 	"orbo/internal/services"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
+	"orbo/internal/telegram"
 )
 
 func main() {
@@ -41,11 +46,66 @@ func main() {
 		logger = log.New(os.Stderr, "[orbo] ", log.Ltime)
 	}
 
+	// Initialize database
+	frameDir := os.Getenv("FRAME_DIR")
+	if frameDir == "" {
+		frameDir = "/app/frames"
+	}
+	dbPath := os.Getenv("DATABASE_PATH")
+	if dbPath == "" {
+		dbPath = filepath.Join(frameDir, "orbo.db")
+	}
+
+	db, err := database.New(dbPath)
+	if err != nil {
+		logger.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer db.Close()
+
+	// Run database migrations
+	if err := db.Migrate(); err != nil {
+		logger.Fatalf("Failed to run database migrations: %v", err)
+	}
+	logger.Printf("Database initialized at %s", dbPath)
+
 	// Initialize camera manager
-	cameraManager := camera.NewCameraManager()
+	cameraManager := camera.NewCameraManager(db)
 
 	// Initialize motion detector
-	motionDetector := motion.NewMotionDetector("/app/frames")
+	motionDetector := motion.NewMotionDetector(frameDir, db)
+
+	// Initialize Telegram bot
+	telegramBot := telegram.NewTelegramBot(telegram.Config{
+		BotToken:        os.Getenv("TELEGRAM_BOT_TOKEN"),
+		ChatID:          os.Getenv("TELEGRAM_CHAT_ID"),
+		Enabled:         os.Getenv("TELEGRAM_BOT_TOKEN") != "" && os.Getenv("TELEGRAM_CHAT_ID") != "",
+		CooldownSeconds: 30,
+	})
+
+	// Initialize DINOv3 detector
+	dinov3Endpoint := os.Getenv("DINOV3_ENDPOINT")
+	if dinov3Endpoint == "" {
+		dinov3Endpoint = "http://dinov3-service:8000"
+	}
+	dinov3Detector := detection.NewDINOv3Detector(dinov3Endpoint)
+
+	// Initialize YOLO detector
+	yoloEndpoint := os.Getenv("YOLO_ENDPOINT")
+	if yoloEndpoint == "" {
+		yoloEndpoint = "http://yolo-service:8081"
+	}
+	yoloDetector := detection.NewYOLODetectorWithConfig(detection.YOLOConfig{
+		Enabled:             os.Getenv("YOLO_ENABLED") == "true",
+		ServiceEndpoint:     yoloEndpoint,
+		ConfidenceThreshold: 0.5,
+		SecurityMode:        true,
+	})
+
+	// Log detector configuration
+	logger.Printf("Detection configuration:")
+	logger.Printf("  Primary detector: %s", os.Getenv("PRIMARY_DETECTOR"))
+	logger.Printf("  DINOv3 endpoint: %s (enabled: %v)", dinov3Endpoint, os.Getenv("DINOV3_ENABLED") == "true")
+	logger.Printf("  YOLO endpoint: %s (enabled: %v)", yoloEndpoint, os.Getenv("YOLO_ENABLED") == "true")
 
 	// Initialize the services.
 	var (
@@ -60,8 +120,7 @@ func main() {
 		cameraSvc = services.NewCameraService(cameraManager)
 		motionSvc = services.NewMotionService(motionDetector, cameraManager)
 		systemSvc = services.NewSystemService(cameraManager, motionDetector)
-		// TODO: Implement config service
-		configSvc = nil  // TODO: implement config service
+		configSvc = services.NewConfigService(telegramBot, dinov3Detector, yoloDetector, db)
 	}
 
 	// Wrap the services in endpoints that can be invoked from other services
@@ -78,10 +137,7 @@ func main() {
 		cameraEndpoints = cameraService.NewEndpoints(cameraSvc)
 		motionEndpoints = motionService.NewEndpoints(motionSvc)
 		systemEndpoints = systemService.NewEndpoints(systemSvc)
-		// Only create endpoints for implemented services
-		if configSvc != nil {
-			configEndpoints = configService.NewEndpoints(configSvc)
-		}
+		configEndpoints = configService.NewEndpoints(configSvc)
 	}
 
 	// Create channel used by both the signal handler and server goroutines

@@ -1,0 +1,91 @@
+{{- if .Values.yolo.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "orbo.fullname" . }}-yolo
+  labels:
+    {{- include "orbo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: yolo-service
+spec:
+  replicas: {{ .Values.yolo.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "orbo.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: yolo-service
+  template:
+    metadata:
+      labels:
+        {{- include "orbo.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: yolo-service
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.yolo.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "orbo.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.yolo.podSecurityContext | nindent 8 }}
+      containers:
+        - name: yolo-service
+          securityContext:
+            {{- toYaml .Values.yolo.securityContext | nindent 12 }}
+          image: "{{ .Values.yolo.image.repository }}:{{ .Values.yolo.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.yolo.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- if .Values.yolo.cpuOnly }}
+            limits:
+              cpu: {{ .Values.yolo.resources.limits.cpu | default "2000m" }}
+              memory: {{ .Values.yolo.resources.limits.memory | default "4Gi" }}
+            requests:
+              cpu: {{ .Values.yolo.resources.requests.cpu | default "500m" }}
+              memory: {{ .Values.yolo.resources.requests.memory | default "2Gi" }}
+            {{- else }}
+            {{- toYaml .Values.yolo.resources | nindent 12 }}
+            {{- end }}
+          env:
+            - name: CUDA_VISIBLE_DEVICES
+              value: {{ .Values.yolo.cudaDevices | quote }}
+            - name: PORT
+              value: "8081"
+            - name: HOST
+              value: "0.0.0.0"
+          {{- if .Values.yolo.extraEnv }}
+            {{- toYaml .Values.yolo.extraEnv | nindent 12 }}
+          {{- end }}
+      {{- if not .Values.yolo.cpuOnly }}
+      {{- with .Values.yolo.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.yolo.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.yolo.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

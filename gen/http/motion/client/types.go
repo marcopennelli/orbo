@@ -34,6 +34,25 @@ type EventResponseBody struct {
 	FramePath *string `form:"frame_path,omitempty" json:"frame_path,omitempty" xml:"frame_path,omitempty"`
 	// Whether notification was sent
 	NotificationSent *bool `form:"notification_sent,omitempty" json:"notification_sent,omitempty" xml:"notification_sent,omitempty"`
+	// Detected object class
+	ObjectClass *string `form:"object_class,omitempty" json:"object_class,omitempty" xml:"object_class,omitempty"`
+	// AI detection confidence
+	ObjectConfidence *float32 `form:"object_confidence,omitempty" json:"object_confidence,omitempty" xml:"object_confidence,omitempty"`
+	// Threat level assessment
+	ThreatLevel *string `form:"threat_level,omitempty" json:"threat_level,omitempty" xml:"threat_level,omitempty"`
+	// AI inference time in milliseconds
+	InferenceTimeMs *float32 `form:"inference_time_ms,omitempty" json:"inference_time_ms,omitempty" xml:"inference_time_ms,omitempty"`
+	// Device used for detection
+	DetectionDevice *string `form:"detection_device,omitempty" json:"detection_device,omitempty" xml:"detection_device,omitempty"`
+}
+
+// FrameResponseBody is the type of the "motion" service "frame" endpoint HTTP
+// response body.
+type FrameResponseBody struct {
+	// Base64 encoded JPEG image data
+	Data *string `form:"data,omitempty" json:"data,omitempty" xml:"data,omitempty"`
+	// Image MIME type
+	ContentType *string `form:"content_type,omitempty" json:"content_type,omitempty" xml:"content_type,omitempty"`
 }
 
 // EventNotFoundResponseBody is the type of the "motion" service "event"
@@ -70,6 +89,16 @@ type MotionEventResponse struct {
 	FramePath *string `form:"frame_path,omitempty" json:"frame_path,omitempty" xml:"frame_path,omitempty"`
 	// Whether notification was sent
 	NotificationSent *bool `form:"notification_sent,omitempty" json:"notification_sent,omitempty" xml:"notification_sent,omitempty"`
+	// Detected object class
+	ObjectClass *string `form:"object_class,omitempty" json:"object_class,omitempty" xml:"object_class,omitempty"`
+	// AI detection confidence
+	ObjectConfidence *float32 `form:"object_confidence,omitempty" json:"object_confidence,omitempty" xml:"object_confidence,omitempty"`
+	// Threat level assessment
+	ThreatLevel *string `form:"threat_level,omitempty" json:"threat_level,omitempty" xml:"threat_level,omitempty"`
+	// AI inference time in milliseconds
+	InferenceTimeMs *float32 `form:"inference_time_ms,omitempty" json:"inference_time_ms,omitempty" xml:"inference_time_ms,omitempty"`
+	// Device used for detection
+	DetectionDevice *string `form:"detection_device,omitempty" json:"detection_device,omitempty" xml:"detection_device,omitempty"`
 }
 
 // BoundingBoxResponse is used to define fields on response body types.
@@ -117,6 +146,11 @@ func NewEventMotionEventOK(body *EventResponseBody) *motion.MotionEvent {
 		Confidence:       *body.Confidence,
 		FramePath:        body.FramePath,
 		NotificationSent: body.NotificationSent,
+		ObjectClass:      body.ObjectClass,
+		ObjectConfidence: body.ObjectConfidence,
+		ThreatLevel:      body.ThreatLevel,
+		InferenceTimeMs:  body.InferenceTimeMs,
+		DetectionDevice:  body.DetectionDevice,
 	}
 	if body.BoundingBoxes != nil {
 		v.BoundingBoxes = make([]*motion.BoundingBox, len(body.BoundingBoxes))
@@ -133,6 +167,17 @@ func NewEventNotFound(body *EventNotFoundResponseBody) *motion.NotFoundError {
 	v := &motion.NotFoundError{
 		Message: *body.Message,
 		ID:      *body.ID,
+	}
+
+	return v
+}
+
+// NewFrameResponseOK builds a "motion" service "frame" endpoint result from a
+// HTTP "OK" response.
+func NewFrameResponseOK(body *FrameResponseBody) *motion.FrameResponse {
+	v := &motion.FrameResponse{
+		Data:        *body.Data,
+		ContentType: *body.ContentType,
 	}
 
 	return v
@@ -177,6 +222,27 @@ func ValidateEventResponseBody(body *EventResponseBody) (err error) {
 				err = goa.MergeErrors(err, err2)
 			}
 		}
+	}
+	if body.ThreatLevel != nil {
+		if !(*body.ThreatLevel == "none" || *body.ThreatLevel == "low" || *body.ThreatLevel == "medium" || *body.ThreatLevel == "high") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.threat_level", *body.ThreatLevel, []any{"none", "low", "medium", "high"}))
+		}
+	}
+	if body.DetectionDevice != nil {
+		if !(*body.DetectionDevice == "cpu" || *body.DetectionDevice == "cuda" || *body.DetectionDevice == "dinov3") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.detection_device", *body.DetectionDevice, []any{"cpu", "cuda", "dinov3"}))
+		}
+	}
+	return
+}
+
+// ValidateFrameResponseBody runs the validations defined on FrameResponseBody
+func ValidateFrameResponseBody(body *FrameResponseBody) (err error) {
+	if body.Data == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("data", "body"))
+	}
+	if body.ContentType == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("content_type", "body"))
 	}
 	return
 }
@@ -234,6 +300,16 @@ func ValidateMotionEventResponse(body *MotionEventResponse) (err error) {
 			if err2 := ValidateBoundingBoxResponse(e); err2 != nil {
 				err = goa.MergeErrors(err, err2)
 			}
+		}
+	}
+	if body.ThreatLevel != nil {
+		if !(*body.ThreatLevel == "none" || *body.ThreatLevel == "low" || *body.ThreatLevel == "medium" || *body.ThreatLevel == "high") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.threat_level", *body.ThreatLevel, []any{"none", "low", "medium", "high"}))
+		}
+	}
+	if body.DetectionDevice != nil {
+		if !(*body.DetectionDevice == "cpu" || *body.DetectionDevice == "cuda" || *body.DetectionDevice == "dinov3") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.detection_device", *body.DetectionDevice, []any{"cpu", "cuda", "dinov3"}))
 		}
 	}
 	return

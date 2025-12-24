@@ -81,7 +81,26 @@ var MotionEvent = Type("MotionEvent", func() {
     Field(5, "bounding_boxes", ArrayOf(BoundingBox), "Detected motion areas")
     Field(6, "frame_path", String, "Path to captured frame")
     Field(7, "notification_sent", Boolean, "Whether notification was sent")
+    // DINOv3 AI-enhanced fields
+    Field(8, "object_class", String, "Detected object class")
+    Field(9, "object_confidence", Float32, "AI detection confidence")
+    Field(10, "threat_level", String, "Threat level assessment", func() {
+        Enum("none", "low", "medium", "high")
+    })
+    Field(11, "inference_time_ms", Float32, "AI inference time in milliseconds")
+    Field(12, "detection_device", String, "Device used for detection", func() {
+        Enum("cpu", "cuda", "dinov3")
+    })
     Required("id", "camera_id", "timestamp", "confidence")
+})
+
+var FrameResponse = Type("FrameResponse", func() {
+    Description("Base64 encoded image frame response")
+    Field(1, "data", String, "Base64 encoded JPEG image data")
+    Field(2, "content_type", String, "Image MIME type", func() {
+        Default("image/jpeg")
+    })
+    Required("data", "content_type")
 })
 
 var BoundingBox = Type("BoundingBox", func() {
@@ -101,6 +120,53 @@ var NotificationConfig = Type("NotificationConfig", func() {
     Field(4, "min_confidence", Float32, "Minimum confidence threshold for notifications")
     Field(5, "cooldown_seconds", Int, "Cooldown period between notifications")
     Required("telegram_enabled")
+})
+
+var DINOv3Config = Type("DINOv3Config", func() {
+    Description("DINOv3 AI detection configuration")
+    Field(1, "enabled", Boolean, "Enable DINOv3 AI detection")
+    Field(2, "service_endpoint", String, "DINOv3 service endpoint URL")
+    Field(3, "motion_threshold", Float32, "Motion detection threshold (0-1)", func() {
+        Default(0.85)
+    })
+    Field(4, "confidence_threshold", Float32, "Minimum confidence for alerts (0-1)", func() {
+        Default(0.6)
+    })
+    Field(5, "fallback_to_basic", Boolean, "Fallback to basic detection when DINOv3 unavailable", func() {
+        Default(true)
+    })
+    Field(6, "enable_scene_analysis", Boolean, "Enable advanced scene analysis", func() {
+        Default(true)
+    })
+    Required("enabled")
+})
+
+var YOLOConfig = Type("YOLOConfig", func() {
+    Description("YOLO object detection configuration")
+    Field(1, "enabled", Boolean, "Enable YOLO object detection")
+    Field(2, "service_endpoint", String, "YOLO service endpoint URL")
+    Field(3, "confidence_threshold", Float32, "Minimum confidence for detections (0-1)", func() {
+        Default(0.5)
+    })
+    Field(4, "security_mode", Boolean, "Use security-focused detection (person, car, etc.)", func() {
+        Default(true)
+    })
+    Field(5, "classes_filter", String, "Comma-separated class names to filter (empty = all)")
+    Required("enabled")
+})
+
+var DetectionConfig = Type("DetectionConfig", func() {
+    Description("Combined detection services configuration")
+    Field(1, "primary_detector", String, "Primary detector to use", func() {
+        Enum("basic", "yolo", "dinov3")
+        Default("basic")
+    })
+    Field(2, "yolo", YOLOConfig, "YOLO configuration")
+    Field(3, "dinov3", DINOv3Config, "DINOv3 configuration")
+    Field(4, "fallback_enabled", Boolean, "Enable fallback to basic detection", func() {
+        Default(true)
+    })
+    Required("primary_detector")
 })
 
 var SystemStatus = Type("SystemStatus", func() {
@@ -265,21 +331,19 @@ var _ = Service("camera", func() {
     })
     
     Method("capture", func() {
-        Description("Capture a single frame from camera as JPEG")
+        Description("Capture a single frame from camera as base64")
         Payload(func() {
             Field(1, "id", String, "Camera ID", func() {
                 Format(FormatUUID)
             })
             Required("id")
         })
-        Result(Bytes)
+        Result(FrameResponse)
         Error("not_found", NotFoundError, "Camera not found")
         Error("internal", InternalError, "Failed to capture frame")
         HTTP(func() {
             GET("/api/v1/cameras/{id}/frame")
-            Response(StatusOK, func() {
-                ContentType("image/jpeg")
-            })
+            Response(StatusOK)
             Response("not_found", StatusNotFound)
             Response("internal", StatusInternalServerError)
         })
@@ -332,20 +396,18 @@ var _ = Service("motion", func() {
     })
     
     Method("frame", func() {
-        Description("Get captured frame for motion event")
+        Description("Get captured frame for motion event as base64")
         Payload(func() {
             Field(1, "id", String, "Event ID", func() {
                 Format(FormatUUID)
             })
             Required("id")
         })
-        Result(Bytes)
+        Result(FrameResponse)
         Error("not_found", NotFoundError, "Event or frame not found")
         HTTP(func() {
             GET("/api/v1/motion/events/{id}/frame")
-            Response(StatusOK, func() {
-                Header("Content-Type:image/jpeg")
-            })
+            Response(StatusOK)
             Response("not_found", StatusNotFound)
         })
     })
@@ -388,6 +450,106 @@ var _ = Service("config", func() {
             POST("/api/v1/config/notifications/test")
             Response(StatusOK)
             Response("internal", StatusInternalServerError)
+        })
+    })
+
+    Method("get_dinov3", func() {
+        Description("Get current DINOv3 AI configuration")
+        Result(DINOv3Config)
+        HTTP(func() {
+            GET("/api/v1/config/dinov3")
+            Response(StatusOK)
+        })
+    })
+    
+    Method("update_dinov3", func() {
+        Description("Update DINOv3 AI configuration")
+        Payload(DINOv3Config)
+        Result(DINOv3Config)
+        Error("bad_request", BadRequestError, "Invalid DINOv3 configuration")
+        HTTP(func() {
+            PUT("/api/v1/config/dinov3")
+            Response(StatusOK)
+            Response("bad_request", StatusBadRequest)
+        })
+    })
+
+    Method("test_dinov3", func() {
+        Description("Test DINOv3 service connectivity")
+        Result(func() {
+            Field(1, "healthy", Boolean, "Service health status")
+            Field(2, "endpoint", String, "Service endpoint")
+            Field(3, "response_time_ms", Float32, "Response time in milliseconds")
+            Field(4, "device", String, "Detection device")
+            Field(5, "message", String, "Status message")
+            Required("healthy", "message")
+        })
+        Error("internal", InternalError, "Failed to test DINOv3 service")
+        HTTP(func() {
+            POST("/api/v1/config/dinov3/test")
+            Response(StatusOK)
+            Response("internal", StatusInternalServerError)
+        })
+    })
+
+    Method("get_yolo", func() {
+        Description("Get current YOLO detection configuration")
+        Result(YOLOConfig)
+        HTTP(func() {
+            GET("/api/v1/config/yolo")
+            Response(StatusOK)
+        })
+    })
+
+    Method("update_yolo", func() {
+        Description("Update YOLO detection configuration")
+        Payload(YOLOConfig)
+        Result(YOLOConfig)
+        Error("bad_request", BadRequestError, "Invalid YOLO configuration")
+        HTTP(func() {
+            PUT("/api/v1/config/yolo")
+            Response(StatusOK)
+            Response("bad_request", StatusBadRequest)
+        })
+    })
+
+    Method("test_yolo", func() {
+        Description("Test YOLO service connectivity")
+        Result(func() {
+            Field(1, "healthy", Boolean, "Service health status")
+            Field(2, "endpoint", String, "Service endpoint")
+            Field(3, "response_time_ms", Float32, "Response time in milliseconds")
+            Field(4, "device", String, "Detection device (cpu/cuda)")
+            Field(5, "model_loaded", Boolean, "Model loaded status")
+            Field(6, "message", String, "Status message")
+            Required("healthy", "message")
+        })
+        Error("internal", InternalError, "Failed to test YOLO service")
+        HTTP(func() {
+            POST("/api/v1/config/yolo/test")
+            Response(StatusOK)
+            Response("internal", StatusInternalServerError)
+        })
+    })
+
+    Method("get_detection", func() {
+        Description("Get combined detection configuration")
+        Result(DetectionConfig)
+        HTTP(func() {
+            GET("/api/v1/config/detection")
+            Response(StatusOK)
+        })
+    })
+
+    Method("update_detection", func() {
+        Description("Update combined detection configuration")
+        Payload(DetectionConfig)
+        Result(DetectionConfig)
+        Error("bad_request", BadRequestError, "Invalid detection configuration")
+        HTTP(func() {
+            PUT("/api/v1/config/detection")
+            Response(StatusOK)
+            Response("bad_request", StatusBadRequest)
         })
     })
 })

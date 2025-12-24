@@ -106,6 +106,22 @@ func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.E
 		systemsvr.Mount(mux, systemServer)
 	}
 
+	// Serve static files for web UI
+	staticDir := os.Getenv("STATIC_DIR")
+	if staticDir == "" {
+		staticDir = "/app/web/static"
+	}
+	if _, err := os.Stat(staticDir); err == nil {
+		fs := http.FileServer(http.Dir(staticDir))
+		mux.Handle("GET", "/", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, staticDir+"/index.html")
+		})
+		mux.Handle("GET", "/static/{*path}", func(w http.ResponseWriter, r *http.Request) {
+			http.StripPrefix("/static/", fs).ServeHTTP(w, r)
+		})
+		logger.Printf("Serving static files from %s", staticDir)
+	}
+
 	// Wrap the multiplexer with additional middlewares. Middlewares mounted
 	// here apply to all the service endpoints.
 	var handler http.Handler = mux
