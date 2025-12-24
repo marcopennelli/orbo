@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
+
+	"orbo/internal/database"
 )
 
 // Camera represents a USB camera device with direct system access
@@ -29,13 +32,53 @@ type Camera struct {
 type CameraManager struct {
 	cameras map[string]*Camera
 	mu      sync.RWMutex
+	db      *database.Database
 }
 
 // NewCameraManager creates a new camera manager
-func NewCameraManager() *CameraManager {
-	return &CameraManager{
+func NewCameraManager(db *database.Database) *CameraManager {
+	cm := &CameraManager{
 		cameras: make(map[string]*Camera),
+		db:      db,
 	}
+
+	// Load cameras from database on startup
+	if db != nil {
+		if err := cm.loadCamerasFromDB(); err != nil {
+			fmt.Printf("Warning: failed to load cameras from database: %v\n", err)
+		}
+	}
+
+	return cm
+}
+
+// loadCamerasFromDB loads cameras from the database
+func (cm *CameraManager) loadCamerasFromDB() error {
+	records, err := cm.db.ListCameras()
+	if err != nil {
+		return err
+	}
+
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	for _, record := range records {
+		camera := &Camera{
+			ID:         record.ID,
+			Name:       record.Name,
+			Device:     record.Device,
+			Resolution: record.Resolution,
+			FPS:        record.FPS,
+			Status:     "inactive", // Always start inactive
+			CreatedAt:  record.CreatedAt,
+			stopCh:     make(chan struct{}),
+		}
+		cm.cameras[camera.ID] = camera
+		fmt.Printf("Loaded camera from database: %s (%s)\n", camera.Name, camera.ID)
+	}
+
+	fmt.Printf("Loaded %d cameras from database\n", len(records))
+	return nil
 }
 
 // NewCamera creates a new camera instance
@@ -56,13 +99,30 @@ func NewCamera(id, name, device, resolution string, fps int) *Camera {
 func (cm *CameraManager) AddCamera(camera *Camera) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-	
+
 	// Check if device exists
 	if !cm.deviceExists(camera.Device) {
 		return fmt.Errorf("camera device %s does not exist", camera.Device)
 	}
-	
+
 	cm.cameras[camera.ID] = camera
+
+	// Persist to database
+	if cm.db != nil {
+		record := &database.CameraRecord{
+			ID:         camera.ID,
+			Name:       camera.Name,
+			Device:     camera.Device,
+			Resolution: camera.Resolution,
+			FPS:        camera.FPS,
+			Status:     camera.Status,
+			CreatedAt:  camera.CreatedAt,
+		}
+		if err := cm.db.SaveCamera(record); err != nil {
+			fmt.Printf("Warning: failed to persist camera to database: %v\n", err)
+		}
+	}
+
 	return nil
 }
 
@@ -94,18 +154,26 @@ func (cm *CameraManager) ListCameras() []*Camera {
 func (cm *CameraManager) RemoveCamera(id string) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
-	
+
 	camera, exists := cm.cameras[id]
 	if !exists {
 		return fmt.Errorf("camera with ID %s not found", id)
 	}
-	
+
 	// Stop the camera if it's active
 	if camera.isActive {
 		camera.stop()
 	}
-	
+
 	delete(cm.cameras, id)
+
+	// Delete from database
+	if cm.db != nil {
+		if err := cm.db.DeleteCamera(id); err != nil {
+			fmt.Printf("Warning: failed to delete camera from database: %v\n", err)
+		}
+	}
+
 	return nil
 }
 
@@ -115,8 +183,19 @@ func (cm *CameraManager) ActivateCamera(id string) error {
 	if err != nil {
 		return err
 	}
-	
-	return camera.activate()
+
+	if err := camera.activate(); err != nil {
+		return err
+	}
+
+	// Update status in database
+	if cm.db != nil {
+		if err := cm.db.UpdateCameraStatus(id, "active"); err != nil {
+			fmt.Printf("Warning: failed to update camera status in database: %v\n", err)
+		}
+	}
+
+	return nil
 }
 
 // DeactivateCamera stops video capture for a camera
@@ -125,8 +204,16 @@ func (cm *CameraManager) DeactivateCamera(id string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	camera.deactivate()
+
+	// Update status in database
+	if cm.db != nil {
+		if err := cm.db.UpdateCameraStatus(id, "inactive"); err != nil {
+			fmt.Printf("Warning: failed to update camera status in database: %v\n", err)
+		}
+	}
+
 	return nil
 }
 
@@ -196,75 +283,106 @@ func (c *Camera) CaptureFrame() ([]byte, error) {
 	return c.captureFrameWithFfmpeg()
 }
 
+// isNetworkSource checks if device is an HTTP/RTSP URL
+func isNetworkSource(device string) bool {
+	return strings.HasPrefix(device, "http://") ||
+		strings.HasPrefix(device, "https://") ||
+		strings.HasPrefix(device, "rtsp://")
+}
+
 // deviceExists checks if a camera device exists
 func (cm *CameraManager) deviceExists(device string) bool {
+	// Network sources (HTTP/RTSP) are always considered to exist
+	// Actual connectivity is checked when activating
+	if isNetworkSource(device) {
+		return true
+	}
+
 	if _, err := os.Stat(device); os.IsNotExist(err) {
 		return false
 	}
-	
+
 	// Try to access the device
 	file, err := os.OpenFile(device, os.O_RDONLY, 0)
 	if err != nil {
 		return false
 	}
 	defer file.Close()
-	
+
 	return true
 }
 
 // captureFrameWithFfmpeg captures a frame using ffmpeg command
 func (c *Camera) captureFrameWithFfmpeg() ([]byte, error) {
-	// Build ffmpeg command to capture a single frame
-	args := []string{
-		"-f", "v4l2",
-		"-video_size", c.Resolution,
-		"-i", c.Device,
-		"-vframes", "1",
-		"-f", "mjpeg",
-		"-q:v", "2", // High quality JPEG
-		"-",
-	}
-	
-	// Use default resolution if not specified
-	if c.Resolution == "" {
+	var args []string
+
+	if isNetworkSource(c.Device) {
+		// For HTTP/RTSP sources, use appropriate input format
 		args = []string{
-			"-f", "v4l2",
-			"-i", c.Device,
-			"-vframes", "1", 
-			"-f", "mjpeg",
-			"-q:v", "2",
-			"-",
+			"-y",                   // Overwrite output
+			"-i", c.Device,         // Input URL
+			"-vframes", "1",        // Capture 1 frame
+			"-f", "mjpeg",          // Output format
+			"-q:v", "2",            // High quality JPEG
+			"-",                    // Output to stdout
+		}
+	} else {
+		// For V4L2 devices
+		if c.Resolution != "" {
+			args = []string{
+				"-f", "v4l2",
+				"-video_size", c.Resolution,
+				"-i", c.Device,
+				"-vframes", "1",
+				"-f", "mjpeg",
+				"-q:v", "2",
+				"-",
+			}
+		} else {
+			args = []string{
+				"-f", "v4l2",
+				"-i", c.Device,
+				"-vframes", "1",
+				"-f", "mjpeg",
+				"-q:v", "2",
+				"-",
+			}
 		}
 	}
-	
+
 	// Execute ffmpeg command
 	cmd := exec.Command("ffmpeg", args...)
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	
+
 	err := cmd.Run()
 	if err != nil {
 		return nil, fmt.Errorf("ffmpeg failed: %w (stderr: %s)", err, stderr.String())
 	}
-	
+
 	return stdout.Bytes(), nil
 }
 
 // deviceAccessible checks if device is accessible
 func (c *Camera) deviceAccessible() bool {
+	// Network sources are checked by actually connecting
+	if isNetworkSource(c.Device) {
+		return true // Will be verified when capturing
+	}
+
 	if _, err := os.Stat(c.Device); os.IsNotExist(err) {
 		return false
 	}
-	
+
 	// Try to open for read to check permissions
 	file, err := os.OpenFile(c.Device, os.O_RDONLY, 0)
 	if err != nil {
 		return false
 	}
 	defer file.Close()
-	
+
 	return true
 }
 

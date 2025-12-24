@@ -232,3 +232,783 @@ func DecodeTestNotificationResponse(decoder func(*http.Response) goahttp.Decoder
 		}
 	}
 }
+
+// BuildGetDinov3Request instantiates a HTTP request object with method and
+// path set to call the "config" service "get_dinov3" endpoint
+func (c *Client) BuildGetDinov3Request(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: GetDinov3ConfigPath()}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "get_dinov3", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeGetDinov3Response returns a decoder for responses returned by the
+// config get_dinov3 endpoint. restoreBody controls whether the response body
+// should be restored after having been read.
+func DecodeGetDinov3Response(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body GetDinov3ResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "get_dinov3", err)
+			}
+			err = ValidateGetDinov3ResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "get_dinov3", err)
+			}
+			res := NewGetDinov3DINOv3ConfigOK(&body)
+			return res, nil
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "get_dinov3", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildUpdateDinov3Request instantiates a HTTP request object with method and
+// path set to call the "config" service "update_dinov3" endpoint
+func (c *Client) BuildUpdateDinov3Request(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: UpdateDinov3ConfigPath()}
+	req, err := http.NewRequest("PUT", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "update_dinov3", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// EncodeUpdateDinov3Request returns an encoder for requests sent to the config
+// update_dinov3 server.
+func EncodeUpdateDinov3Request(encoder func(*http.Request) goahttp.Encoder) func(*http.Request, any) error {
+	return func(req *http.Request, v any) error {
+		p, ok := v.(*config.DINOv3Config)
+		if !ok {
+			return goahttp.ErrInvalidType("config", "update_dinov3", "*config.DINOv3Config", v)
+		}
+		body := NewUpdateDinov3RequestBody(p)
+		if err := encoder(req).Encode(&body); err != nil {
+			return goahttp.ErrEncodingError("config", "update_dinov3", err)
+		}
+		return nil
+	}
+}
+
+// DecodeUpdateDinov3Response returns a decoder for responses returned by the
+// config update_dinov3 endpoint. restoreBody controls whether the response
+// body should be restored after having been read.
+// DecodeUpdateDinov3Response may return the following errors:
+//   - "bad_request" (type *config.BadRequestError): http.StatusBadRequest
+//   - error: internal error
+func DecodeUpdateDinov3Response(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body UpdateDinov3ResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "update_dinov3", err)
+			}
+			err = ValidateUpdateDinov3ResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "update_dinov3", err)
+			}
+			res := NewUpdateDinov3DINOv3ConfigOK(&body)
+			return res, nil
+		case http.StatusBadRequest:
+			var (
+				body UpdateDinov3BadRequestResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "update_dinov3", err)
+			}
+			err = ValidateUpdateDinov3BadRequestResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "update_dinov3", err)
+			}
+			return nil, NewUpdateDinov3BadRequest(&body)
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "update_dinov3", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildTestDinov3Request instantiates a HTTP request object with method and
+// path set to call the "config" service "test_dinov3" endpoint
+func (c *Client) BuildTestDinov3Request(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: TestDinov3ConfigPath()}
+	req, err := http.NewRequest("POST", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "test_dinov3", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeTestDinov3Response returns a decoder for responses returned by the
+// config test_dinov3 endpoint. restoreBody controls whether the response body
+// should be restored after having been read.
+// DecodeTestDinov3Response may return the following errors:
+//   - "internal" (type *config.InternalError): http.StatusInternalServerError
+//   - error: internal error
+func DecodeTestDinov3Response(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body TestDinov3ResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "test_dinov3", err)
+			}
+			err = ValidateTestDinov3ResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "test_dinov3", err)
+			}
+			res := NewTestDinov3ResultOK(&body)
+			return res, nil
+		case http.StatusInternalServerError:
+			var (
+				body TestDinov3InternalResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "test_dinov3", err)
+			}
+			err = ValidateTestDinov3InternalResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "test_dinov3", err)
+			}
+			return nil, NewTestDinov3Internal(&body)
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "test_dinov3", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildGetYoloRequest instantiates a HTTP request object with method and path
+// set to call the "config" service "get_yolo" endpoint
+func (c *Client) BuildGetYoloRequest(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: GetYoloConfigPath()}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "get_yolo", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeGetYoloResponse returns a decoder for responses returned by the config
+// get_yolo endpoint. restoreBody controls whether the response body should be
+// restored after having been read.
+func DecodeGetYoloResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body GetYoloResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "get_yolo", err)
+			}
+			err = ValidateGetYoloResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "get_yolo", err)
+			}
+			res := NewGetYoloYOLOConfigOK(&body)
+			return res, nil
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "get_yolo", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildUpdateYoloRequest instantiates a HTTP request object with method and
+// path set to call the "config" service "update_yolo" endpoint
+func (c *Client) BuildUpdateYoloRequest(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: UpdateYoloConfigPath()}
+	req, err := http.NewRequest("PUT", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "update_yolo", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// EncodeUpdateYoloRequest returns an encoder for requests sent to the config
+// update_yolo server.
+func EncodeUpdateYoloRequest(encoder func(*http.Request) goahttp.Encoder) func(*http.Request, any) error {
+	return func(req *http.Request, v any) error {
+		p, ok := v.(*config.YOLOConfig)
+		if !ok {
+			return goahttp.ErrInvalidType("config", "update_yolo", "*config.YOLOConfig", v)
+		}
+		body := NewUpdateYoloRequestBody(p)
+		if err := encoder(req).Encode(&body); err != nil {
+			return goahttp.ErrEncodingError("config", "update_yolo", err)
+		}
+		return nil
+	}
+}
+
+// DecodeUpdateYoloResponse returns a decoder for responses returned by the
+// config update_yolo endpoint. restoreBody controls whether the response body
+// should be restored after having been read.
+// DecodeUpdateYoloResponse may return the following errors:
+//   - "bad_request" (type *config.BadRequestError): http.StatusBadRequest
+//   - error: internal error
+func DecodeUpdateYoloResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body UpdateYoloResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "update_yolo", err)
+			}
+			err = ValidateUpdateYoloResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "update_yolo", err)
+			}
+			res := NewUpdateYoloYOLOConfigOK(&body)
+			return res, nil
+		case http.StatusBadRequest:
+			var (
+				body UpdateYoloBadRequestResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "update_yolo", err)
+			}
+			err = ValidateUpdateYoloBadRequestResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "update_yolo", err)
+			}
+			return nil, NewUpdateYoloBadRequest(&body)
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "update_yolo", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildTestYoloRequest instantiates a HTTP request object with method and path
+// set to call the "config" service "test_yolo" endpoint
+func (c *Client) BuildTestYoloRequest(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: TestYoloConfigPath()}
+	req, err := http.NewRequest("POST", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "test_yolo", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeTestYoloResponse returns a decoder for responses returned by the
+// config test_yolo endpoint. restoreBody controls whether the response body
+// should be restored after having been read.
+// DecodeTestYoloResponse may return the following errors:
+//   - "internal" (type *config.InternalError): http.StatusInternalServerError
+//   - error: internal error
+func DecodeTestYoloResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body TestYoloResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "test_yolo", err)
+			}
+			err = ValidateTestYoloResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "test_yolo", err)
+			}
+			res := NewTestYoloResultOK(&body)
+			return res, nil
+		case http.StatusInternalServerError:
+			var (
+				body TestYoloInternalResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "test_yolo", err)
+			}
+			err = ValidateTestYoloInternalResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "test_yolo", err)
+			}
+			return nil, NewTestYoloInternal(&body)
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "test_yolo", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildGetDetectionRequest instantiates a HTTP request object with method and
+// path set to call the "config" service "get_detection" endpoint
+func (c *Client) BuildGetDetectionRequest(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: GetDetectionConfigPath()}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "get_detection", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeGetDetectionResponse returns a decoder for responses returned by the
+// config get_detection endpoint. restoreBody controls whether the response
+// body should be restored after having been read.
+func DecodeGetDetectionResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body GetDetectionResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "get_detection", err)
+			}
+			err = ValidateGetDetectionResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "get_detection", err)
+			}
+			res := NewGetDetectionDetectionConfigOK(&body)
+			return res, nil
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "get_detection", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildUpdateDetectionRequest instantiates a HTTP request object with method
+// and path set to call the "config" service "update_detection" endpoint
+func (c *Client) BuildUpdateDetectionRequest(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: UpdateDetectionConfigPath()}
+	req, err := http.NewRequest("PUT", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "update_detection", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// EncodeUpdateDetectionRequest returns an encoder for requests sent to the
+// config update_detection server.
+func EncodeUpdateDetectionRequest(encoder func(*http.Request) goahttp.Encoder) func(*http.Request, any) error {
+	return func(req *http.Request, v any) error {
+		p, ok := v.(*config.DetectionConfig)
+		if !ok {
+			return goahttp.ErrInvalidType("config", "update_detection", "*config.DetectionConfig", v)
+		}
+		body := NewUpdateDetectionRequestBody(p)
+		if err := encoder(req).Encode(&body); err != nil {
+			return goahttp.ErrEncodingError("config", "update_detection", err)
+		}
+		return nil
+	}
+}
+
+// DecodeUpdateDetectionResponse returns a decoder for responses returned by
+// the config update_detection endpoint. restoreBody controls whether the
+// response body should be restored after having been read.
+// DecodeUpdateDetectionResponse may return the following errors:
+//   - "bad_request" (type *config.BadRequestError): http.StatusBadRequest
+//   - error: internal error
+func DecodeUpdateDetectionResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body UpdateDetectionResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "update_detection", err)
+			}
+			err = ValidateUpdateDetectionResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "update_detection", err)
+			}
+			res := NewUpdateDetectionDetectionConfigOK(&body)
+			return res, nil
+		case http.StatusBadRequest:
+			var (
+				body UpdateDetectionBadRequestResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "update_detection", err)
+			}
+			err = ValidateUpdateDetectionBadRequestResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "update_detection", err)
+			}
+			return nil, NewUpdateDetectionBadRequest(&body)
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "update_detection", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// unmarshalYOLOConfigResponseBodyToConfigYOLOConfig builds a value of type
+// *config.YOLOConfig from a value of type *YOLOConfigResponseBody.
+func unmarshalYOLOConfigResponseBodyToConfigYOLOConfig(v *YOLOConfigResponseBody) *config.YOLOConfig {
+	if v == nil {
+		return nil
+	}
+	res := &config.YOLOConfig{
+		Enabled:         *v.Enabled,
+		ServiceEndpoint: v.ServiceEndpoint,
+		ClassesFilter:   v.ClassesFilter,
+	}
+	if v.ConfidenceThreshold != nil {
+		res.ConfidenceThreshold = *v.ConfidenceThreshold
+	}
+	if v.SecurityMode != nil {
+		res.SecurityMode = *v.SecurityMode
+	}
+	if v.ConfidenceThreshold == nil {
+		res.ConfidenceThreshold = 0.5
+	}
+	if v.SecurityMode == nil {
+		res.SecurityMode = true
+	}
+
+	return res
+}
+
+// unmarshalDINOv3ConfigResponseBodyToConfigDINOv3Config builds a value of type
+// *config.DINOv3Config from a value of type *DINOv3ConfigResponseBody.
+func unmarshalDINOv3ConfigResponseBodyToConfigDINOv3Config(v *DINOv3ConfigResponseBody) *config.DINOv3Config {
+	if v == nil {
+		return nil
+	}
+	res := &config.DINOv3Config{
+		Enabled:         *v.Enabled,
+		ServiceEndpoint: v.ServiceEndpoint,
+	}
+	if v.MotionThreshold != nil {
+		res.MotionThreshold = *v.MotionThreshold
+	}
+	if v.ConfidenceThreshold != nil {
+		res.ConfidenceThreshold = *v.ConfidenceThreshold
+	}
+	if v.FallbackToBasic != nil {
+		res.FallbackToBasic = *v.FallbackToBasic
+	}
+	if v.EnableSceneAnalysis != nil {
+		res.EnableSceneAnalysis = *v.EnableSceneAnalysis
+	}
+	if v.MotionThreshold == nil {
+		res.MotionThreshold = 0.85
+	}
+	if v.ConfidenceThreshold == nil {
+		res.ConfidenceThreshold = 0.6
+	}
+	if v.FallbackToBasic == nil {
+		res.FallbackToBasic = true
+	}
+	if v.EnableSceneAnalysis == nil {
+		res.EnableSceneAnalysis = true
+	}
+
+	return res
+}
+
+// marshalConfigYOLOConfigToYOLOConfigRequestBody builds a value of type
+// *YOLOConfigRequestBody from a value of type *config.YOLOConfig.
+func marshalConfigYOLOConfigToYOLOConfigRequestBody(v *config.YOLOConfig) *YOLOConfigRequestBody {
+	if v == nil {
+		return nil
+	}
+	res := &YOLOConfigRequestBody{
+		Enabled:             v.Enabled,
+		ServiceEndpoint:     v.ServiceEndpoint,
+		ConfidenceThreshold: v.ConfidenceThreshold,
+		SecurityMode:        v.SecurityMode,
+		ClassesFilter:       v.ClassesFilter,
+	}
+	{
+		var zero float32
+		if res.ConfidenceThreshold == zero {
+			res.ConfidenceThreshold = 0.5
+		}
+	}
+	{
+		var zero bool
+		if res.SecurityMode == zero {
+			res.SecurityMode = true
+		}
+	}
+
+	return res
+}
+
+// marshalConfigDINOv3ConfigToDINOv3ConfigRequestBody builds a value of type
+// *DINOv3ConfigRequestBody from a value of type *config.DINOv3Config.
+func marshalConfigDINOv3ConfigToDINOv3ConfigRequestBody(v *config.DINOv3Config) *DINOv3ConfigRequestBody {
+	if v == nil {
+		return nil
+	}
+	res := &DINOv3ConfigRequestBody{
+		Enabled:             v.Enabled,
+		ServiceEndpoint:     v.ServiceEndpoint,
+		MotionThreshold:     v.MotionThreshold,
+		ConfidenceThreshold: v.ConfidenceThreshold,
+		FallbackToBasic:     v.FallbackToBasic,
+		EnableSceneAnalysis: v.EnableSceneAnalysis,
+	}
+	{
+		var zero float32
+		if res.MotionThreshold == zero {
+			res.MotionThreshold = 0.85
+		}
+	}
+	{
+		var zero float32
+		if res.ConfidenceThreshold == zero {
+			res.ConfidenceThreshold = 0.6
+		}
+	}
+	{
+		var zero bool
+		if res.FallbackToBasic == zero {
+			res.FallbackToBasic = true
+		}
+	}
+	{
+		var zero bool
+		if res.EnableSceneAnalysis == zero {
+			res.EnableSceneAnalysis = true
+		}
+	}
+
+	return res
+}
+
+// marshalYOLOConfigRequestBodyToConfigYOLOConfig builds a value of type
+// *config.YOLOConfig from a value of type *YOLOConfigRequestBody.
+func marshalYOLOConfigRequestBodyToConfigYOLOConfig(v *YOLOConfigRequestBody) *config.YOLOConfig {
+	if v == nil {
+		return nil
+	}
+	res := &config.YOLOConfig{
+		Enabled:             v.Enabled,
+		ServiceEndpoint:     v.ServiceEndpoint,
+		ConfidenceThreshold: v.ConfidenceThreshold,
+		SecurityMode:        v.SecurityMode,
+		ClassesFilter:       v.ClassesFilter,
+	}
+	{
+		var zero float32
+		if res.ConfidenceThreshold == zero {
+			res.ConfidenceThreshold = 0.5
+		}
+	}
+	{
+		var zero bool
+		if res.SecurityMode == zero {
+			res.SecurityMode = true
+		}
+	}
+
+	return res
+}
+
+// marshalDINOv3ConfigRequestBodyToConfigDINOv3Config builds a value of type
+// *config.DINOv3Config from a value of type *DINOv3ConfigRequestBody.
+func marshalDINOv3ConfigRequestBodyToConfigDINOv3Config(v *DINOv3ConfigRequestBody) *config.DINOv3Config {
+	if v == nil {
+		return nil
+	}
+	res := &config.DINOv3Config{
+		Enabled:             v.Enabled,
+		ServiceEndpoint:     v.ServiceEndpoint,
+		MotionThreshold:     v.MotionThreshold,
+		ConfidenceThreshold: v.ConfidenceThreshold,
+		FallbackToBasic:     v.FallbackToBasic,
+		EnableSceneAnalysis: v.EnableSceneAnalysis,
+	}
+	{
+		var zero float32
+		if res.MotionThreshold == zero {
+			res.MotionThreshold = 0.85
+		}
+	}
+	{
+		var zero float32
+		if res.ConfidenceThreshold == zero {
+			res.ConfidenceThreshold = 0.6
+		}
+	}
+	{
+		var zero bool
+		if res.FallbackToBasic == zero {
+			res.FallbackToBasic = true
+		}
+	}
+	{
+		var zero bool
+		if res.EnableSceneAnalysis == zero {
+			res.EnableSceneAnalysis = true
+		}
+	}
+
+	return res
+}

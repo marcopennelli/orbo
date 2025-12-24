@@ -144,14 +144,11 @@ func EncodeEventError(encoder func(context.Context, http.ResponseWriter) goahttp
 // frame endpoint.
 func EncodeFrameResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
 	return func(ctx context.Context, w http.ResponseWriter, v any) error {
-		res, _ := v.([]byte)
-		if res != nil {
-			val := res
-			contentTypes := string(val)
-			w.Header().Set("image/jpeg", contentTypes)
-		}
+		res, _ := v.(*motion.FrameResponse)
+		enc := encoder(ctx, w)
+		body := NewFrameResponseBody(res)
 		w.WriteHeader(http.StatusOK)
-		return nil
+		return enc.Encode(body)
 	}
 }
 
@@ -215,6 +212,11 @@ func marshalMotionMotionEventToMotionEventResponse(v *motion.MotionEvent) *Motio
 		Confidence:       v.Confidence,
 		FramePath:        v.FramePath,
 		NotificationSent: v.NotificationSent,
+		ObjectClass:      v.ObjectClass,
+		ObjectConfidence: v.ObjectConfidence,
+		ThreatLevel:      v.ThreatLevel,
+		InferenceTimeMs:  v.InferenceTimeMs,
+		DetectionDevice:  v.DetectionDevice,
 	}
 	if v.BoundingBoxes != nil {
 		res.BoundingBoxes = make([]*BoundingBoxResponse, len(v.BoundingBoxes))

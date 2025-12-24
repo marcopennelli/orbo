@@ -136,6 +136,15 @@ type DeactivateResponseBody struct {
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
 }
 
+// CaptureResponseBody is the type of the "camera" service "capture" endpoint
+// HTTP response body.
+type CaptureResponseBody struct {
+	// Base64 encoded JPEG image data
+	Data string `form:"data" json:"data" xml:"data"`
+	// Image MIME type
+	ContentType string `form:"content_type" json:"content_type" xml:"content_type"`
+}
+
 // GetNotFoundResponseBody is the type of the "camera" service "get" endpoint
 // HTTP response body for the "not_found" error.
 type GetNotFoundResponseBody struct {
@@ -321,6 +330,16 @@ func NewDeactivateResponseBody(res *camera.CameraInfo) *DeactivateResponseBody {
 		Resolution: res.Resolution,
 		Fps:        res.Fps,
 		CreatedAt:  res.CreatedAt,
+	}
+	return body
+}
+
+// NewCaptureResponseBody builds the HTTP response body from the result of the
+// "capture" endpoint of the "camera" service.
+func NewCaptureResponseBody(res *camera.FrameResponse) *CaptureResponseBody {
+	body := &CaptureResponseBody{
+		Data:        res.Data,
+		ContentType: res.ContentType,
 	}
 	return body
 }

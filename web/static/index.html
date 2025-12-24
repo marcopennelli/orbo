@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbo - Video Surveillance</title>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-panel: #161b22;
+            --bg-card: #21262d;
+            --bg-hover: #30363d;
+            --border-color: #30363d;
+            --accent: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-red: #f85149;
+            --accent-orange: #d29922;
+            --accent-purple: #a371f7;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-panel);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-red), var(--accent-orange));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .header h1 {
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        .status-badges {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .badge {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+        .badge-dot.inactive {
+            background: var(--accent-red);
+        }
+
+        /* Main Layout */
+        .container {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            gap: 1rem;
+            padding: 1rem;
+            height: calc(100vh - 57px);
+            max-height: calc(100vh - 57px);
+        }
+
+        /* Panel Styles */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .panel-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        /* Camera List */
+        .camera-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .camera-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .camera-item:hover {
+            background: var(--bg-hover);
+        }
+        .camera-item.selected {
+            border-color: var(--accent);
+            background: rgba(88, 166, 255, 0.1);
+        }
+        .camera-item.active {
+            border-left: 3px solid var(--accent-green);
+        }
+        .camera-name {
+            font-weight: 500;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .camera-status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+        .camera-status.active {
+            background: var(--accent-green);
+        }
+        .camera-device {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .camera-meta {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .camera-actions {
+            display: flex;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Live View */
+        .live-view {
+            display: flex;
+            flex-direction: column;
+        }
+        .live-view .panel-content {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .camera-feed-container {
+            flex: 1;
+            background: var(--bg-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 300px;
+        }
+        .camera-feed-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .no-feed {
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        .no-feed-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.5;
+        }
+        .feed-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 0.75rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .feed-info {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .feed-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .controls-bar {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* Events Panel */
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .event-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .event-card:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.25rem;
+        }
+        .event-type {
+            font-weight: 600;
+            font-size: 0.8rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .event-type.person {
+            background: rgba(248, 81, 73, 0.2);
+            color: var(--accent-red);
+        }
+        .event-type.vehicle {
+            background: rgba(210, 153, 34, 0.2);
+            color: var(--accent-orange);
+        }
+        .event-type.motion {
+            background: rgba(63, 185, 80, 0.2);
+            color: var(--accent-green);
+        }
+        .event-confidence {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .event-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+        .event-thumbnail {
+            width: 100%;
+            height: 70px;
+            background: var(--bg-dark);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .event-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .event-threat {
+            margin-top: 0.25rem;
+            font-size: 0.7rem;
+        }
+        .threat-high { color: var(--accent-red); }
+        .threat-medium { color: var(--accent-orange); }
+        .threat-low { color: var(--accent-green); }
+
+        /* Buttons */
+        .btn {
+            padding: 0.4rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        .btn:hover {
+            background: var(--bg-hover);
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+        }
+        .btn-primary {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #2ea043;
+        }
+        .btn-danger {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #da3633;
+        }
+        .btn-icon {
+            padding: 0.4rem;
+            min-width: 32px;
+            justify-content: center;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            max-width: 900px;
+            width: 100%;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .modal-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title {
+            font-weight: 600;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            line-height: 1;
+        }
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+        .modal-body {
+            padding: 1rem;
+        }
+        .modal-image {
+            width: 100%;
+            max-height: 60vh;
+            object-fit: contain;
+            background: var(--bg-dark);
+            border-radius: 8px;
+        }
+        .modal-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+        }
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .detail-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .detail-value {
+            font-weight: 500;
+        }
+
+        /* Add Camera Form */
+        .add-form {
+            display: none;
+            padding: 0.75rem;
+            background: var(--bg-card);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+        }
+        .add-form.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 0.5rem;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.4rem 0.5rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .form-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .form-row .form-group {
+            flex: 1;
+        }
+        .form-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-secondary);
+        }
+        .empty-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.5;
+        }
+
+        /* Count Badge */
+        .count-badge {
+            background: var(--accent-red);
+            color: #fff;
+            padding: 0.1rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Loading */
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 240px 1fr 280px;
+            }
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto;
+                height: auto;
+                max-height: none;
+            }
+            .cameras-panel {
+                order: 1;
+            }
+            .live-view {
+                order: 2;
+                min-height: 400px;
+            }
+            .events-panel {
+                order: 3;
+                max-height: 400px;
+            }
+            .status-badges {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">O</div>
+                <h1>Orbo Surveillance</h1>
+            </div>
+        </div>
+        <div class="status-badges">
+            <div class="badge">
+                <span class="badge-dot" id="detectionStatus"></span>
+                <span id="detectionText">Detection</span>
+            </div>
+            <div class="badge">
+                <span class="badge-dot" id="yoloStatus"></span>
+                <span id="yoloText">YOLO</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Cameras Panel -->
+        <div class="panel cameras-panel">
+            <div class="panel-header">
+                <span class="panel-title">
+                    <span>Cameras</span>
+                    <span class="count-badge" id="cameraCount">0</span>
+                </span>
+                <button class="btn btn-sm" onclick="toggleAddCamera()">+ Add</button>
+            </div>
+            <div class="panel-content">
+                <div class="add-form" id="addCameraForm">
+                    <div class="form-group">
+                        <label class="form-label">Camera Name</label>
+                        <input type="text" class="form-input" id="cameraName" placeholder="My Camera">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Device URL / Path</label>
+                        <input type="text" class="form-input" id="cameraDevice" placeholder="http://... or /dev/video0">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Resolution</label>
+                            <input type="text" class="form-input" id="cameraResolution" placeholder="1280x720" value="1280x720">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">FPS</label>
+                            <input type="number" class="form-input" id="cameraFps" value="5">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary btn-sm" onclick="addCamera()">Add Camera</button>
+                        <button class="btn btn-sm" onclick="toggleAddCamera()">Cancel</button>
+                    </div>
+                </div>
+                <div class="camera-list" id="cameraList">
+                    <div class="empty-state">
+                        <div class="empty-icon">📷</div>
+                        <div>No cameras configured</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live View -->
+        <div class="panel live-view">
+            <div class="panel-header">
+                <span class="panel-title" id="liveViewTitle">Live Feed</span>
+                <span class="feed-info" id="feedInfo"></span>
+            </div>
+            <div class="panel-content">
+                <div class="camera-feed-container" id="cameraFeed">
+                    <div class="no-feed">
+                        <div class="no-feed-icon">📹</div>
+                        <div>Select a camera to view feed</div>
+                    </div>
+                </div>
+            </div>
+            <div class="controls-bar">
+                <button class="btn btn-primary" onclick="startDetection()">
+                    <span>▶</span> Start Detection
+                </button>
+                <button class="btn btn-danger" onclick="stopDetection()">
+                    <span>■</span> Stop Detection
+                </button>
+                <button class="btn" onclick="refreshFrame()">
+                    <span>↻</span> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Events Panel -->
+        <div class="panel events-panel">
+            <div class="panel-header">
+                <span class="panel-title">
+                    <span>Detection Events</span>
+                    <span class="count-badge" id="eventCount">0</span>
+                </span>
+                <button class="btn btn-icon btn-sm" onclick="loadEvents()" title="Refresh">↻</button>
+            </div>
+            <div class="panel-content">
+                <div class="events-list" id="eventsList">
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <div>No events detected yet</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Modal -->
+    <div class="modal" id="eventModal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">Event Details</span>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <img class="modal-image" id="modalImage" src="" alt="Detection">
+                <div class="modal-details" id="modalDetails"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let selectedCamera = null;
+        let cameras = [];
+        let refreshInterval = null;
+
+        // API Helper
+        async function fetchAPI(endpoint, options = {}) {
+            try {
+                const response = await fetch(API_BASE + endpoint, options);
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.message || `HTTP ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                return null;
+            }
+        }
+
+        // Status
+        async function loadStatus() {
+            const status = await fetchAPI('/api/v1/system/status');
+            if (status) {
+                const detectionDot = document.getElementById('detectionStatus');
+                const detectionText = document.getElementById('detectionText');
+
+                if (status.motion_detection_active) {
+                    detectionDot.classList.remove('inactive');
+                    detectionText.textContent = 'Detection: ON';
+                } else {
+                    detectionDot.classList.add('inactive');
+                    detectionText.textContent = 'Detection: OFF';
+                }
+            }
+
+            const config = await fetchAPI('/api/v1/config/detection');
+            const yoloDot = document.getElementById('yoloStatus');
+            const yoloText = document.getElementById('yoloText');
+
+            if (config && config.yolo && config.yolo.enabled) {
+                yoloDot.classList.remove('inactive');
+                yoloText.textContent = 'YOLO: ON';
+            } else {
+                yoloDot.classList.add('inactive');
+                yoloText.textContent = 'YOLO: OFF';
+            }
+        }
+
+        // Cameras
+        async function loadCameras() {
+            const data = await fetchAPI('/api/v1/cameras');
+            cameras = data || [];
+
+            document.getElementById('cameraCount').textContent = cameras.length;
+
+            const list = document.getElementById('cameraList');
+            if (cameras.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📷</div>
+                        <div>No cameras configured</div>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = cameras.map(cam => {
+                const isSelected = selectedCamera && selectedCamera.id === cam.id;
+                const isActive = cam.status === 'active';
+                return `
+                    <div class="camera-item ${isSelected ? 'selected' : ''} ${isActive ? 'active' : ''}"
+                         onclick="selectCamera('${cam.id}')">
+                        <div class="camera-name">
+                            <span class="camera-status ${isActive ? 'active' : ''}"></span>
+                            ${escapeHtml(cam.name)}
+                        </div>
+                        <div class="camera-device" title="${escapeHtml(cam.device)}">${escapeHtml(cam.device)}</div>
+                        <div class="camera-meta">
+                            <span>${cam.resolution || 'N/A'}</span>
+                            <span>${cam.fps || 30} FPS</span>
+                        </div>
+                        <div class="camera-actions" onclick="event.stopPropagation()">
+                            ${isActive
+                                ? `<button class="btn btn-sm btn-danger" onclick="deactivateCamera('${cam.id}')">Deactivate</button>`
+                                : `<button class="btn btn-sm btn-primary" onclick="activateCamera('${cam.id}')">Activate</button>`
+                            }
+                            <button class="btn btn-sm" onclick="deleteCamera('${cam.id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Auto-select first camera if none selected
+            if (!selectedCamera && cameras.length > 0) {
+                selectCamera(cameras[0].id);
+            }
+        }
+
+        function selectCamera(id) {
+            selectedCamera = cameras.find(c => c.id === id);
+            loadCameras(); // Re-render to update selection
+            loadCameraFeed();
+        }
+
+        async function activateCamera(id) {
+            await fetchAPI(`/api/v1/cameras/${id}/activate`, { method: 'POST' });
+            loadCameras();
+            loadStatus();
+        }
+
+        async function deactivateCamera(id) {
+            await fetchAPI(`/api/v1/cameras/${id}/deactivate`, { method: 'POST' });
+            loadCameras();
+        }
+
+        async function deleteCamera(id) {
+            if (!confirm('Delete this camera?')) return;
+            await fetchAPI(`/api/v1/cameras/${id}`, { method: 'DELETE' });
+            if (selectedCamera && selectedCamera.id === id) {
+                selectedCamera = null;
+            }
+            loadCameras();
+        }
+
+        function toggleAddCamera() {
+            const form = document.getElementById('addCameraForm');
+            form.classList.toggle('active');
+        }
+
+        async function addCamera() {
+            const name = document.getElementById('cameraName').value.trim();
+            const device = document.getElementById('cameraDevice').value.trim();
+            const resolution = document.getElementById('cameraResolution').value.trim();
+            const fps = parseInt(document.getElementById('cameraFps').value) || 5;
+
+            if (!name || !device) {
+                alert('Please enter camera name and device URL');
+                return;
+            }
+
+            const result = await fetchAPI('/api/v1/cameras', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, device, resolution, fps })
+            });
+
+            if (result) {
+                document.getElementById('cameraName').value = '';
+                document.getElementById('cameraDevice').value = '';
+                toggleAddCamera();
+                loadCameras();
+            }
+        }
+
+        // Camera Feed - Updated for base64 JSON response
+        async function loadCameraFeed() {
+            const feed = document.getElementById('cameraFeed');
+            const title = document.getElementById('liveViewTitle');
+            const info = document.getElementById('feedInfo');
+
+            if (!selectedCamera) {
+                feed.innerHTML = `
+                    <div class="no-feed">
+                        <div class="no-feed-icon">📹</div>
+                        <div>Select a camera to view feed</div>
+                    </div>
+                `;
+                title.textContent = 'Live Feed';
+                info.textContent = '';
+                return;
+            }
+
+            title.textContent = selectedCamera.name;
+            info.textContent = `${selectedCamera.resolution || 'N/A'} @ ${selectedCamera.fps || 30} FPS`;
+
+            if (selectedCamera.status !== 'active') {
+                feed.innerHTML = `
+                    <div class="no-feed">
+                        <div class="no-feed-icon">⏸️</div>
+                        <div>Camera is not active</div>
+                        <button class="btn btn-primary" style="margin-top: 1rem" onclick="activateCamera('${selectedCamera.id}')">
+                            Activate Camera
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            // Fetch frame as base64 JSON
+            try {
+                const frameData = await fetchAPI(`/api/v1/cameras/${selectedCamera.id}/frame`);
+                if (frameData && frameData.data) {
+                    feed.innerHTML = `<img src="data:${frameData.content_type};base64,${frameData.data}" alt="Camera Feed">`;
+                } else {
+                    throw new Error('No frame data');
+                }
+            } catch (error) {
+                feed.innerHTML = `
+                    <div class="no-feed">
+                        <div class="no-feed-icon">⚠️</div>
+                        <div>Failed to load frame</div>
+                    </div>
+                `;
+            }
+        }
+
+        function refreshFrame() {
+            loadCameraFeed();
+        }
+
+        // Events - Updated for base64 JSON response
+        async function loadEvents() {
+            const list = document.getElementById('eventsList');
+            const count = document.getElementById('eventCount');
+
+            const events = await fetchAPI('/api/v1/motion/events');
+
+            if (!events || events.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <div>No events detected yet</div>
+                    </div>
+                `;
+                count.textContent = '0';
+                return;
+            }
+
+            count.textContent = events.length;
+
+            // Sort by timestamp descending
+            events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            list.innerHTML = events.slice(0, 50).map(event => {
+                const time = formatTime(event.timestamp);
+                const type = event.object_class || 'motion';
+                const typeClass = type === 'person' ? 'person' :
+                                  ['car', 'truck', 'bus', 'motorcycle', 'bicycle'].includes(type) ? 'vehicle' : 'motion';
+                const confidence = (event.confidence * 100).toFixed(0);
+                const threatLevel = event.threat_level;
+
+                return `
+                    <div class="event-card" onclick="showEvent('${event.id}')">
+                        <div class="event-header">
+                            <span class="event-type ${typeClass}">${type}</span>
+                            <span class="event-confidence">${confidence}%</span>
+                        </div>
+                        <div class="event-time">${time}</div>
+                        <div class="event-thumbnail" id="thumb-${event.id}">
+                            <div class="loading-spinner" style="margin: 20px auto;"></div>
+                        </div>
+                        ${threatLevel ? `<div class="event-threat threat-${threatLevel}">Threat: ${threatLevel}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // Load thumbnails asynchronously
+            events.slice(0, 50).forEach(event => {
+                loadEventThumbnail(event.id);
+            });
+        }
+
+        async function loadEventThumbnail(eventId) {
+            const container = document.getElementById(`thumb-${eventId}`);
+            if (!container) return;
+
+            try {
+                const frameData = await fetchAPI(`/api/v1/motion/events/${eventId}/frame`);
+                if (frameData && frameData.data) {
+                    container.innerHTML = `<img src="data:${frameData.content_type};base64,${frameData.data}" alt="Event">`;
+                } else {
+                    container.innerHTML = '';
+                }
+            } catch (error) {
+                container.innerHTML = '';
+            }
+        }
+
+        async function showEvent(eventId) {
+            const event = await fetchAPI(`/api/v1/motion/events/${eventId}`);
+            if (!event) return;
+
+            const modal = document.getElementById('eventModal');
+            const title = document.getElementById('modalTitle');
+            const img = document.getElementById('modalImage');
+            const details = document.getElementById('modalDetails');
+
+            title.textContent = `${(event.object_class || 'Motion').toUpperCase()} Detection`;
+
+            // Load frame as base64
+            const frameData = await fetchAPI(`/api/v1/motion/events/${eventId}/frame`);
+            if (frameData && frameData.data) {
+                img.src = `data:${frameData.content_type};base64,${frameData.data}`;
+            }
+
+            const time = formatTime(event.timestamp);
+            const confidence = (event.confidence * 100).toFixed(1);
+
+            details.innerHTML = `
+                <div class="detail-item">
+                    <span class="detail-label">Detected</span>
+                    <span class="detail-value">${time}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Type</span>
+                    <span class="detail-value">${event.object_class || 'Motion'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Confidence</span>
+                    <span class="detail-value">${confidence}%</span>
+                </div>
+                ${event.threat_level ? `
+                <div class="detail-item">
+                    <span class="detail-label">Threat Level</span>
+                    <span class="detail-value threat-${event.threat_level}">${event.threat_level}</span>
+                </div>
+                ` : ''}
+                ${event.inference_time_ms ? `
+                <div class="detail-item">
+                    <span class="detail-label">Inference Time</span>
+                    <span class="detail-value">${event.inference_time_ms.toFixed(1)} ms</span>
+                </div>
+                ` : ''}
+                ${event.detection_device ? `
+                <div class="detail-item">
+                    <span class="detail-label">Device</span>
+                    <span class="detail-value">${event.detection_device.toUpperCase()}</span>
+                </div>
+                ` : ''}
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function closeModal(e) {
+            if (!e || e.target.classList.contains('modal')) {
+                document.getElementById('eventModal').classList.remove('active');
+            }
+        }
+
+        // Detection Controls
+        async function startDetection() {
+            await fetchAPI('/api/v1/system/detection/start', { method: 'POST' });
+            loadStatus();
+            loadCameras();
+            setTimeout(loadEvents, 2000);
+        }
+
+        async function stopDetection() {
+            await fetchAPI('/api/v1/system/detection/stop', { method: 'POST' });
+            loadStatus();
+        }
+
+        // Helpers
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStatus();
+            loadCameras();
+            loadEvents();
+
+            // Auto-refresh
+            setInterval(loadEvents, 5000);
+            setInterval(loadCameraFeed, 2000);
+            setInterval(loadStatus, 10000);
+            setInterval(loadCameras, 10000);
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+</html>

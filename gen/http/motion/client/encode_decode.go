@@ -232,20 +232,19 @@ func DecodeFrameResponse(decoder func(*http.Response) goahttp.Decoder, restoreBo
 		switch resp.StatusCode {
 		case http.StatusOK:
 			var (
-				contentType []byte
-				err         error
+				body FrameResponseBody
+				err  error
 			)
-			{
-				contentTypeRaw := resp.Header.Get("image/jpeg")
-				if contentTypeRaw == "" {
-					return nil, goahttp.ErrValidationError("motion", "frame", goa.MissingFieldError("Content-Type", "header"))
-				}
-				contentType = []byte(contentTypeRaw)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("motion", "frame", err)
 			}
+			err = ValidateFrameResponseBody(&body)
 			if err != nil {
 				return nil, goahttp.ErrValidationError("motion", "frame", err)
 			}
-			return contentType, nil
+			res := NewFrameResponseOK(&body)
+			return res, nil
 		case http.StatusNotFound:
 			var (
 				body FrameNotFoundResponseBody
@@ -277,6 +276,11 @@ func unmarshalMotionEventResponseToMotionMotionEvent(v *MotionEventResponse) *mo
 		Confidence:       *v.Confidence,
 		FramePath:        v.FramePath,
 		NotificationSent: v.NotificationSent,
+		ObjectClass:      v.ObjectClass,
+		ObjectConfidence: v.ObjectConfidence,
+		ThreatLevel:      v.ThreatLevel,
+		InferenceTimeMs:  v.InferenceTimeMs,
+		DetectionDevice:  v.DetectionDevice,
 	}
 	if v.BoundingBoxes != nil {
 		res.BoundingBoxes = make([]*motion.BoundingBox, len(v.BoundingBoxes))

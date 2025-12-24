@@ -136,6 +136,15 @@ type DeactivateResponseBody struct {
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
 }
 
+// CaptureResponseBody is the type of the "camera" service "capture" endpoint
+// HTTP response body.
+type CaptureResponseBody struct {
+	// Base64 encoded JPEG image data
+	Data *string `form:"data,omitempty" json:"data,omitempty" xml:"data,omitempty"`
+	// Image MIME type
+	ContentType *string `form:"content_type,omitempty" json:"content_type,omitempty" xml:"content_type,omitempty"`
+}
+
 // GetNotFoundResponseBody is the type of the "camera" service "get" endpoint
 // HTTP response body for the "not_found" error.
 type GetNotFoundResponseBody struct {
@@ -449,6 +458,17 @@ func NewDeactivateNotFound(body *DeactivateNotFoundResponseBody) *camera.NotFoun
 	return v
 }
 
+// NewCaptureFrameResponseOK builds a "camera" service "capture" endpoint
+// result from a HTTP "OK" response.
+func NewCaptureFrameResponseOK(body *CaptureResponseBody) *camera.FrameResponse {
+	v := &camera.FrameResponse{
+		Data:        *body.Data,
+		ContentType: *body.ContentType,
+	}
+
+	return v
+}
+
 // NewCaptureInternal builds a camera service capture endpoint internal error.
 func NewCaptureInternal(body *CaptureInternalResponseBody) *camera.InternalError {
 	v := &camera.InternalError{
@@ -606,6 +626,18 @@ func ValidateDeactivateResponseBody(body *DeactivateResponseBody) (err error) {
 	}
 	if body.CreatedAt != nil {
 		err = goa.MergeErrors(err, goa.ValidateFormat("body.created_at", *body.CreatedAt, goa.FormatDateTime))
+	}
+	return
+}
+
+// ValidateCaptureResponseBody runs the validations defined on
+// CaptureResponseBody
+func ValidateCaptureResponseBody(body *CaptureResponseBody) (err error) {
+	if body.Data == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("data", "body"))
+	}
+	if body.ContentType == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("content_type", "body"))
 	}
 	return
 }

@@ -29,7 +29,7 @@ func UsageCommands() string {
 	return `health (healthz|readyz)
 camera (list|get|create|update|delete|activate|deactivate|capture)
 motion (events|event|frame)
-config (get|update|test-notification)
+config (get|update|test-notification|get-dinov3|update-dinov3|test-dinov3|get-yolo|update-yolo|test-yolo|get-detection|update-detection)
 system (status|start-detection|stop-detection)
 `
 }
@@ -38,7 +38,7 @@ system (status|start-detection|stop-detection)
 func UsageExamples() string {
 	return os.Args[0] + ` health healthz` + "\n" +
 		os.Args[0] + ` camera list` + "\n" +
-		os.Args[0] + ` motion events --camera-id "b48be688-85ed-11f0-b1d0-5847ca7b8ce1" --since "2015-12-11T17:36:55Z" --limit -1636563420186970247` + "\n" +
+		os.Args[0] + ` motion events --camera-id "86580355-e0c1-11f0-9fb7-5847ca7b8ce1" --since "1999-07-29T12:41:31Z" --limit -622138068857724697` + "\n" +
 		os.Args[0] + ` config get` + "\n" +
 		os.Args[0] + ` system status` + "\n" +
 		""
@@ -108,6 +108,25 @@ func ParseEndpoint(
 
 		configTestNotificationFlags = flag.NewFlagSet("test-notification", flag.ExitOnError)
 
+		configGetDinov3Flags = flag.NewFlagSet("get-dinov3", flag.ExitOnError)
+
+		configUpdateDinov3Flags    = flag.NewFlagSet("update-dinov3", flag.ExitOnError)
+		configUpdateDinov3BodyFlag = configUpdateDinov3Flags.String("body", "REQUIRED", "")
+
+		configTestDinov3Flags = flag.NewFlagSet("test-dinov3", flag.ExitOnError)
+
+		configGetYoloFlags = flag.NewFlagSet("get-yolo", flag.ExitOnError)
+
+		configUpdateYoloFlags    = flag.NewFlagSet("update-yolo", flag.ExitOnError)
+		configUpdateYoloBodyFlag = configUpdateYoloFlags.String("body", "REQUIRED", "")
+
+		configTestYoloFlags = flag.NewFlagSet("test-yolo", flag.ExitOnError)
+
+		configGetDetectionFlags = flag.NewFlagSet("get-detection", flag.ExitOnError)
+
+		configUpdateDetectionFlags    = flag.NewFlagSet("update-detection", flag.ExitOnError)
+		configUpdateDetectionBodyFlag = configUpdateDetectionFlags.String("body", "REQUIRED", "")
+
 		systemFlags = flag.NewFlagSet("system", flag.ContinueOnError)
 
 		systemStatusFlags = flag.NewFlagSet("status", flag.ExitOnError)
@@ -139,6 +158,14 @@ func ParseEndpoint(
 	configGetFlags.Usage = configGetUsage
 	configUpdateFlags.Usage = configUpdateUsage
 	configTestNotificationFlags.Usage = configTestNotificationUsage
+	configGetDinov3Flags.Usage = configGetDinov3Usage
+	configUpdateDinov3Flags.Usage = configUpdateDinov3Usage
+	configTestDinov3Flags.Usage = configTestDinov3Usage
+	configGetYoloFlags.Usage = configGetYoloUsage
+	configUpdateYoloFlags.Usage = configUpdateYoloUsage
+	configTestYoloFlags.Usage = configTestYoloUsage
+	configGetDetectionFlags.Usage = configGetDetectionUsage
+	configUpdateDetectionFlags.Usage = configUpdateDetectionUsage
 
 	systemFlags.Usage = systemUsage
 	systemStatusFlags.Usage = systemStatusUsage
@@ -247,6 +274,30 @@ func ParseEndpoint(
 			case "test-notification":
 				epf = configTestNotificationFlags
 
+			case "get-dinov3":
+				epf = configGetDinov3Flags
+
+			case "update-dinov3":
+				epf = configUpdateDinov3Flags
+
+			case "test-dinov3":
+				epf = configTestDinov3Flags
+
+			case "get-yolo":
+				epf = configGetYoloFlags
+
+			case "update-yolo":
+				epf = configUpdateYoloFlags
+
+			case "test-yolo":
+				epf = configTestYoloFlags
+
+			case "get-detection":
+				epf = configGetDetectionFlags
+
+			case "update-detection":
+				epf = configUpdateDetectionFlags
+
 			}
 
 		case "system":
@@ -345,6 +396,30 @@ func ParseEndpoint(
 			case "test-notification":
 				endpoint = c.TestNotification()
 				data = nil
+			case "get-dinov3":
+				endpoint = c.GetDinov3()
+				data = nil
+			case "update-dinov3":
+				endpoint = c.UpdateDinov3()
+				data, err = configc.BuildUpdateDinov3Payload(*configUpdateDinov3BodyFlag)
+			case "test-dinov3":
+				endpoint = c.TestDinov3()
+				data = nil
+			case "get-yolo":
+				endpoint = c.GetYolo()
+				data = nil
+			case "update-yolo":
+				endpoint = c.UpdateYolo()
+				data, err = configc.BuildUpdateYoloPayload(*configUpdateYoloBodyFlag)
+			case "test-yolo":
+				endpoint = c.TestYolo()
+				data = nil
+			case "get-detection":
+				endpoint = c.GetDetection()
+				data = nil
+			case "update-detection":
+				endpoint = c.UpdateDetection()
+				data, err = configc.BuildUpdateDetectionPayload(*configUpdateDetectionBodyFlag)
 			}
 		case "system":
 			c := systemc.NewClient(scheme, host, doer, enc, dec, restore)
@@ -416,7 +491,7 @@ COMMAND:
     delete: Remove a camera
     activate: Activate camera for motion detection
     deactivate: Deactivate camera
-    capture: Capture a single frame from camera as JPEG
+    capture: Capture a single frame from camera as base64
 
 Additional help:
     %[1]s camera COMMAND --help
@@ -439,7 +514,7 @@ Get camera information by ID
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera get --id "b48b1b5b-85ed-11f0-b1d0-5847ca7b8ce1"
+    %[1]s camera get --id "86575d70-e0c1-11f0-9fb7-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -451,10 +526,10 @@ Add a new camera
 
 Example:
     %[1]s camera create --body '{
-      "device": "Officia sed.",
-      "fps": 7244701452893848619,
-      "name": "Voluptas quia eligendi perferendis ut.",
-      "resolution": "Cumque dignissimos tempore corporis deleniti quisquam debitis."
+      "device": "Laboriosam distinctio exercitationem.",
+      "fps": 4338044084510968211,
+      "name": "Consequatur quam excepturi voluptatem iusto excepturi.",
+      "resolution": "Illo et tempora unde similique fuga ut."
    }'
 `, os.Args[0])
 }
@@ -468,10 +543,10 @@ Update camera configuration
 
 Example:
     %[1]s camera update --body '{
-      "fps": 938750244656215338,
-      "name": "Qui excepturi consequatur accusantium quasi voluptas qui.",
-      "resolution": "Rerum cum aspernatur temporibus dicta deleniti vero."
-   }' --id "b48b8098-85ed-11f0-b1d0-5847ca7b8ce1"
+      "fps": 2317895728662192209,
+      "name": "Inventore excepturi numquam repellendus harum similique.",
+      "resolution": "Repellendus et accusantium."
+   }' --id "865793c8-e0c1-11f0-9fb7-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -482,7 +557,7 @@ Remove a camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera delete --id "b48b96fc-85ed-11f0-b1d0-5847ca7b8ce1"
+    %[1]s camera delete --id "8657a924-e0c1-11f0-9fb7-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -493,7 +568,7 @@ Activate camera for motion detection
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera activate --id "b48b9dd9-85ed-11f0-b1d0-5847ca7b8ce1"
+    %[1]s camera activate --id "8657ba9f-e0c1-11f0-9fb7-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -504,18 +579,18 @@ Deactivate camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera deactivate --id "b48bbffa-85ed-11f0-b1d0-5847ca7b8ce1"
+    %[1]s camera deactivate --id "8657e40f-e0c1-11f0-9fb7-5847ca7b8ce1"
 `, os.Args[0])
 }
 
 func cameraCaptureUsage() {
 	fmt.Fprintf(os.Stderr, `%[1]s [flags] camera capture -id STRING
 
-Capture a single frame from camera as JPEG
+Capture a single frame from camera as base64
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera capture --id "b48bdba8-85ed-11f0-b1d0-5847ca7b8ce1"
+    %[1]s camera capture --id "8657f629-e0c1-11f0-9fb7-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -528,7 +603,7 @@ Usage:
 COMMAND:
     events: List motion detection events
     event: Get motion event by ID
-    frame: Get captured frame for motion event
+    frame: Get captured frame for motion event as base64
 
 Additional help:
     %[1]s motion COMMAND --help
@@ -543,7 +618,7 @@ List motion detection events
     -limit INT: 
 
 Example:
-    %[1]s motion events --camera-id "b48be688-85ed-11f0-b1d0-5847ca7b8ce1" --since "2015-12-11T17:36:55Z" --limit -1636563420186970247
+    %[1]s motion events --camera-id "86580355-e0c1-11f0-9fb7-5847ca7b8ce1" --since "1999-07-29T12:41:31Z" --limit -622138068857724697
 `, os.Args[0])
 }
 
@@ -554,18 +629,18 @@ Get motion event by ID
     -id STRING: Event ID
 
 Example:
-    %[1]s motion event --id "b48c168a-85ed-11f0-b1d0-5847ca7b8ce1"
+    %[1]s motion event --id "86581cb2-e0c1-11f0-9fb7-5847ca7b8ce1"
 `, os.Args[0])
 }
 
 func motionFrameUsage() {
 	fmt.Fprintf(os.Stderr, `%[1]s [flags] motion frame -id STRING
 
-Get captured frame for motion event
+Get captured frame for motion event as base64
     -id STRING: Event ID
 
 Example:
-    %[1]s motion frame --id "b48c2deb-85ed-11f0-b1d0-5847ca7b8ce1"
+    %[1]s motion frame --id "8658391a-e0c1-11f0-9fb7-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -579,6 +654,14 @@ COMMAND:
     get: Get current notification configuration
     update: Update notification configuration
     test-notification: Send test notification
+    get-dinov3: Get current DINOv3 AI configuration
+    update-dinov3: Update DINOv3 AI configuration
+    test-dinov3: Test DINOv3 service connectivity
+    get-yolo: Get current YOLO detection configuration
+    update-yolo: Update YOLO detection configuration
+    test-yolo: Test YOLO service connectivity
+    get-detection: Get combined detection configuration
+    update-detection: Update combined detection configuration
 
 Additional help:
     %[1]s config COMMAND --help
@@ -602,10 +685,10 @@ Update notification configuration
 
 Example:
     %[1]s config update --body '{
-      "cooldown_seconds": 476592516116706102,
-      "min_confidence": 0.80783147,
-      "telegram_bot_token": "Doloremque nostrum nisi et voluptatem cumque dolores.",
-      "telegram_chat_id": "Aut est.",
+      "cooldown_seconds": 7135647574342476924,
+      "min_confidence": 0.42412287,
+      "telegram_bot_token": "Id dolore.",
+      "telegram_chat_id": "Rerum cum qui dolore.",
       "telegram_enabled": false
    }'
 `, os.Args[0])
@@ -618,6 +701,120 @@ Send test notification
 
 Example:
     %[1]s config test-notification
+`, os.Args[0])
+}
+
+func configGetDinov3Usage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config get-dinov3
+
+Get current DINOv3 AI configuration
+
+Example:
+    %[1]s config get-dinov3
+`, os.Args[0])
+}
+
+func configUpdateDinov3Usage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config update-dinov3 -body JSON
+
+Update DINOv3 AI configuration
+    -body JSON: 
+
+Example:
+    %[1]s config update-dinov3 --body '{
+      "confidence_threshold": 0.8294231,
+      "enable_scene_analysis": false,
+      "enabled": true,
+      "fallback_to_basic": true,
+      "motion_threshold": 0.51341873,
+      "service_endpoint": "Aperiam eveniet quisquam laudantium aliquid dolores."
+   }'
+`, os.Args[0])
+}
+
+func configTestDinov3Usage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config test-dinov3
+
+Test DINOv3 service connectivity
+
+Example:
+    %[1]s config test-dinov3
+`, os.Args[0])
+}
+
+func configGetYoloUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config get-yolo
+
+Get current YOLO detection configuration
+
+Example:
+    %[1]s config get-yolo
+`, os.Args[0])
+}
+
+func configUpdateYoloUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config update-yolo -body JSON
+
+Update YOLO detection configuration
+    -body JSON: 
+
+Example:
+    %[1]s config update-yolo --body '{
+      "classes_filter": "Est temporibus.",
+      "confidence_threshold": 0.58341485,
+      "enabled": true,
+      "security_mode": true,
+      "service_endpoint": "Distinctio et pariatur."
+   }'
+`, os.Args[0])
+}
+
+func configTestYoloUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config test-yolo
+
+Test YOLO service connectivity
+
+Example:
+    %[1]s config test-yolo
+`, os.Args[0])
+}
+
+func configGetDetectionUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config get-detection
+
+Get combined detection configuration
+
+Example:
+    %[1]s config get-detection
+`, os.Args[0])
+}
+
+func configUpdateDetectionUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config update-detection -body JSON
+
+Update combined detection configuration
+    -body JSON: 
+
+Example:
+    %[1]s config update-detection --body '{
+      "dinov3": {
+         "confidence_threshold": 0.62306696,
+         "enable_scene_analysis": false,
+         "enabled": false,
+         "fallback_to_basic": false,
+         "motion_threshold": 0.9232003,
+         "service_endpoint": "Aut sit deserunt."
+      },
+      "fallback_enabled": true,
+      "primary_detector": "basic",
+      "yolo": {
+         "classes_filter": "Sed cumque reprehenderit laudantium harum.",
+         "confidence_threshold": 0.48796725,
+         "enabled": false,
+         "security_mode": false,
+         "service_endpoint": "Non pariatur delectus dolore blanditiis et."
+      }
+   }'
 `, os.Args[0])
 }
 

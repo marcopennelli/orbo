@@ -19,6 +19,22 @@ type Service interface {
 	Update(context.Context, *NotificationConfig) (res *NotificationConfig, err error)
 	// Send test notification
 	TestNotification(context.Context) (res *TestNotificationResult, err error)
+	// Get current DINOv3 AI configuration
+	GetDinov3(context.Context) (res *DINOv3Config, err error)
+	// Update DINOv3 AI configuration
+	UpdateDinov3(context.Context, *DINOv3Config) (res *DINOv3Config, err error)
+	// Test DINOv3 service connectivity
+	TestDinov3(context.Context) (res *TestDinov3Result, err error)
+	// Get current YOLO detection configuration
+	GetYolo(context.Context) (res *YOLOConfig, err error)
+	// Update YOLO detection configuration
+	UpdateYolo(context.Context, *YOLOConfig) (res *YOLOConfig, err error)
+	// Test YOLO service connectivity
+	TestYolo(context.Context) (res *TestYoloResult, err error)
+	// Get combined detection configuration
+	GetDetection(context.Context) (res *DetectionConfig, err error)
+	// Update combined detection configuration
+	UpdateDetection(context.Context, *DetectionConfig) (res *DetectionConfig, err error)
 }
 
 // ServiceName is the name of the service as defined in the design. This is the
@@ -29,7 +45,7 @@ const ServiceName = "config"
 // MethodNames lists the service method names as defined in the design. These
 // are the same values that are set in the endpoint request contexts under the
 // MethodKey key.
-var MethodNames = [3]string{"get", "update", "test_notification"}
+var MethodNames = [11]string{"get", "update", "test_notification", "get_dinov3", "update_dinov3", "test_dinov3", "get_yolo", "update_yolo", "test_yolo", "get_detection", "update_detection"}
 
 // Bad request error
 type BadRequestError struct {
@@ -37,6 +53,35 @@ type BadRequestError struct {
 	Message string
 	// Error details
 	Details *string
+}
+
+// DINOv3Config is the result type of the config service get_dinov3 method.
+type DINOv3Config struct {
+	// Enable DINOv3 AI detection
+	Enabled bool
+	// DINOv3 service endpoint URL
+	ServiceEndpoint *string
+	// Motion detection threshold (0-1)
+	MotionThreshold float32
+	// Minimum confidence for alerts (0-1)
+	ConfidenceThreshold float32
+	// Fallback to basic detection when DINOv3 unavailable
+	FallbackToBasic bool
+	// Enable advanced scene analysis
+	EnableSceneAnalysis bool
+}
+
+// DetectionConfig is the result type of the config service get_detection
+// method.
+type DetectionConfig struct {
+	// Primary detector to use
+	PrimaryDetector string
+	// YOLO configuration
+	Yolo *YOLOConfig
+	// DINOv3 configuration
+	Dinov3 *DINOv3Config
+	// Enable fallback to basic detection
+	FallbackEnabled bool
 }
 
 // Internal server error
@@ -59,6 +104,20 @@ type NotificationConfig struct {
 	CooldownSeconds *int
 }
 
+// TestDinov3Result is the result type of the config service test_dinov3 method.
+type TestDinov3Result struct {
+	// Service health status
+	Healthy bool
+	// Service endpoint
+	Endpoint *string
+	// Response time in milliseconds
+	ResponseTimeMs *float32
+	// Detection device
+	Device *string
+	// Status message
+	Message string
+}
+
 // TestNotificationResult is the result type of the config service
 // test_notification method.
 type TestNotificationResult struct {
@@ -66,6 +125,36 @@ type TestNotificationResult struct {
 	Success bool
 	// Result message
 	Message string
+}
+
+// TestYoloResult is the result type of the config service test_yolo method.
+type TestYoloResult struct {
+	// Service health status
+	Healthy bool
+	// Service endpoint
+	Endpoint *string
+	// Response time in milliseconds
+	ResponseTimeMs *float32
+	// Detection device (cpu/cuda)
+	Device *string
+	// Model loaded status
+	ModelLoaded *bool
+	// Status message
+	Message string
+}
+
+// YOLOConfig is the result type of the config service get_yolo method.
+type YOLOConfig struct {
+	// Enable YOLO object detection
+	Enabled bool
+	// YOLO service endpoint URL
+	ServiceEndpoint *string
+	// Minimum confidence for detections (0-1)
+	ConfidenceThreshold float32
+	// Use security-focused detection (person, car, etc.)
+	SecurityMode bool
+	// Comma-separated class names to filter (empty = all)
+	ClassesFilter *string
 }
 
 // Error returns an error description.

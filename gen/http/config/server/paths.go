@@ -21,3 +21,43 @@ func UpdateConfigPath() string {
 func TestNotificationConfigPath() string {
 	return "/api/v1/config/notifications/test"
 }
+
+// GetDinov3ConfigPath returns the URL path to the config service get_dinov3 HTTP endpoint.
+func GetDinov3ConfigPath() string {
+	return "/api/v1/config/dinov3"
+}
+
+// UpdateDinov3ConfigPath returns the URL path to the config service update_dinov3 HTTP endpoint.
+func UpdateDinov3ConfigPath() string {
+	return "/api/v1/config/dinov3"
+}
+
+// TestDinov3ConfigPath returns the URL path to the config service test_dinov3 HTTP endpoint.
+func TestDinov3ConfigPath() string {
+	return "/api/v1/config/dinov3/test"
+}
+
+// GetYoloConfigPath returns the URL path to the config service get_yolo HTTP endpoint.
+func GetYoloConfigPath() string {
+	return "/api/v1/config/yolo"
+}
+
+// UpdateYoloConfigPath returns the URL path to the config service update_yolo HTTP endpoint.
+func UpdateYoloConfigPath() string {
+	return "/api/v1/config/yolo"
+}
+
+// TestYoloConfigPath returns the URL path to the config service test_yolo HTTP endpoint.
+func TestYoloConfigPath() string {
+	return "/api/v1/config/yolo/test"
+}
+
+// GetDetectionConfigPath returns the URL path to the config service get_detection HTTP endpoint.
+func GetDetectionConfigPath() string {
+	return "/api/v1/config/detection"
+}
+
+// UpdateDetectionConfigPath returns the URL path to the config service update_detection HTTP endpoint.
+func UpdateDetectionConfigPath() string {
+	return "/api/v1/config/detection"
+}

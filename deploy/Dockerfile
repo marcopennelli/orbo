@@ -61,7 +61,7 @@ RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
 RUN make -j$(nproc) && make install && ldconfig
 
 # Set PKG_CONFIG_PATH for OpenCV
-ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig
 
 # Build application
 WORKDIR /build
@@ -79,7 +79,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o orbo ./cmd/orbo
 # Runtime stage
 FROM debian:bookworm-slim
 
-# Install runtime dependencies for OpenCV
+# Install runtime dependencies for OpenCV and ffmpeg for camera capture
 RUN apt-get update && apt-get install -y \
     libgtk-3-0 \
     libavcodec59 \
@@ -98,11 +98,12 @@ RUN apt-get update && apt-get install -y \
     libgstreamer-plugins-base1.0-0 \
     libgstreamer1.0-0 \
     ca-certificates \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy OpenCV libraries from builder
+# Copy OpenCV libraries from builder (libraries may be in lib or lib64)
 COPY --from=builder /usr/local/lib/libopencv* /usr/local/lib/
-COPY --from=builder /usr/local/lib/pkgconfig/opencv4.pc /usr/local/lib/pkgconfig/
+# pkgconfig is not needed at runtime, skip it
 COPY --from=builder /usr/local/include/opencv4 /usr/local/include/opencv4
 COPY --from=builder /usr/local/share/opencv4 /usr/local/share/opencv4
 
@@ -121,8 +122,11 @@ WORKDIR /app
 # Copy binary from builder
 COPY --from=builder /build/orbo .
 
-# Ensure binary is executable
-RUN chmod +x orbo
+# Copy web static files
+COPY --from=builder /build/web /app/web
+
+# Ensure binary is executable and static files are readable
+RUN chmod +x orbo && chmod -R 755 /app/web && chown -R appuser:appuser /app/web
 
 # Switch to non-root user
 USER appuser

@@ -30,8 +30,9 @@ func (s *motionsrvc) Event(ctx context.Context, p *motion.EventPayload) (res *mo
 	return
 }
 
-// Get captured frame for motion event
-func (s *motionsrvc) Frame(ctx context.Context, p *motion.FramePayload) (res []byte, err error) {
+// Get captured frame for motion event as base64
+func (s *motionsrvc) Frame(ctx context.Context, p *motion.FramePayload) (res *motion.FrameResponse, err error) {
+	res = &motion.FrameResponse{}
 	s.logger.Print("motion.frame")
 	return
 }

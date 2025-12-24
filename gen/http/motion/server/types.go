@@ -32,6 +32,25 @@ type EventResponseBody struct {
 	FramePath *string `form:"frame_path,omitempty" json:"frame_path,omitempty" xml:"frame_path,omitempty"`
 	// Whether notification was sent
 	NotificationSent *bool `form:"notification_sent,omitempty" json:"notification_sent,omitempty" xml:"notification_sent,omitempty"`
+	// Detected object class
+	ObjectClass *string `form:"object_class,omitempty" json:"object_class,omitempty" xml:"object_class,omitempty"`
+	// AI detection confidence
+	ObjectConfidence *float32 `form:"object_confidence,omitempty" json:"object_confidence,omitempty" xml:"object_confidence,omitempty"`
+	// Threat level assessment
+	ThreatLevel *string `form:"threat_level,omitempty" json:"threat_level,omitempty" xml:"threat_level,omitempty"`
+	// AI inference time in milliseconds
+	InferenceTimeMs *float32 `form:"inference_time_ms,omitempty" json:"inference_time_ms,omitempty" xml:"inference_time_ms,omitempty"`
+	// Device used for detection
+	DetectionDevice *string `form:"detection_device,omitempty" json:"detection_device,omitempty" xml:"detection_device,omitempty"`
+}
+
+// FrameResponseBody is the type of the "motion" service "frame" endpoint HTTP
+// response body.
+type FrameResponseBody struct {
+	// Base64 encoded JPEG image data
+	Data string `form:"data" json:"data" xml:"data"`
+	// Image MIME type
+	ContentType string `form:"content_type" json:"content_type" xml:"content_type"`
 }
 
 // EventNotFoundResponseBody is the type of the "motion" service "event"
@@ -68,6 +87,16 @@ type MotionEventResponse struct {
 	FramePath *string `form:"frame_path,omitempty" json:"frame_path,omitempty" xml:"frame_path,omitempty"`
 	// Whether notification was sent
 	NotificationSent *bool `form:"notification_sent,omitempty" json:"notification_sent,omitempty" xml:"notification_sent,omitempty"`
+	// Detected object class
+	ObjectClass *string `form:"object_class,omitempty" json:"object_class,omitempty" xml:"object_class,omitempty"`
+	// AI detection confidence
+	ObjectConfidence *float32 `form:"object_confidence,omitempty" json:"object_confidence,omitempty" xml:"object_confidence,omitempty"`
+	// Threat level assessment
+	ThreatLevel *string `form:"threat_level,omitempty" json:"threat_level,omitempty" xml:"threat_level,omitempty"`
+	// AI inference time in milliseconds
+	InferenceTimeMs *float32 `form:"inference_time_ms,omitempty" json:"inference_time_ms,omitempty" xml:"inference_time_ms,omitempty"`
+	// Device used for detection
+	DetectionDevice *string `form:"detection_device,omitempty" json:"detection_device,omitempty" xml:"detection_device,omitempty"`
 }
 
 // BoundingBoxResponse is used to define fields on response body types.
@@ -114,12 +143,27 @@ func NewEventResponseBody(res *motion.MotionEvent) *EventResponseBody {
 		Confidence:       res.Confidence,
 		FramePath:        res.FramePath,
 		NotificationSent: res.NotificationSent,
+		ObjectClass:      res.ObjectClass,
+		ObjectConfidence: res.ObjectConfidence,
+		ThreatLevel:      res.ThreatLevel,
+		InferenceTimeMs:  res.InferenceTimeMs,
+		DetectionDevice:  res.DetectionDevice,
 	}
 	if res.BoundingBoxes != nil {
 		body.BoundingBoxes = make([]*BoundingBoxResponseBody, len(res.BoundingBoxes))
 		for i, val := range res.BoundingBoxes {
 			body.BoundingBoxes[i] = marshalMotionBoundingBoxToBoundingBoxResponseBody(val)
 		}
+	}
+	return body
+}
+
+// NewFrameResponseBody builds the HTTP response body from the result of the
+// "frame" endpoint of the "motion" service.
+func NewFrameResponseBody(res *motion.FrameResponse) *FrameResponseBody {
+	body := &FrameResponseBody{
+		Data:        res.Data,
+		ContentType: res.ContentType,
 	}
 	return body
 }

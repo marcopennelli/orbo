@@ -17,8 +17,8 @@ type Service interface {
 	Events(context.Context, *EventsPayload) (res []*MotionEvent, err error)
 	// Get motion event by ID
 	Event(context.Context, *EventPayload) (res *MotionEvent, err error)
-	// Get captured frame for motion event
-	Frame(context.Context, *FramePayload) (res []byte, err error)
+	// Get captured frame for motion event as base64
+	Frame(context.Context, *FramePayload) (res *FrameResponse, err error)
 }
 
 // ServiceName is the name of the service as defined in the design. This is the
@@ -65,6 +65,14 @@ type FramePayload struct {
 	ID string
 }
 
+// FrameResponse is the result type of the motion service frame method.
+type FrameResponse struct {
+	// Base64 encoded JPEG image data
+	Data string
+	// Image MIME type
+	ContentType string
+}
+
 // MotionEvent is the result type of the motion service event method.
 type MotionEvent struct {
 	// Event unique identifier
@@ -81,6 +89,16 @@ type MotionEvent struct {
 	FramePath *string
 	// Whether notification was sent
 	NotificationSent *bool
+	// Detected object class
+	ObjectClass *string
+	// AI detection confidence
+	ObjectConfidence *float32
+	// Threat level assessment
+	ThreatLevel *string
+	// AI inference time in milliseconds
+	InferenceTimeMs *float32
+	// Device used for detection
+	DetectionDevice *string
 }
 
 // Resource not found error

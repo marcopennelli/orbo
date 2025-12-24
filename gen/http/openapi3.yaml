@@ -24,42 +24,42 @@ paths:
                                 items:
                                     $ref: '#/components/schemas/CameraInfo'
                                 example:
-                                    - created_at: "2013-11-26T08:20:20Z"
-                                      device: Sit excepturi consequatur temporibus earum.
-                                      fps: 1567748141326443010
-                                      id: b48b0fbb-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Omnis rem placeat quis.
-                                      resolution: Saepe dolor.
-                                      status: error
-                                    - created_at: "2013-11-26T08:20:20Z"
-                                      device: Sit excepturi consequatur temporibus earum.
-                                      fps: 1567748141326443010
-                                      id: b48b0fbb-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Omnis rem placeat quis.
-                                      resolution: Saepe dolor.
-                                      status: error
-                                    - created_at: "2013-11-26T08:20:20Z"
-                                      device: Sit excepturi consequatur temporibus earum.
-                                      fps: 1567748141326443010
-                                      id: b48b0fbb-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Omnis rem placeat quis.
-                                      resolution: Saepe dolor.
-                                      status: error
+                                    - created_at: "1988-12-14T12:06:31Z"
+                                      device: Eum quas consequatur minus consequatur tenetur.
+                                      fps: 208358959805077329
+                                      id: 8657463f-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      name: Sit natus reiciendis dolorum.
+                                      resolution: Eligendi dolorum dolorem exercitationem omnis.
+                                      status: active
+                                    - created_at: "1988-12-14T12:06:31Z"
+                                      device: Eum quas consequatur minus consequatur tenetur.
+                                      fps: 208358959805077329
+                                      id: 8657463f-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      name: Sit natus reiciendis dolorum.
+                                      resolution: Eligendi dolorum dolorem exercitationem omnis.
+                                      status: active
                             example:
-                                - created_at: "2013-11-26T08:20:20Z"
-                                  device: Sit excepturi consequatur temporibus earum.
-                                  fps: 1567748141326443010
-                                  id: b48b0fbb-85ed-11f0-b1d0-5847ca7b8ce1
-                                  name: Omnis rem placeat quis.
-                                  resolution: Saepe dolor.
-                                  status: error
-                                - created_at: "2013-11-26T08:20:20Z"
-                                  device: Sit excepturi consequatur temporibus earum.
-                                  fps: 1567748141326443010
-                                  id: b48b0fbb-85ed-11f0-b1d0-5847ca7b8ce1
-                                  name: Omnis rem placeat quis.
-                                  resolution: Saepe dolor.
-                                  status: error
+                                - created_at: "1988-12-14T12:06:31Z"
+                                  device: Eum quas consequatur minus consequatur tenetur.
+                                  fps: 208358959805077329
+                                  id: 8657463f-e0c1-11f0-9fb7-5847ca7b8ce1
+                                  name: Sit natus reiciendis dolorum.
+                                  resolution: Eligendi dolorum dolorem exercitationem omnis.
+                                  status: active
+                                - created_at: "1988-12-14T12:06:31Z"
+                                  device: Eum quas consequatur minus consequatur tenetur.
+                                  fps: 208358959805077329
+                                  id: 8657463f-e0c1-11f0-9fb7-5847ca7b8ce1
+                                  name: Sit natus reiciendis dolorum.
+                                  resolution: Eligendi dolorum dolorem exercitationem omnis.
+                                  status: active
+                                - created_at: "1988-12-14T12:06:31Z"
+                                  device: Eum quas consequatur minus consequatur tenetur.
+                                  fps: 208358959805077329
+                                  id: 8657463f-e0c1-11f0-9fb7-5847ca7b8ce1
+                                  name: Sit natus reiciendis dolorum.
+                                  resolution: Eligendi dolorum dolorem exercitationem omnis.
+                                  status: active
         post:
             tags:
                 - camera
@@ -73,10 +73,10 @@ paths:
                         schema:
                             $ref: '#/components/schemas/CreateRequestBody'
                         example:
-                            device: Officia sed.
-                            fps: 7244701452893848619
-                            name: Voluptas quia eligendi perferendis ut.
-                            resolution: Cumque dignissimos tempore corporis deleniti quisquam debitis.
+                            device: Laboriosam distinctio exercitationem.
+                            fps: 4338044084510968211
+                            name: Consequatur quam excepturi voluptatem iusto excepturi.
+                            resolution: Illo et tempora unde similique fuga ut.
             responses:
                 "201":
                     description: Created response.
@@ -85,13 +85,13 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/CameraInfo'
                             example:
-                                created_at: "2008-08-11T08:10:01Z"
-                                device: Hic excepturi sapiente expedita adipisci ex.
-                                fps: 5296361011579224938
-                                id: b48b6f6d-85ed-11f0-b1d0-5847ca7b8ce1
-                                name: Nam et adipisci eius aut odio in.
-                                resolution: Excepturi voluptatem iusto excepturi velit laboriosam distinctio.
-                                status: inactive
+                                created_at: "1997-07-23T12:16:57Z"
+                                device: Excepturi non.
+                                fps: 1366872003805789221
+                                id: 86578401-e0c1-11f0-9fb7-5847ca7b8ce1
+                                name: Commodi voluptates quia.
+                                resolution: Dicta cumque aut velit impedit excepturi.
+                                status: active
                 "400":
                     description: 'bad_request: Invalid camera configuration'
                     content:
@@ -99,8 +99,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotReadyError'
                             example:
-                                details: Excepturi non.
-                                message: Qui temporibus commodi voluptates quia.
+                                details: Totam unde est voluptatibus quas at quas.
+                                message: Sapiente laborum repellat.
     /api/v1/cameras/{id}:
         delete:
             tags:
@@ -116,9 +116,9 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: b48cfedc-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 8659fdba-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
-                  example: b48d00a5-85ed-11f0-b1d0-5847ca7b8ce1
+                  example: 8659fe6a-e0c1-11f0-9fb7-5847ca7b8ce1
             responses:
                 "204":
                     description: No Content response.
@@ -129,8 +129,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundError'
                             example:
-                                id: Temporibus est perferendis aliquam placeat temporibus eius.
-                                message: Sequi necessitatibus.
+                                id: Ipsa qui rerum quia hic repellat.
+                                message: Non natus nihil voluptas aperiam possimus et.
         get:
             tags:
                 - camera
@@ -145,9 +145,9 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: b48ce364-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 8659f988-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
-                  example: b48ce7b5-85ed-11f0-b1d0-5847ca7b8ce1
+                  example: 8659fa4e-e0c1-11f0-9fb7-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
@@ -156,12 +156,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/CameraInfo'
                             example:
-                                created_at: "1998-12-10T22:50:14Z"
-                                device: Perspiciatis nemo dignissimos et eum.
-                                fps: 3464216536957915890
-                                id: b48b214d-85ed-11f0-b1d0-5847ca7b8ce1
-                                name: Ex iusto eaque.
-                                resolution: Exercitationem nisi voluptatem omnis eos.
+                                created_at: "1998-07-04T21:25:56Z"
+                                device: Quis inventore amet.
+                                fps: 9052093580524798755
+                                id: 8657680f-e0c1-11f0-9fb7-5847ca7b8ce1
+                                name: Repellat error repellat sunt corporis.
+                                resolution: Quia eligendi perferendis ut reiciendis officia.
                                 status: active
                 "404":
                     description: 'not_found: Camera not found'
@@ -170,8 +170,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundError'
                             example:
-                                id: Quis inventore amet.
-                                message: Repellat error repellat sunt corporis.
+                                id: Excepturi sapiente expedita adipisci.
+                                message: Eius aut odio in enim.
         put:
             tags:
                 - camera
@@ -186,9 +186,9 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: b48cf033-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 8659fbea-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
-                  example: b48cf9bb-85ed-11f0-b1d0-5847ca7b8ce1
+                  example: 8659fca1-e0c1-11f0-9fb7-5847ca7b8ce1
             requestBody:
                 required: true
                 content:
@@ -196,9 +196,9 @@ paths:
                         schema:
                             $ref: '#/components/schemas/UpdateRequestBody'
                         example:
-                            fps: 938750244656215338
-                            name: Qui excepturi consequatur accusantium quasi voluptas qui.
-                            resolution: Rerum cum aspernatur temporibus dicta deleniti vero.
+                            fps: 2317895728662192209
+                            name: Inventore excepturi numquam repellendus harum similique.
+                            resolution: Repellendus et accusantium.
             responses:
                 "200":
                     description: OK response.
@@ -207,12 +207,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/CameraInfo'
                             example:
-                                created_at: "1995-11-14T08:47:12Z"
-                                device: Blanditiis delectus consequatur natus ut perspiciatis sunt.
-                                fps: 4885825618902792139
-                                id: b48b8876-85ed-11f0-b1d0-5847ca7b8ce1
-                                name: Nesciunt impedit magnam a.
-                                resolution: Officia dicta ut veniam facilis.
+                                created_at: "2006-10-25T05:33:58Z"
+                                device: Quia ratione hic omnis ex.
+                                fps: 3272848071949729002
+                                id: 86579a61-e0c1-11f0-9fb7-5847ca7b8ce1
+                                name: Ipsa delectus.
+                                resolution: Voluptatum beatae quis sed.
                                 status: error
                 "400":
                     description: 'bad_request: Invalid camera configuration'
@@ -221,8 +221,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotReadyError'
                             example:
-                                details: Ipsa delectus.
-                                message: Et corporis.
+                                details: Et rerum quia aut minus.
+                                message: Hic suscipit inventore commodi provident.
                 "404":
                     description: 'not_found: Camera not found'
                     content:
@@ -230,8 +230,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundError'
                             example:
-                                id: In molestiae iste.
-                                message: Eligendi quasi.
+                                id: Dolore temporibus qui dolor non.
+                                message: Tempora aut fuga.
     /api/v1/cameras/{id}/activate:
         post:
             tags:
@@ -247,9 +247,9 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: b48d02aa-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 8659ff5d-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
-                  example: b48d043c-85ed-11f0-b1d0-5847ca7b8ce1
+                  example: 865a0017-e0c1-11f0-9fb7-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
@@ -258,13 +258,13 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/CameraInfo'
                             example:
-                                created_at: "2008-11-27T07:31:30Z"
-                                device: Et architecto quasi omnis et.
-                                fps: 4753087249635081963
-                                id: b48ba3d6-85ed-11f0-b1d0-5847ca7b8ce1
-                                name: Id cumque qui esse ut eum.
-                                resolution: Illum soluta aut vitae rerum.
-                                status: error
+                                created_at: "1970-05-04T04:26:16Z"
+                                device: Neque quam.
+                                fps: 5887227980984702743
+                                id: 8657d3f4-e0c1-11f0-9fb7-5847ca7b8ce1
+                                name: Reprehenderit sed.
+                                resolution: Et magnam.
+                                status: active
                 "404":
                     description: 'not_found: Camera not found'
                     content:
@@ -272,8 +272,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundError'
                             example:
-                                id: Voluptatem eveniet autem rerum.
-                                message: Quos quia et recusandae aspernatur eum.
+                                id: Et aut non.
+                                message: Culpa dignissimos.
                 "500":
                     description: 'internal: Failed to activate camera'
                     content:
@@ -281,7 +281,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalError'
                             example:
-                                message: Voluptatem quia.
+                                message: Laborum commodi vel tenetur dolorem autem ut.
     /api/v1/cameras/{id}/deactivate:
         post:
             tags:
@@ -297,9 +297,9 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: b48d068d-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 865a015e-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
-                  example: b48d080f-85ed-11f0-b1d0-5847ca7b8ce1
+                  example: 865a024c-e0c1-11f0-9fb7-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
@@ -308,13 +308,13 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/CameraInfo'
                             example:
-                                created_at: "1992-03-02T21:33:26Z"
-                                device: Nobis est explicabo.
-                                fps: 5757997568705524170
-                                id: b48bca7e-85ed-11f0-b1d0-5847ca7b8ce1
-                                name: Et natus quia explicabo modi neque.
-                                resolution: Culpa iste exercitationem atque.
-                                status: inactive
+                                created_at: "1970-02-04T20:56:37Z"
+                                device: Totam accusamus.
+                                fps: 3263562727426545468
+                                id: 8657ea6d-e0c1-11f0-9fb7-5847ca7b8ce1
+                                name: Inventore laborum illo deserunt qui.
+                                resolution: Provident culpa id.
+                                status: error
                 "404":
                     description: 'not_found: Camera not found'
                     content:
@@ -322,14 +322,14 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundError'
                             example:
-                                id: Occaecati sed.
-                                message: Voluptas veniam et est necessitatibus placeat et.
+                                id: Ut nemo autem commodi sit et aspernatur.
+                                message: Dolorum quasi quidem ratione fugiat quibusdam laborum.
     /api/v1/cameras/{id}/frame:
         get:
             tags:
                 - camera
             summary: capture camera
-            description: Capture a single frame from camera as JPEG
+            description: Capture a single frame from camera as base64
             operationId: camera#capture
             parameters:
                 - name: id
@@ -339,64 +339,19 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: b48d0a0b-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 865a0333-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
-                  example: b48d0b85-85ed-11f0-b1d0-5847ca7b8ce1
+                  example: 865a0413-e0c1-11f0-9fb7-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
                     content:
-                        image/jpeg:
+                        application/json:
                             schema:
-                                type: string
-                                example:
-                                    - 76
-                                    - 97
-                                    - 117
-                                    - 100
-                                    - 97
-                                    - 110
-                                    - 116
-                                    - 105
-                                    - 117
-                                    - 109
-                                    - 32
-                                    - 101
-                                    - 116
-                                    - 32
-                                    - 99
-                                    - 111
-                                    - 114
-                                    - 112
-                                    - 111
-                                    - 114
-                                    - 105
-                                    - 115
-                                    - 46
-                                format: binary
+                                $ref: '#/components/schemas/FrameResponse'
                             example:
-                                - 80
-                                - 101
-                                - 114
-                                - 102
-                                - 101
-                                - 114
-                                - 101
-                                - 110
-                                - 100
-                                - 105
-                                - 115
-                                - 32
-                                - 101
-                                - 120
-                                - 99
-                                - 101
-                                - 112
-                                - 116
-                                - 117
-                                - 114
-                                - 105
-                                - 46
+                                content_type: Omnis pariatur.
+                                data: Omnis velit at.
                 "404":
                     description: 'not_found: Camera not found'
                     content:
@@ -404,8 +359,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundError'
                             example:
-                                id: Quo vitae laborum.
-                                message: Corrupti natus illum.
+                                id: Officia corrupti reiciendis neque dolores aut dolor.
+                                message: Numquam aliquid at facilis eaque nobis sunt.
                 "500":
                     description: 'internal: Failed to capture frame'
                     content:
@@ -413,7 +368,188 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalError'
                             example:
-                                message: Commodi velit dolor dolorem doloribus ut.
+                                message: Distinctio quae expedita sunt eum quibusdam.
+    /api/v1/config/detection:
+        get:
+            tags:
+                - config
+            summary: get_detection config
+            description: Get combined detection configuration
+            operationId: config#get_detection
+            responses:
+                "200":
+                    description: OK response.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DetectionConfig'
+                            example:
+                                dinov3:
+                                    confidence_threshold: 0.51265204
+                                    enable_scene_analysis: false
+                                    enabled: true
+                                    fallback_to_basic: true
+                                    motion_threshold: 0.5848347
+                                    service_endpoint: In laborum facilis nihil.
+                                fallback_enabled: true
+                                primary_detector: yolo
+                                yolo:
+                                    classes_filter: Eius est.
+                                    confidence_threshold: 0.2663753
+                                    enabled: false
+                                    security_mode: true
+                                    service_endpoint: Nobis nulla iure qui aut.
+        put:
+            tags:
+                - config
+            summary: update_detection config
+            description: Update combined detection configuration
+            operationId: config#update_detection
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DetectionConfig'
+                        example:
+                            dinov3:
+                                confidence_threshold: 0.62306696
+                                enable_scene_analysis: false
+                                enabled: false
+                                fallback_to_basic: false
+                                motion_threshold: 0.9232003
+                                service_endpoint: Aut sit deserunt.
+                            fallback_enabled: true
+                            primary_detector: basic
+                            yolo:
+                                classes_filter: Sed cumque reprehenderit laudantium harum.
+                                confidence_threshold: 0.48796725
+                                enabled: false
+                                security_mode: false
+                                service_endpoint: Non pariatur delectus dolore blanditiis et.
+            responses:
+                "200":
+                    description: OK response.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DetectionConfig'
+                            example:
+                                dinov3:
+                                    confidence_threshold: 0.51265204
+                                    enable_scene_analysis: false
+                                    enabled: true
+                                    fallback_to_basic: true
+                                    motion_threshold: 0.5848347
+                                    service_endpoint: In laborum facilis nihil.
+                                fallback_enabled: true
+                                primary_detector: yolo
+                                yolo:
+                                    classes_filter: Eius est.
+                                    confidence_threshold: 0.2663753
+                                    enabled: false
+                                    security_mode: true
+                                    service_endpoint: Nobis nulla iure qui aut.
+                "400":
+                    description: 'bad_request: Invalid detection configuration'
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotReadyError'
+                            example:
+                                details: Fugit minima aliquam et et earum.
+                                message: Non culpa voluptatem fugit sint nobis.
+    /api/v1/config/dinov3:
+        get:
+            tags:
+                - config
+            summary: get_dinov3 config
+            description: Get current DINOv3 AI configuration
+            operationId: config#get_dinov3
+            responses:
+                "200":
+                    description: OK response.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DINOv3Config'
+                            example:
+                                confidence_threshold: 0.13524272
+                                enable_scene_analysis: true
+                                enabled: true
+                                fallback_to_basic: true
+                                motion_threshold: 0.9441338
+                                service_endpoint: Ullam quo temporibus qui accusantium dolorem reprehenderit.
+        put:
+            tags:
+                - config
+            summary: update_dinov3 config
+            description: Update DINOv3 AI configuration
+            operationId: config#update_dinov3
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/DINOv3Config'
+                        example:
+                            confidence_threshold: 0.8294231
+                            enable_scene_analysis: false
+                            enabled: true
+                            fallback_to_basic: true
+                            motion_threshold: 0.51341873
+                            service_endpoint: Aperiam eveniet quisquam laudantium aliquid dolores.
+            responses:
+                "200":
+                    description: OK response.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DINOv3Config'
+                            example:
+                                confidence_threshold: 0.32888612
+                                enable_scene_analysis: false
+                                enabled: true
+                                fallback_to_basic: false
+                                motion_threshold: 0.666737
+                                service_endpoint: Perferendis et nobis sunt.
+                "400":
+                    description: 'bad_request: Invalid DINOv3 configuration'
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotReadyError'
+                            example:
+                                details: Aut asperiores commodi commodi ipsa.
+                                message: Et aut qui aut ex veniam.
+    /api/v1/config/dinov3/test:
+        post:
+            tags:
+                - config
+            summary: test_dinov3 config
+            description: Test DINOv3 service connectivity
+            operationId: config#test_dinov3
+            responses:
+                "200":
+                    description: OK response.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TestDinov3ResponseBody'
+                            example:
+                                device: Incidunt consectetur molestiae est eveniet consectetur quaerat.
+                                endpoint: Officiis quia voluptatem.
+                                healthy: false
+                                message: Dolorem beatae voluptatem autem minima.
+                                response_time_ms: 0.7533636
+                "500":
+                    description: 'internal: Failed to test DINOv3 service'
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalError'
+                            example:
+                                message: Qui tenetur corporis vitae.
     /api/v1/config/notifications:
         get:
             tags:
@@ -429,10 +565,10 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotificationConfig'
                             example:
-                                cooldown_seconds: 7218051404188287710
-                                min_confidence: 0.12329921
-                                telegram_bot_token: Earum perspiciatis at quis pariatur sit.
-                                telegram_chat_id: Mollitia repudiandae voluptate commodi quia.
+                                cooldown_seconds: 6569055228468852749
+                                min_confidence: 0.4960402
+                                telegram_bot_token: Numquam dolorem officiis non.
+                                telegram_chat_id: Similique sint suscipit voluptatibus debitis modi quia.
                                 telegram_enabled: false
         put:
             tags:
@@ -447,10 +583,10 @@ paths:
                         schema:
                             $ref: '#/components/schemas/NotificationConfig'
                         example:
-                            cooldown_seconds: 476592516116706102
-                            min_confidence: 0.80783147
-                            telegram_bot_token: Doloremque nostrum nisi et voluptatem cumque dolores.
-                            telegram_chat_id: Aut est.
+                            cooldown_seconds: 7135647574342476924
+                            min_confidence: 0.42412287
+                            telegram_bot_token: Id dolore.
+                            telegram_chat_id: Rerum cum qui dolore.
                             telegram_enabled: false
             responses:
                 "200":
@@ -460,11 +596,11 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotificationConfig'
                             example:
-                                cooldown_seconds: 4054384220384930053
-                                min_confidence: 0.4772426
-                                telegram_bot_token: Odio soluta quidem et sit.
-                                telegram_chat_id: Ab sit.
-                                telegram_enabled: true
+                                cooldown_seconds: 6932480775452385371
+                                min_confidence: 0.32241768
+                                telegram_bot_token: Qui rem velit.
+                                telegram_chat_id: Numquam eum molestias ex.
+                                telegram_enabled: false
                 "400":
                     description: 'bad_request: Invalid configuration'
                     content:
@@ -472,8 +608,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotReadyError'
                             example:
-                                details: Deserunt et.
-                                message: Hic et at quos sit reprehenderit.
+                                details: Dolorem officia nulla necessitatibus.
+                                message: Pariatur provident qui omnis est fugiat.
     /api/v1/config/notifications/test:
         post:
             tags:
@@ -489,8 +625,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/TestNotificationResponseBody'
                             example:
-                                message: Vitae minima asperiores sed totam.
-                                success: true
+                                message: Maiores quia delectus id.
+                                success: false
                 "500":
                     description: 'internal: Failed to send test notification'
                     content:
@@ -498,7 +634,96 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalError'
                             example:
-                                message: Minus suscipit reprehenderit.
+                                message: Numquam tempora eius.
+    /api/v1/config/yolo:
+        get:
+            tags:
+                - config
+            summary: get_yolo config
+            description: Get current YOLO detection configuration
+            operationId: config#get_yolo
+            responses:
+                "200":
+                    description: OK response.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/YOLOConfig'
+                            example:
+                                classes_filter: Nobis sapiente unde animi.
+                                confidence_threshold: 0.5938987
+                                enabled: false
+                                security_mode: true
+                                service_endpoint: Tempore sed est maxime.
+        put:
+            tags:
+                - config
+            summary: update_yolo config
+            description: Update YOLO detection configuration
+            operationId: config#update_yolo
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/YOLOConfig'
+                        example:
+                            classes_filter: Est temporibus.
+                            confidence_threshold: 0.58341485
+                            enabled: true
+                            security_mode: true
+                            service_endpoint: Distinctio et pariatur.
+            responses:
+                "200":
+                    description: OK response.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/YOLOConfig'
+                            example:
+                                classes_filter: Architecto accusamus aperiam in maiores.
+                                confidence_threshold: 0.18010502
+                                enabled: false
+                                security_mode: true
+                                service_endpoint: Ullam ad omnis tenetur voluptate.
+                "400":
+                    description: 'bad_request: Invalid YOLO configuration'
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotReadyError'
+                            example:
+                                details: Laudantium consequatur occaecati.
+                                message: Odit repellat voluptatem et nostrum odio impedit.
+    /api/v1/config/yolo/test:
+        post:
+            tags:
+                - config
+            summary: test_yolo config
+            description: Test YOLO service connectivity
+            operationId: config#test_yolo
+            responses:
+                "200":
+                    description: OK response.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TestYoloResponseBody'
+                            example:
+                                device: Doloremque distinctio.
+                                endpoint: Consequuntur autem mollitia.
+                                healthy: false
+                                message: Magnam fugiat.
+                                model_loaded: false
+                                response_time_ms: 0.64522254
+                "500":
+                    description: 'internal: Failed to test YOLO service'
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalError'
+                            example:
+                                message: Iusto ad rerum esse est consequatur.
     /api/v1/motion/events:
         get:
             tags:
@@ -514,9 +739,9 @@ paths:
                   schema:
                     type: string
                     description: Filter by camera ID
-                    example: b48d0d6f-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 865a04ec-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
-                  example: b48d0ee3-85ed-11f0-b1d0-5847ca7b8ce1
+                  example: 865a05d1-e0c1-11f0-9fb7-5847ca7b8ce1
                 - name: since
                   in: query
                   description: Show events since timestamp
@@ -524,9 +749,9 @@ paths:
                   schema:
                     type: string
                     description: Show events since timestamp
-                    example: "2003-06-22T17:20:32Z"
+                    example: "1970-10-29T03:19:33Z"
                     format: date-time
-                  example: "1998-01-12T11:57:10Z"
+                  example: "2009-01-23T00:21:27Z"
                 - name: limit
                   in: query
                   description: Maximum number of events to return
@@ -535,9 +760,9 @@ paths:
                     type: integer
                     description: Maximum number of events to return
                     default: 50
-                    example: -114774017569761757
+                    example: -2895740919119708271
                     maximum: 500
-                  example: -2805369369742264621
+                  example: -5947161224300278663
             responses:
                 "200":
                     description: OK response.
@@ -549,120 +774,86 @@ paths:
                                     $ref: '#/components/schemas/MotionEvent'
                                 example:
                                     - bounding_boxes:
-                                        - height: 8374021465054359798
-                                          width: 3889337126327955980
-                                          x: 839337491387689382
-                                          "y": 7164428059449762984
-                                        - height: 8374021465054359798
-                                          width: 3889337126327955980
-                                          x: 839337491387689382
-                                          "y": 7164428059449762984
-                                        - height: 8374021465054359798
-                                          width: 3889337126327955980
-                                          x: 839337491387689382
-                                          "y": 7164428059449762984
-                                      camera_id: b48bec77-85ed-11f0-b1d0-5847ca7b8ce1
-                                      confidence: 0.10829833
-                                      frame_path: Aliquid omnis.
-                                      id: b48bebc4-85ed-11f0-b1d0-5847ca7b8ce1
+                                        - height: 1475650434323802054
+                                          width: 2053688393169804258
+                                          x: 6127611051182128020
+                                          "y": 1464593452376100101
+                                        - height: 1475650434323802054
+                                          width: 2053688393169804258
+                                          x: 6127611051182128020
+                                          "y": 1464593452376100101
+                                      camera_id: 865809cf-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      confidence: 0.20104334
+                                      detection_device: cuda
+                                      frame_path: Consequatur saepe maiores praesentium.
+                                      id: 8658091b-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      inference_time_ms: 0.6876101
                                       notification_sent: false
-                                      timestamp: "1984-04-09T09:59:29Z"
+                                      object_class: Cum quia est.
+                                      object_confidence: 0.6258289
+                                      threat_level: none
+                                      timestamp: "1990-04-08T08:13:55Z"
                                     - bounding_boxes:
-                                        - height: 8374021465054359798
-                                          width: 3889337126327955980
-                                          x: 839337491387689382
-                                          "y": 7164428059449762984
-                                        - height: 8374021465054359798
-                                          width: 3889337126327955980
-                                          x: 839337491387689382
-                                          "y": 7164428059449762984
-                                        - height: 8374021465054359798
-                                          width: 3889337126327955980
-                                          x: 839337491387689382
-                                          "y": 7164428059449762984
-                                      camera_id: b48bec77-85ed-11f0-b1d0-5847ca7b8ce1
-                                      confidence: 0.10829833
-                                      frame_path: Aliquid omnis.
-                                      id: b48bebc4-85ed-11f0-b1d0-5847ca7b8ce1
+                                        - height: 1475650434323802054
+                                          width: 2053688393169804258
+                                          x: 6127611051182128020
+                                          "y": 1464593452376100101
+                                        - height: 1475650434323802054
+                                          width: 2053688393169804258
+                                          x: 6127611051182128020
+                                          "y": 1464593452376100101
+                                      camera_id: 865809cf-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      confidence: 0.20104334
+                                      detection_device: cuda
+                                      frame_path: Consequatur saepe maiores praesentium.
+                                      id: 8658091b-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      inference_time_ms: 0.6876101
                                       notification_sent: false
-                                      timestamp: "1984-04-09T09:59:29Z"
-                                    - bounding_boxes:
-                                        - height: 8374021465054359798
-                                          width: 3889337126327955980
-                                          x: 839337491387689382
-                                          "y": 7164428059449762984
-                                        - height: 8374021465054359798
-                                          width: 3889337126327955980
-                                          x: 839337491387689382
-                                          "y": 7164428059449762984
-                                        - height: 8374021465054359798
-                                          width: 3889337126327955980
-                                          x: 839337491387689382
-                                          "y": 7164428059449762984
-                                      camera_id: b48bec77-85ed-11f0-b1d0-5847ca7b8ce1
-                                      confidence: 0.10829833
-                                      frame_path: Aliquid omnis.
-                                      id: b48bebc4-85ed-11f0-b1d0-5847ca7b8ce1
-                                      notification_sent: false
-                                      timestamp: "1984-04-09T09:59:29Z"
+                                      object_class: Cum quia est.
+                                      object_confidence: 0.6258289
+                                      threat_level: none
+                                      timestamp: "1990-04-08T08:13:55Z"
                             example:
                                 - bounding_boxes:
-                                    - height: 8374021465054359798
-                                      width: 3889337126327955980
-                                      x: 839337491387689382
-                                      "y": 7164428059449762984
-                                    - height: 8374021465054359798
-                                      width: 3889337126327955980
-                                      x: 839337491387689382
-                                      "y": 7164428059449762984
-                                    - height: 8374021465054359798
-                                      width: 3889337126327955980
-                                      x: 839337491387689382
-                                      "y": 7164428059449762984
-                                  camera_id: b48bec77-85ed-11f0-b1d0-5847ca7b8ce1
-                                  confidence: 0.10829833
-                                  frame_path: Aliquid omnis.
-                                  id: b48bebc4-85ed-11f0-b1d0-5847ca7b8ce1
+                                    - height: 1475650434323802054
+                                      width: 2053688393169804258
+                                      x: 6127611051182128020
+                                      "y": 1464593452376100101
+                                    - height: 1475650434323802054
+                                      width: 2053688393169804258
+                                      x: 6127611051182128020
+                                      "y": 1464593452376100101
+                                  camera_id: 865809cf-e0c1-11f0-9fb7-5847ca7b8ce1
+                                  confidence: 0.20104334
+                                  detection_device: cuda
+                                  frame_path: Consequatur saepe maiores praesentium.
+                                  id: 8658091b-e0c1-11f0-9fb7-5847ca7b8ce1
+                                  inference_time_ms: 0.6876101
                                   notification_sent: false
-                                  timestamp: "1984-04-09T09:59:29Z"
+                                  object_class: Cum quia est.
+                                  object_confidence: 0.6258289
+                                  threat_level: none
+                                  timestamp: "1990-04-08T08:13:55Z"
                                 - bounding_boxes:
-                                    - height: 8374021465054359798
-                                      width: 3889337126327955980
-                                      x: 839337491387689382
-                                      "y": 7164428059449762984
-                                    - height: 8374021465054359798
-                                      width: 3889337126327955980
-                                      x: 839337491387689382
-                                      "y": 7164428059449762984
-                                    - height: 8374021465054359798
-                                      width: 3889337126327955980
-                                      x: 839337491387689382
-                                      "y": 7164428059449762984
-                                  camera_id: b48bec77-85ed-11f0-b1d0-5847ca7b8ce1
-                                  confidence: 0.10829833
-                                  frame_path: Aliquid omnis.
-                                  id: b48bebc4-85ed-11f0-b1d0-5847ca7b8ce1
+                                    - height: 1475650434323802054
+                                      width: 2053688393169804258
+                                      x: 6127611051182128020
+                                      "y": 1464593452376100101
+                                    - height: 1475650434323802054
+                                      width: 2053688393169804258
+                                      x: 6127611051182128020
+                                      "y": 1464593452376100101
+                                  camera_id: 865809cf-e0c1-11f0-9fb7-5847ca7b8ce1
+                                  confidence: 0.20104334
+                                  detection_device: cuda
+                                  frame_path: Consequatur saepe maiores praesentium.
+                                  id: 8658091b-e0c1-11f0-9fb7-5847ca7b8ce1
+                                  inference_time_ms: 0.6876101
                                   notification_sent: false
-                                  timestamp: "1984-04-09T09:59:29Z"
-                                - bounding_boxes:
-                                    - height: 8374021465054359798
-                                      width: 3889337126327955980
-                                      x: 839337491387689382
-                                      "y": 7164428059449762984
-                                    - height: 8374021465054359798
-                                      width: 3889337126327955980
-                                      x: 839337491387689382
-                                      "y": 7164428059449762984
-                                    - height: 8374021465054359798
-                                      width: 3889337126327955980
-                                      x: 839337491387689382
-                                      "y": 7164428059449762984
-                                  camera_id: b48bec77-85ed-11f0-b1d0-5847ca7b8ce1
-                                  confidence: 0.10829833
-                                  frame_path: Aliquid omnis.
-                                  id: b48bebc4-85ed-11f0-b1d0-5847ca7b8ce1
-                                  notification_sent: false
-                                  timestamp: "1984-04-09T09:59:29Z"
+                                  object_class: Cum quia est.
+                                  object_confidence: 0.6258289
+                                  threat_level: none
+                                  timestamp: "1990-04-08T08:13:55Z"
     /api/v1/motion/events/{id}:
         get:
             tags:
@@ -678,9 +869,9 @@ paths:
                   schema:
                     type: string
                     description: Event ID
-                    example: b48d13c9-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 865a08c7-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
-                  example: b48d1543-85ed-11f0-b1d0-5847ca7b8ce1
+                  example: 865a09c5-e0c1-11f0-9fb7-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
@@ -690,28 +881,33 @@ paths:
                                 $ref: '#/components/schemas/MotionEvent'
                             example:
                                 bounding_boxes:
-                                    - height: 4663411613589086343
-                                      width: 2348713965450682576
-                                      x: 7029590923994583667
-                                      "y": 6292279998008267414
-                                    - height: 4663411613589086343
-                                      width: 2348713965450682576
-                                      x: 7029590923994583667
-                                      "y": 6292279998008267414
-                                    - height: 4663411613589086343
-                                      width: 2348713965450682576
-                                      x: 7029590923994583667
-                                      "y": 6292279998008267414
-                                    - height: 4663411613589086343
-                                      width: 2348713965450682576
-                                      x: 7029590923994583667
-                                      "y": 6292279998008267414
-                                camera_id: b48c1fa4-85ed-11f0-b1d0-5847ca7b8ce1
-                                confidence: 0.41971254
-                                frame_path: Vero quis earum non nulla hic.
-                                id: b48c1edf-85ed-11f0-b1d0-5847ca7b8ce1
+                                    - height: 2206668747313543140
+                                      width: 1016544625031089761
+                                      x: 356958210005818514
+                                      "y": 119339189433240791
+                                    - height: 2206668747313543140
+                                      width: 1016544625031089761
+                                      x: 356958210005818514
+                                      "y": 119339189433240791
+                                    - height: 2206668747313543140
+                                      width: 1016544625031089761
+                                      x: 356958210005818514
+                                      "y": 119339189433240791
+                                    - height: 2206668747313543140
+                                      width: 1016544625031089761
+                                      x: 356958210005818514
+                                      "y": 119339189433240791
+                                camera_id: 865826e8-e0c1-11f0-9fb7-5847ca7b8ce1
+                                confidence: 0.37155768
+                                detection_device: cuda
+                                frame_path: Voluptas architecto consequuntur voluptatem.
+                                id: 8658262c-e0c1-11f0-9fb7-5847ca7b8ce1
+                                inference_time_ms: 0.32571757
                                 notification_sent: true
-                                timestamp: "2012-01-30T07:00:46Z"
+                                object_class: Fuga quos.
+                                object_confidence: 0.49133724
+                                threat_level: low
+                                timestamp: "2002-07-19T00:46:59Z"
                 "404":
                     description: 'not_found: Event not found'
                     content:
@@ -719,14 +915,14 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundError'
                             example:
-                                id: Vel debitis voluptas ad tenetur eveniet ad.
-                                message: Aliquid ut doloribus ea repellat.
+                                id: Et nihil ad voluptatibus esse aperiam.
+                                message: Et itaque distinctio et rerum eos autem.
     /api/v1/motion/events/{id}/frame:
         get:
             tags:
                 - motion
             summary: frame motion
-            description: Get captured frame for motion event
+            description: Get captured frame for motion event as base64
             operationId: motion#frame
             parameters:
                 - name: id
@@ -736,69 +932,19 @@ paths:
                   schema:
                     type: string
                     description: Event ID
-                    example: b48d1744-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 865a0ae1-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
-                  example: b48d193d-85ed-11f0-b1d0-5847ca7b8ce1
+                  example: 865a0b9a-e0c1-11f0-9fb7-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
-                    headers:
-                        image/jpeg:
+                    content:
+                        application/json:
                             schema:
-                                type: string
-                                example:
-                                    - 69
-                                    - 120
-                                    - 112
-                                    - 101
-                                    - 100
-                                    - 105
-                                    - 116
-                                    - 97
-                                    - 32
-                                    - 114
-                                    - 101
-                                    - 114
-                                    - 117
-                                    - 109
-                                    - 32
-                                    - 110
-                                    - 111
-                                    - 110
-                                    - 46
-                                format: binary
+                                $ref: '#/components/schemas/FrameResponse'
                             example:
-                                - 65
-                                - 100
-                                - 32
-                                - 101
-                                - 97
-                                - 32
-                                - 117
-                                - 116
-                                - 32
-                                - 113
-                                - 117
-                                - 105
-                                - 98
-                                - 117
-                                - 115
-                                - 100
-                                - 97
-                                - 109
-                                - 32
-                                - 113
-                                - 117
-                                - 105
-                                - 32
-                                - 113
-                                - 117
-                                - 97
-                                - 109
-                                - 32
-                                - 101
-                                - 116
-                                - 46
+                                content_type: Perferendis et facilis id quia recusandae.
+                                data: Asperiores et sed sunt.
                 "404":
                     description: 'not_found: Event or frame not found'
                     content:
@@ -806,8 +952,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundError'
                             example:
-                                id: Itaque incidunt et sint.
-                                message: Ad voluptatibus esse aperiam nulla ipsa.
+                                id: Est saepe et a.
+                                message: Neque consequatur in sapiente totam a.
     /api/v1/system/detection/start:
         post:
             tags:
@@ -824,37 +970,23 @@ paths:
                                 $ref: '#/components/schemas/SystemStatus'
                             example:
                                 cameras:
-                                    - created_at: "2004-06-01T18:23:46Z"
-                                      device: Suscipit voluptatibus debitis modi.
-                                      fps: 4345309881723331338
-                                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Officiis non et similique.
-                                      resolution: Ut sit sit.
+                                    - created_at: "1970-01-23T20:32:05Z"
+                                      device: Sed tempore quam molestiae deserunt.
+                                      fps: 8082078771119146144
+                                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      name: Amet doloribus.
+                                      resolution: Nostrum quasi.
                                       status: inactive
-                                    - created_at: "2004-06-01T18:23:46Z"
-                                      device: Suscipit voluptatibus debitis modi.
-                                      fps: 4345309881723331338
-                                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Officiis non et similique.
-                                      resolution: Ut sit sit.
+                                    - created_at: "1970-01-23T20:32:05Z"
+                                      device: Sed tempore quam molestiae deserunt.
+                                      fps: 8082078771119146144
+                                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      name: Amet doloribus.
+                                      resolution: Nostrum quasi.
                                       status: inactive
-                                    - created_at: "2004-06-01T18:23:46Z"
-                                      device: Suscipit voluptatibus debitis modi.
-                                      fps: 4345309881723331338
-                                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Officiis non et similique.
-                                      resolution: Ut sit sit.
-                                      status: inactive
-                                    - created_at: "2004-06-01T18:23:46Z"
-                                      device: Suscipit voluptatibus debitis modi.
-                                      fps: 4345309881723331338
-                                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Officiis non et similique.
-                                      resolution: Ut sit sit.
-                                      status: inactive
-                                motion_detection_active: true
+                                motion_detection_active: false
                                 notifications_active: false
-                                uptime_seconds: 2704994062299389732
+                                uptime_seconds: 1410490234955203943
                 "500":
                     description: 'internal: Failed to start motion detection'
                     content:
@@ -862,7 +994,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalError'
                             example:
-                                message: Optio dolore ipsum rerum.
+                                message: Minus velit occaecati maiores.
     /api/v1/system/detection/stop:
         post:
             tags:
@@ -879,23 +1011,37 @@ paths:
                                 $ref: '#/components/schemas/SystemStatus'
                             example:
                                 cameras:
-                                    - created_at: "2004-06-01T18:23:46Z"
-                                      device: Suscipit voluptatibus debitis modi.
-                                      fps: 4345309881723331338
-                                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Officiis non et similique.
-                                      resolution: Ut sit sit.
+                                    - created_at: "1970-01-23T20:32:05Z"
+                                      device: Sed tempore quam molestiae deserunt.
+                                      fps: 8082078771119146144
+                                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      name: Amet doloribus.
+                                      resolution: Nostrum quasi.
                                       status: inactive
-                                    - created_at: "2004-06-01T18:23:46Z"
-                                      device: Suscipit voluptatibus debitis modi.
-                                      fps: 4345309881723331338
-                                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Officiis non et similique.
-                                      resolution: Ut sit sit.
+                                    - created_at: "1970-01-23T20:32:05Z"
+                                      device: Sed tempore quam molestiae deserunt.
+                                      fps: 8082078771119146144
+                                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      name: Amet doloribus.
+                                      resolution: Nostrum quasi.
+                                      status: inactive
+                                    - created_at: "1970-01-23T20:32:05Z"
+                                      device: Sed tempore quam molestiae deserunt.
+                                      fps: 8082078771119146144
+                                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      name: Amet doloribus.
+                                      resolution: Nostrum quasi.
+                                      status: inactive
+                                    - created_at: "1970-01-23T20:32:05Z"
+                                      device: Sed tempore quam molestiae deserunt.
+                                      fps: 8082078771119146144
+                                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      name: Amet doloribus.
+                                      resolution: Nostrum quasi.
                                       status: inactive
                                 motion_detection_active: true
                                 notifications_active: true
-                                uptime_seconds: 6866214272442279093
+                                uptime_seconds: 4402706593536637598
     /api/v1/system/status:
         get:
             tags:
@@ -912,37 +1058,30 @@ paths:
                                 $ref: '#/components/schemas/SystemStatus'
                             example:
                                 cameras:
-                                    - created_at: "2004-06-01T18:23:46Z"
-                                      device: Suscipit voluptatibus debitis modi.
-                                      fps: 4345309881723331338
-                                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Officiis non et similique.
-                                      resolution: Ut sit sit.
+                                    - created_at: "1970-01-23T20:32:05Z"
+                                      device: Sed tempore quam molestiae deserunt.
+                                      fps: 8082078771119146144
+                                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      name: Amet doloribus.
+                                      resolution: Nostrum quasi.
                                       status: inactive
-                                    - created_at: "2004-06-01T18:23:46Z"
-                                      device: Suscipit voluptatibus debitis modi.
-                                      fps: 4345309881723331338
-                                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Officiis non et similique.
-                                      resolution: Ut sit sit.
+                                    - created_at: "1970-01-23T20:32:05Z"
+                                      device: Sed tempore quam molestiae deserunt.
+                                      fps: 8082078771119146144
+                                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      name: Amet doloribus.
+                                      resolution: Nostrum quasi.
                                       status: inactive
-                                    - created_at: "2004-06-01T18:23:46Z"
-                                      device: Suscipit voluptatibus debitis modi.
-                                      fps: 4345309881723331338
-                                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Officiis non et similique.
-                                      resolution: Ut sit sit.
+                                    - created_at: "1970-01-23T20:32:05Z"
+                                      device: Sed tempore quam molestiae deserunt.
+                                      fps: 8082078771119146144
+                                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                                      name: Amet doloribus.
+                                      resolution: Nostrum quasi.
                                       status: inactive
-                                    - created_at: "2004-06-01T18:23:46Z"
-                                      device: Suscipit voluptatibus debitis modi.
-                                      fps: 4345309881723331338
-                                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                                      name: Officiis non et similique.
-                                      resolution: Ut sit sit.
-                                      status: inactive
-                                motion_detection_active: false
-                                notifications_active: false
-                                uptime_seconds: 3736284548033152944
+                                motion_detection_active: true
+                                notifications_active: true
+                                uptime_seconds: 6890577775606207220
     /healthz:
         get:
             tags:
@@ -970,8 +1109,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotReadyError'
                             example:
-                                details: Qui consequuntur omnis omnis in minima id.
-                                message: Praesentium earum debitis quasi magni minima.
+                                details: Fugiat et blanditiis.
+                                message: Architecto saepe dolor consequatur illo.
 components:
     schemas:
         BoundingBox:
@@ -980,29 +1119,29 @@ components:
                 height:
                     type: integer
                     description: Height
-                    example: 8593633145952101865
+                    example: 2042127925810696163
                     format: int64
                 width:
                     type: integer
                     description: Width
-                    example: 7006731267517232972
+                    example: 743849940359747409
                     format: int64
                 x:
                     type: integer
                     description: X coordinate
-                    example: 4604199395998893053
+                    example: 3198738960321002631
                     format: int64
                 "y":
                     type: integer
                     description: Y coordinate
-                    example: 3196539463513937074
+                    example: 4209716642861159776
                     format: int64
             description: Bounding box coordinates
             example:
-                height: 5780947463233957559
-                width: 2029810721935394997
-                x: 155123632552410294
-                "y": 8505273714779678628
+                height: 4595714098506679547
+                width: 1433569869517968051
+                x: 5564091216620606369
+                "y": 2311266273847710742
             required:
                 - x
                 - "y"
@@ -1014,47 +1153,47 @@ components:
                 created_at:
                     type: string
                     description: Creation timestamp
-                    example: "1999-05-11T17:35:22Z"
+                    example: "1976-04-16T05:08:14Z"
                     format: date-time
                 device:
                     type: string
                     description: Camera device path (e.g., /dev/video0)
-                    example: Eum saepe.
+                    example: Et veritatis possimus et.
                 fps:
                     type: integer
                     description: Frames per second
-                    example: 7020715089098745332
+                    example: 8340487245942408587
                     format: int64
                 id:
                     type: string
                     description: Camera unique identifier
-                    example: b48cd6f7-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 8659e704-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
                 name:
                     type: string
                     description: Camera name
-                    example: Commodi deserunt eum vitae excepturi.
+                    example: Earum magnam earum quis vero nam neque.
                 resolution:
                     type: string
                     description: Camera resolution
-                    example: Assumenda ut nulla quo et beatae.
+                    example: Debitis laudantium eos.
                 status:
                     type: string
                     description: Camera status
-                    example: active
+                    example: error
                     enum:
                         - active
                         - inactive
                         - error
             description: Camera information
             example:
-                created_at: "1985-02-06T18:10:31Z"
-                device: Eaque et velit asperiores.
-                fps: 2883008937309413159
-                id: b48cd86f-85ed-11f0-b1d0-5847ca7b8ce1
-                name: Et est.
-                resolution: Facere sapiente saepe harum vel.
-                status: error
+                created_at: "1984-08-10T03:03:39Z"
+                device: Soluta quas asperiores.
+                fps: 5009495723087580043
+                id: 8659e89b-e0c1-11f0-9fb7-5847ca7b8ce1
+                name: Impedit eum voluptatem.
+                resolution: Doloribus facilis id perferendis pariatur.
+                status: inactive
             required:
                 - id
                 - name
@@ -1066,40 +1205,139 @@ components:
                 device:
                     type: string
                     description: Camera device path
-                    example: Pariatur voluptatum et.
+                    example: Quidem qui deleniti.
                 fps:
                     type: integer
                     description: Frames per second
                     default: 30
-                    example: 7980819258013143784
+                    example: 3982922718710035946
                     format: int64
                 name:
                     type: string
                     description: Camera name
-                    example: Possimus consequuntur iure necessitatibus ea optio.
+                    example: Molestias quis iste natus.
                 resolution:
                     type: string
                     description: Camera resolution
                     default: 640x480
-                    example: Et quisquam sunt quo.
+                    example: Nobis minima commodi.
             example:
-                device: Omnis porro est amet sit architecto.
-                fps: 877029238554773586
-                name: Id deleniti est accusantium pariatur consequuntur eum.
-                resolution: Exercitationem distinctio necessitatibus.
+                device: Error aut sit nam minima provident.
+                fps: 8697293754128016557
+                name: Aperiam blanditiis sed corrupti quis et voluptatibus.
+                resolution: Distinctio enim.
             required:
                 - name
                 - device
+        DINOv3Config:
+            type: object
+            properties:
+                confidence_threshold:
+                    type: number
+                    description: Minimum confidence for alerts (0-1)
+                    default: 0.6
+                    example: 0.25114408
+                    format: float
+                enable_scene_analysis:
+                    type: boolean
+                    description: Enable advanced scene analysis
+                    default: true
+                    example: false
+                enabled:
+                    type: boolean
+                    description: Enable DINOv3 AI detection
+                    example: true
+                fallback_to_basic:
+                    type: boolean
+                    description: Fallback to basic detection when DINOv3 unavailable
+                    default: true
+                    example: true
+                motion_threshold:
+                    type: number
+                    description: Motion detection threshold (0-1)
+                    default: 0.85
+                    example: 0.5659261
+                    format: float
+                service_endpoint:
+                    type: string
+                    description: DINOv3 service endpoint URL
+                    example: Quos consequatur nihil labore et.
+            example:
+                confidence_threshold: 0.8446411
+                enable_scene_analysis: true
+                enabled: true
+                fallback_to_basic: true
+                motion_threshold: 0.60383445
+                service_endpoint: Aut doloremque deleniti.
+            required:
+                - enabled
+        DetectionConfig:
+            type: object
+            properties:
+                dinov3:
+                    $ref: '#/components/schemas/DINOv3Config'
+                fallback_enabled:
+                    type: boolean
+                    description: Enable fallback to basic detection
+                    default: true
+                    example: true
+                primary_detector:
+                    type: string
+                    description: Primary detector to use
+                    default: basic
+                    example: yolo
+                    enum:
+                        - basic
+                        - yolo
+                        - dinov3
+                yolo:
+                    $ref: '#/components/schemas/YOLOConfig'
+            example:
+                dinov3:
+                    confidence_threshold: 0.51265204
+                    enable_scene_analysis: false
+                    enabled: true
+                    fallback_to_basic: true
+                    motion_threshold: 0.5848347
+                    service_endpoint: In laborum facilis nihil.
+                fallback_enabled: false
+                primary_detector: basic
+                yolo:
+                    classes_filter: Eius est.
+                    confidence_threshold: 0.2663753
+                    enabled: false
+                    security_mode: true
+                    service_endpoint: Nobis nulla iure qui aut.
+            required:
+                - primary_detector
+        FrameResponse:
+            type: object
+            properties:
+                content_type:
+                    type: string
+                    description: Image MIME type
+                    default: image/jpeg
+                    example: Quo est eos.
+                data:
+                    type: string
+                    description: Base64 encoded JPEG image data
+                    example: Est ratione repellat natus qui aperiam tempore.
+            example:
+                content_type: Velit nisi doloribus ipsum veritatis numquam.
+                data: Recusandae omnis sed consequatur.
+            required:
+                - data
+                - content_type
         InternalError:
             type: object
             properties:
                 message:
                     type: string
                     description: Error message
-                    example: Dolores quaerat ut.
+                    example: Eos architecto dolor.
             description: Failed to activate camera
             example:
-                message: Fuga sed ut.
+                message: Quo quos voluptates repellendus.
             required:
                 - message
         MotionEvent:
@@ -1111,63 +1349,99 @@ components:
                         $ref: '#/components/schemas/BoundingBox'
                     description: Detected motion areas
                     example:
-                        - height: 8374021465054359798
-                          width: 3889337126327955980
-                          x: 839337491387689382
-                          "y": 7164428059449762984
-                        - height: 8374021465054359798
-                          width: 3889337126327955980
-                          x: 839337491387689382
-                          "y": 7164428059449762984
+                        - height: 1475650434323802054
+                          width: 2053688393169804258
+                          x: 6127611051182128020
+                          "y": 1464593452376100101
+                        - height: 1475650434323802054
+                          width: 2053688393169804258
+                          x: 6127611051182128020
+                          "y": 1464593452376100101
                 camera_id:
                     type: string
                     description: Camera ID
-                    example: b48cdc81-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 8659ee07-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
                 confidence:
                     type: number
                     description: Motion confidence score (0-1)
-                    example: 0.9177544
+                    example: 0.8241783
                     format: float
+                detection_device:
+                    type: string
+                    description: Device used for detection
+                    example: cuda
+                    enum:
+                        - cpu
+                        - cuda
+                        - dinov3
                 frame_path:
                     type: string
                     description: Path to captured frame
-                    example: Est et in rerum ratione dolor nihil.
+                    example: Sunt velit sapiente voluptatibus itaque quo.
                 id:
                     type: string
                     description: Event unique identifier
-                    example: b48cdbd8-85ed-11f0-b1d0-5847ca7b8ce1
+                    example: 8659ed49-e0c1-11f0-9fb7-5847ca7b8ce1
                     format: uuid
+                inference_time_ms:
+                    type: number
+                    description: AI inference time in milliseconds
+                    example: 0.10613807
+                    format: float
                 notification_sent:
                     type: boolean
                     description: Whether notification was sent
-                    example: false
+                    example: true
+                object_class:
+                    type: string
+                    description: Detected object class
+                    example: Quis modi odio.
+                object_confidence:
+                    type: number
+                    description: AI detection confidence
+                    example: 0.6072803
+                    format: float
+                threat_level:
+                    type: string
+                    description: Threat level assessment
+                    example: medium
+                    enum:
+                        - none
+                        - low
+                        - medium
+                        - high
                 timestamp:
                     type: string
                     description: Event timestamp
-                    example: "1972-12-11T08:21:04Z"
+                    example: "2016-01-08T14:37:52Z"
                     format: date-time
             description: Motion detection event
             example:
                 bounding_boxes:
-                    - height: 8374021465054359798
-                      width: 3889337126327955980
-                      x: 839337491387689382
-                      "y": 7164428059449762984
-                    - height: 8374021465054359798
-                      width: 3889337126327955980
-                      x: 839337491387689382
-                      "y": 7164428059449762984
-                    - height: 8374021465054359798
-                      width: 3889337126327955980
-                      x: 839337491387689382
-                      "y": 7164428059449762984
-                camera_id: b48cdec7-85ed-11f0-b1d0-5847ca7b8ce1
-                confidence: 0.57004267
-                frame_path: Voluptatem natus distinctio et sit quia.
-                id: b48cde22-85ed-11f0-b1d0-5847ca7b8ce1
-                notification_sent: false
-                timestamp: "1989-08-06T22:21:55Z"
+                    - height: 1475650434323802054
+                      width: 2053688393169804258
+                      x: 6127611051182128020
+                      "y": 1464593452376100101
+                    - height: 1475650434323802054
+                      width: 2053688393169804258
+                      x: 6127611051182128020
+                      "y": 1464593452376100101
+                    - height: 1475650434323802054
+                      width: 2053688393169804258
+                      x: 6127611051182128020
+                      "y": 1464593452376100101
+                camera_id: 8659f080-e0c1-11f0-9fb7-5847ca7b8ce1
+                confidence: 0.14805043
+                detection_device: cuda
+                frame_path: Harum repellat.
+                id: 8659efda-e0c1-11f0-9fb7-5847ca7b8ce1
+                inference_time_ms: 0.3407916
+                notification_sent: true
+                object_class: Veritatis sint laborum.
+                object_confidence: 0.408038
+                threat_level: high
+                timestamp: "1983-05-23T18:26:58Z"
             required:
                 - id
                 - camera_id
@@ -1179,15 +1453,15 @@ components:
                 id:
                     type: string
                     description: Resource ID
-                    example: Ut soluta.
+                    example: Fugiat iusto.
                 message:
                     type: string
                     description: Error message
-                    example: Quo qui.
+                    example: Odio autem.
             description: Camera not found
             example:
-                id: Rerum adipisci hic repellat.
-                message: Soluta nisi occaecati beatae sequi velit earum.
+                id: Rerum odio.
+                message: Exercitationem cupiditate sint quia ullam.
             required:
                 - message
                 - id
@@ -1197,15 +1471,15 @@ components:
                 details:
                     type: string
                     description: Additional error details
-                    example: Voluptas enim voluptas eos sequi occaecati.
+                    example: Perspiciatis omnis sed aut.
                 message:
                     type: string
                     description: Error message
-                    example: Cumque tempora labore cum quae.
+                    example: Aut dolorem eum.
             description: Service is not ready
             example:
-                details: Quam quam ex.
-                message: Optio et sed et.
+                details: Ullam pariatur.
+                message: Sapiente est autem doloribus.
             required:
                 - message
         NotificationConfig:
@@ -1214,31 +1488,31 @@ components:
                 cooldown_seconds:
                     type: integer
                     description: Cooldown period between notifications
-                    example: 5980197688611345677
+                    example: 1877154471492771659
                     format: int64
                 min_confidence:
                     type: number
                     description: Minimum confidence threshold for notifications
-                    example: 0.8310518
+                    example: 0.9137409
                     format: float
                 telegram_bot_token:
                     type: string
                     description: Telegram bot token
-                    example: Ullam commodi culpa sint soluta eos.
+                    example: Accusamus dolores et incidunt ut iusto.
                 telegram_chat_id:
                     type: string
                     description: Telegram chat ID
-                    example: Aspernatur voluptas quia et voluptatem non placeat.
+                    example: Autem id et.
                 telegram_enabled:
                     type: boolean
                     description: Enable Telegram notifications
-                    example: false
+                    example: true
             example:
-                cooldown_seconds: 3089231542945736799
-                min_confidence: 0.4836419
-                telegram_bot_token: Quia ea.
-                telegram_chat_id: Quo omnis id.
-                telegram_enabled: false
+                cooldown_seconds: 6961276055367864176
+                min_confidence: 0.06492842
+                telegram_bot_token: Quia rerum aut nam fuga aperiam.
+                telegram_chat_id: Architecto quia maxime dicta laudantium.
+                telegram_enabled: true
             required:
                 - telegram_enabled
         SystemStatus:
@@ -1250,26 +1524,26 @@ components:
                         $ref: '#/components/schemas/CameraInfo'
                     description: Camera status list
                     example:
-                        - created_at: "2004-06-01T18:23:46Z"
-                          device: Suscipit voluptatibus debitis modi.
-                          fps: 4345309881723331338
-                          id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                          name: Officiis non et similique.
-                          resolution: Ut sit sit.
+                        - created_at: "1970-01-23T20:32:05Z"
+                          device: Sed tempore quam molestiae deserunt.
+                          fps: 8082078771119146144
+                          id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                          name: Amet doloribus.
+                          resolution: Nostrum quasi.
                           status: inactive
-                        - created_at: "2004-06-01T18:23:46Z"
-                          device: Suscipit voluptatibus debitis modi.
-                          fps: 4345309881723331338
-                          id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                          name: Officiis non et similique.
-                          resolution: Ut sit sit.
+                        - created_at: "1970-01-23T20:32:05Z"
+                          device: Sed tempore quam molestiae deserunt.
+                          fps: 8082078771119146144
+                          id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                          name: Amet doloribus.
+                          resolution: Nostrum quasi.
                           status: inactive
-                        - created_at: "2004-06-01T18:23:46Z"
-                          device: Suscipit voluptatibus debitis modi.
-                          fps: 4345309881723331338
-                          id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                          name: Officiis non et similique.
-                          resolution: Ut sit sit.
+                        - created_at: "1970-01-23T20:32:05Z"
+                          device: Sed tempore quam molestiae deserunt.
+                          fps: 8082078771119146144
+                          id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                          name: Amet doloribus.
+                          resolution: Nostrum quasi.
                           status: inactive
                 motion_detection_active:
                     type: boolean
@@ -1278,52 +1552,137 @@ components:
                 notifications_active:
                     type: boolean
                     description: Notification status
-                    example: false
+                    example: true
                 uptime_seconds:
                     type: integer
                     description: System uptime in seconds
-                    example: 1039022173555519113
+                    example: 9169654079616123631
                     format: int64
             example:
                 cameras:
-                    - created_at: "2004-06-01T18:23:46Z"
-                      device: Suscipit voluptatibus debitis modi.
-                      fps: 4345309881723331338
-                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                      name: Officiis non et similique.
-                      resolution: Ut sit sit.
+                    - created_at: "1970-01-23T20:32:05Z"
+                      device: Sed tempore quam molestiae deserunt.
+                      fps: 8082078771119146144
+                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                      name: Amet doloribus.
+                      resolution: Nostrum quasi.
                       status: inactive
-                    - created_at: "2004-06-01T18:23:46Z"
-                      device: Suscipit voluptatibus debitis modi.
-                      fps: 4345309881723331338
-                      id: b48c535d-85ed-11f0-b1d0-5847ca7b8ce1
-                      name: Officiis non et similique.
-                      resolution: Ut sit sit.
+                    - created_at: "1970-01-23T20:32:05Z"
+                      device: Sed tempore quam molestiae deserunt.
+                      fps: 8082078771119146144
+                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                      name: Amet doloribus.
+                      resolution: Nostrum quasi.
+                      status: inactive
+                    - created_at: "1970-01-23T20:32:05Z"
+                      device: Sed tempore quam molestiae deserunt.
+                      fps: 8082078771119146144
+                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                      name: Amet doloribus.
+                      resolution: Nostrum quasi.
+                      status: inactive
+                    - created_at: "1970-01-23T20:32:05Z"
+                      device: Sed tempore quam molestiae deserunt.
+                      fps: 8082078771119146144
+                      id: 86593167-e0c1-11f0-9fb7-5847ca7b8ce1
+                      name: Amet doloribus.
+                      resolution: Nostrum quasi.
                       status: inactive
                 motion_detection_active: false
                 notifications_active: false
-                uptime_seconds: 1872370589144078624
+                uptime_seconds: 8159617031168867891
             required:
                 - cameras
                 - motion_detection_active
                 - notifications_active
                 - uptime_seconds
+        TestDinov3ResponseBody:
+            type: object
+            properties:
+                device:
+                    type: string
+                    description: Detection device
+                    example: Mollitia enim magni provident quibusdam.
+                endpoint:
+                    type: string
+                    description: Service endpoint
+                    example: Enim consequatur dolores.
+                healthy:
+                    type: boolean
+                    description: Service health status
+                    example: true
+                message:
+                    type: string
+                    description: Status message
+                    example: Ut id optio et.
+                response_time_ms:
+                    type: number
+                    description: Response time in milliseconds
+                    example: 0.25770727
+                    format: float
+            example:
+                device: Molestiae harum quibusdam.
+                endpoint: Eius rem quos id.
+                healthy: true
+                message: Ducimus eum rerum qui doloremque omnis.
+                response_time_ms: 0.88730377
+            required:
+                - healthy
+                - message
         TestNotificationResponseBody:
             type: object
             properties:
                 message:
                     type: string
                     description: Result message
-                    example: Quis eveniet et ratione quas.
+                    example: Et temporibus sed veritatis qui perferendis asperiores.
                 success:
                     type: boolean
                     description: Test result
-                    example: true
+                    example: false
             example:
-                message: Laudantium tempore magni repudiandae numquam quo placeat.
+                message: Et nulla in cupiditate ut.
                 success: false
             required:
                 - success
+                - message
+        TestYoloResponseBody:
+            type: object
+            properties:
+                device:
+                    type: string
+                    description: Detection device (cpu/cuda)
+                    example: Ratione laboriosam quas commodi debitis quibusdam.
+                endpoint:
+                    type: string
+                    description: Service endpoint
+                    example: Facilis qui sint reprehenderit voluptatum aut.
+                healthy:
+                    type: boolean
+                    description: Service health status
+                    example: false
+                message:
+                    type: string
+                    description: Status message
+                    example: Eveniet error animi.
+                model_loaded:
+                    type: boolean
+                    description: Model loaded status
+                    example: false
+                response_time_ms:
+                    type: number
+                    description: Response time in milliseconds
+                    example: 0.07845807
+                    format: float
+            example:
+                device: Voluptas occaecati nesciunt asperiores sint nostrum.
+                endpoint: Ut voluptatem.
+                healthy: false
+                message: Qui ut molestias sunt qui non.
+                model_loaded: true
+                response_time_ms: 0.9538492
+            required:
+                - healthy
                 - message
         UpdateRequestBody:
             type: object
@@ -1331,20 +1690,54 @@ components:
                 fps:
                     type: integer
                     description: Frames per second
-                    example: 7858840900007520669
+                    example: 2821251971953178085
                     format: int64
                 name:
                     type: string
                     description: Camera name
-                    example: Incidunt cum veritatis.
+                    example: Esse officiis in magni.
                 resolution:
                     type: string
                     description: Camera resolution
-                    example: Expedita tempore reiciendis placeat.
+                    example: Consequatur odio libero ullam.
             example:
-                fps: 6515755692230607512
-                name: Unde veritatis commodi quam et dicta.
-                resolution: Nihil dolores nostrum.
+                fps: 2106933248743872201
+                name: At quasi et architecto.
+                resolution: Ut dolorem accusamus ratione vero unde.
+        YOLOConfig:
+            type: object
+            properties:
+                classes_filter:
+                    type: string
+                    description: Comma-separated class names to filter (empty = all)
+                    example: Est porro.
+                confidence_threshold:
+                    type: number
+                    description: Minimum confidence for detections (0-1)
+                    default: 0.5
+                    example: 0.51067764
+                    format: float
+                enabled:
+                    type: boolean
+                    description: Enable YOLO object detection
+                    example: false
+                security_mode:
+                    type: boolean
+                    description: Use security-focused detection (person, car, etc.)
+                    default: true
+                    example: false
+                service_endpoint:
+                    type: string
+                    description: YOLO service endpoint URL
+                    example: Quasi et.
+            example:
+                classes_filter: Est et necessitatibus qui exercitationem.
+                confidence_threshold: 0.29158556
+                enabled: true
+                security_mode: true
+                service_endpoint: Minima aut qui labore.
+            required:
+                - enabled
 tags:
     - name: health
       description: Health check endpoints for Kubernetes probes

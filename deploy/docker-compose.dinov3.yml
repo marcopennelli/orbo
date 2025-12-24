@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  orbo:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    ports:
+      - "8080:8080"
+    devices:
+      - "/dev/video0:/dev/video0"
+    volumes:
+      - "./frames:/app/frames"
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - DINOV3_ENDPOINT=http://dinov3-service:8001
+      - GPU_DETECTOR_ENDPOINT=http://gpu-service:8081
+    depends_on:
+      - dinov3-service
+      - gpu-service
+    networks:
+      - orbo-network
+
+  dinov3-service:
+    build:
+      context: ../services/dinov3
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - CUDA_VISIBLE_DEVICES=0  # Use first GPU if available
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw  # For display access if needed
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - orbo-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  gpu-service:
+    image: orbo-gpu-detection:latest  # Assumes existing GPU service
+    ports:
+      - "8081:8081"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - orbo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  orbo-network:
+    driver: bridge
+
+volumes:
+  frames:
+    driver: local

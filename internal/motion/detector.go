@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"orbo/internal/database"
 )
 
 // MotionEvent represents a detected motion event
@@ -37,13 +39,13 @@ type MotionDetector struct {
 }
 
 // NewMotionDetector creates a new motion detector
-func NewMotionDetector(frameDir string) *MotionDetector {
+func NewMotionDetector(frameDir string, db *database.Database) *MotionDetector {
 	if err := os.MkdirAll(frameDir, 0755); err != nil {
 		fmt.Printf("Warning: failed to create frame directory %s: %v\n", frameDir, err)
 	}
 
 	return &MotionDetector{
-		streamDetector: NewStreamDetector(frameDir),
+		streamDetector: NewStreamDetector(frameDir, db),
 	}
 }
 
