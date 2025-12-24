@@ -58,6 +58,8 @@ type UpdateYoloRequestBody struct {
 	SecurityMode bool `form:"security_mode" json:"security_mode" xml:"security_mode"`
 	// Comma-separated class names to filter (empty = all)
 	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
+	// Draw bounding boxes on images (for Telegram, API)
+	DrawBoxes bool `form:"draw_boxes" json:"draw_boxes" xml:"draw_boxes"`
 }
 
 // UpdateDetectionRequestBody is the type of the "config" service
@@ -174,6 +176,8 @@ type GetYoloResponseBody struct {
 	SecurityMode *bool `form:"security_mode,omitempty" json:"security_mode,omitempty" xml:"security_mode,omitempty"`
 	// Comma-separated class names to filter (empty = all)
 	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
+	// Draw bounding boxes on images (for Telegram, API)
+	DrawBoxes *bool `form:"draw_boxes,omitempty" json:"draw_boxes,omitempty" xml:"draw_boxes,omitempty"`
 }
 
 // UpdateYoloResponseBody is the type of the "config" service "update_yolo"
@@ -189,6 +193,8 @@ type UpdateYoloResponseBody struct {
 	SecurityMode *bool `form:"security_mode,omitempty" json:"security_mode,omitempty" xml:"security_mode,omitempty"`
 	// Comma-separated class names to filter (empty = all)
 	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
+	// Draw bounding boxes on images (for Telegram, API)
+	DrawBoxes *bool `form:"draw_boxes,omitempty" json:"draw_boxes,omitempty" xml:"draw_boxes,omitempty"`
 }
 
 // TestYoloResponseBody is the type of the "config" service "test_yolo"
@@ -303,6 +309,8 @@ type YOLOConfigResponseBody struct {
 	SecurityMode *bool `form:"security_mode,omitempty" json:"security_mode,omitempty" xml:"security_mode,omitempty"`
 	// Comma-separated class names to filter (empty = all)
 	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
+	// Draw bounding boxes on images (for Telegram, API)
+	DrawBoxes *bool `form:"draw_boxes,omitempty" json:"draw_boxes,omitempty" xml:"draw_boxes,omitempty"`
 }
 
 // DINOv3ConfigResponseBody is used to define fields on response body types.
@@ -333,6 +341,8 @@ type YOLOConfigRequestBody struct {
 	SecurityMode bool `form:"security_mode" json:"security_mode" xml:"security_mode"`
 	// Comma-separated class names to filter (empty = all)
 	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
+	// Draw bounding boxes on images (for Telegram, API)
+	DrawBoxes bool `form:"draw_boxes" json:"draw_boxes" xml:"draw_boxes"`
 }
 
 // DINOv3ConfigRequestBody is used to define fields on request body types.
@@ -411,6 +421,7 @@ func NewUpdateYoloRequestBody(p *config.YOLOConfig) *UpdateYoloRequestBody {
 		ConfidenceThreshold: p.ConfidenceThreshold,
 		SecurityMode:        p.SecurityMode,
 		ClassesFilter:       p.ClassesFilter,
+		DrawBoxes:           p.DrawBoxes,
 	}
 	{
 		var zero float32
@@ -422,6 +433,12 @@ func NewUpdateYoloRequestBody(p *config.YOLOConfig) *UpdateYoloRequestBody {
 		var zero bool
 		if body.SecurityMode == zero {
 			body.SecurityMode = true
+		}
+	}
+	{
+		var zero bool
+		if body.DrawBoxes == zero {
+			body.DrawBoxes = false
 		}
 	}
 	return body
@@ -628,11 +645,17 @@ func NewGetYoloYOLOConfigOK(body *GetYoloResponseBody) *config.YOLOConfig {
 	if body.SecurityMode != nil {
 		v.SecurityMode = *body.SecurityMode
 	}
+	if body.DrawBoxes != nil {
+		v.DrawBoxes = *body.DrawBoxes
+	}
 	if body.ConfidenceThreshold == nil {
 		v.ConfidenceThreshold = 0.5
 	}
 	if body.SecurityMode == nil {
 		v.SecurityMode = true
+	}
+	if body.DrawBoxes == nil {
+		v.DrawBoxes = false
 	}
 
 	return v
@@ -652,11 +675,17 @@ func NewUpdateYoloYOLOConfigOK(body *UpdateYoloResponseBody) *config.YOLOConfig 
 	if body.SecurityMode != nil {
 		v.SecurityMode = *body.SecurityMode
 	}
+	if body.DrawBoxes != nil {
+		v.DrawBoxes = *body.DrawBoxes
+	}
 	if body.ConfidenceThreshold == nil {
 		v.ConfidenceThreshold = 0.5
 	}
 	if body.SecurityMode == nil {
 		v.SecurityMode = true
+	}
+	if body.DrawBoxes == nil {
+		v.DrawBoxes = false
 	}
 
 	return v

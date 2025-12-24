@@ -3,6 +3,7 @@ package motion
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -16,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"orbo/internal/database"
 	"orbo/internal/detection"
+	"orbo/internal/telegram"
 )
 
 // StreamDetector handles streaming motion detection
@@ -35,6 +37,7 @@ type StreamDetector struct {
 	gpuDetector     *detection.GPUDetector     // GPU object detection
 	dinov3Detector  *detection.DINOv3Detector  // DINOv3 AI-powered detection
 	db              *database.Database         // Database for event persistence
+	telegramBot     *telegram.TelegramBot      // Telegram notifications
 }
 
 // NewStreamDetector creates a new streaming motion detector
@@ -432,6 +435,12 @@ func (sd *StreamDetector) analyzeFrames(cameraID string, stopCh chan struct{}) {
 
 // runDirectYOLODetection runs YOLO detection directly on a frame without requiring motion first
 func (sd *StreamDetector) runDirectYOLODetection(cameraID string, frameData []byte) {
+	// If draw boxes is enabled, use annotated detection
+	if sd.gpuDetector.DrawBoxesEnabled() {
+		sd.runDirectYOLODetectionAnnotated(cameraID, frameData)
+		return
+	}
+
 	securityResult, err := sd.gpuDetector.DetectSecurityObjects(frameData, 0.5)
 	if err != nil {
 		fmt.Printf("Direct YOLO detection failed for camera %s: %v\n", cameraID, err)
@@ -482,6 +491,47 @@ func (sd *StreamDetector) runDirectYOLODetection(cameraID string, frameData []by
 					det.Class, cameraID, det.Confidence, event.ThreatLevel)
 			}
 		}
+	}
+}
+
+// runDirectYOLODetectionAnnotated runs YOLO detection and saves annotated image with bounding boxes
+func (sd *StreamDetector) runDirectYOLODetectionAnnotated(cameraID string, frameData []byte) {
+	annotatedResult, err := sd.gpuDetector.DetectSecurityObjectsAnnotated(frameData, 0.5)
+	if err != nil {
+		fmt.Printf("Direct YOLO annotated detection failed for camera %s: %v\n", cameraID, err)
+		return
+	}
+
+	if annotatedResult.Count > 0 {
+		fmt.Printf("YOLO detected %d objects on camera %s (inference: %.1fms on %s) - saving annotated image\n",
+			annotatedResult.Count, cameraID, annotatedResult.InferenceTimeMs, annotatedResult.Device)
+
+		// Save the annotated frame (with bounding boxes already drawn)
+		framePath := fmt.Sprintf("%s/yolo_annotated_%s_%d.jpg",
+			sd.frameDir, cameraID, time.Now().UnixNano())
+
+		if err := sd.saveFrameBytes(annotatedResult.ImageData, framePath); err != nil {
+			fmt.Printf("Failed to save YOLO annotated frame: %v\n", err)
+			framePath = ""
+		}
+
+		// Create a single event for the annotated detection
+		event := &MotionEvent{
+			ID:               uuid.New().String(),
+			CameraID:         cameraID,
+			Timestamp:        time.Now(),
+			Confidence:       1.0, // High confidence since we have detections
+			BoundingBoxes:    []BoundingBox{}, // Boxes are drawn on image, not needed here
+			FramePath:        framePath,
+			ObjectClass:      "security_detection",
+			ObjectConfidence: 1.0,
+			ThreatLevel:      "high", // Assume high since we detected something
+			InferenceTimeMs:  annotatedResult.InferenceTimeMs,
+			DetectionDevice:  annotatedResult.Device,
+		}
+
+		sd.addEvent(event)
+		fmt.Printf("YOLO annotated detection saved for camera %s (%d objects)\n", cameraID, annotatedResult.Count)
 	}
 }
 
@@ -803,9 +853,68 @@ func (sd *StreamDetector) addEvent(event *MotionEvent) {
 		}
 	}
 
+	// Send Telegram notification if configured
+	if sd.telegramBot != nil && sd.telegramBot.IsEnabled() && !event.NotificationSent {
+		go sd.sendTelegramNotification(event)
+	}
+
 	if len(sd.events) > sd.maxEvents {
 		sd.cleanupOldEvents()
 	}
+}
+
+// sendTelegramNotification sends a notification for a motion event
+func (sd *StreamDetector) sendTelegramNotification(event *MotionEvent) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Read frame data from file
+	var frameData []byte
+	if event.FramePath != "" {
+		data, err := os.ReadFile(event.FramePath)
+		if err != nil {
+			fmt.Printf("Warning: failed to read frame for Telegram notification: %v\n", err)
+		} else {
+			frameData = data
+		}
+	}
+
+	// Build notification message
+	objectInfo := ""
+	if event.ObjectClass != "" && event.ObjectClass != "security_detection" {
+		objectInfo = fmt.Sprintf("\n🎯 Detected: %s (%.0f%%)", event.ObjectClass, event.ObjectConfidence*100)
+	}
+
+	threatInfo := ""
+	if event.ThreatLevel != "" {
+		threatInfo = fmt.Sprintf("\n⚠️ Threat Level: %s", event.ThreatLevel)
+	}
+
+	deviceInfo := ""
+	if event.DetectionDevice != "" {
+		deviceInfo = fmt.Sprintf("\n🔧 Device: %s (%.1fms)", event.DetectionDevice, event.InferenceTimeMs)
+	}
+
+	err := sd.telegramBot.SendMotionAlert(ctx, event.CameraID, event.Confidence, frameData)
+	if err != nil {
+		fmt.Printf("Warning: failed to send Telegram notification: %v\n", err)
+		return
+	}
+
+	// Mark notification as sent
+	sd.mu.Lock()
+	event.NotificationSent = true
+	sd.mu.Unlock()
+
+	// Update in database
+	if sd.db != nil {
+		if err := sd.db.MarkNotificationSent(event.ID); err != nil {
+			fmt.Printf("Warning: failed to mark notification as sent: %v\n", err)
+		}
+	}
+
+	fmt.Printf("Telegram notification sent for event %s on camera %s%s%s%s\n",
+		event.ID, event.CameraID, objectInfo, threatInfo, deviceInfo)
 }
 
 func (sd *StreamDetector) cleanupOldEvents() {
@@ -926,6 +1035,23 @@ func (sd *StreamDetector) IsDetectionRunning(cameraID string) bool {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 	return sd.isRunning[cameraID]
+}
+
+// SetDrawBoxes enables or disables bounding box drawing on detection images
+func (sd *StreamDetector) SetDrawBoxes(enabled bool) {
+	sd.gpuDetector.SetDrawBoxes(enabled)
+}
+
+// DrawBoxesEnabled returns whether bounding boxes are drawn on detection images
+func (sd *StreamDetector) DrawBoxesEnabled() bool {
+	return sd.gpuDetector.DrawBoxesEnabled()
+}
+
+// SetTelegramBot sets the Telegram bot for notifications
+func (sd *StreamDetector) SetTelegramBot(bot *telegram.TelegramBot) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.telegramBot = bot
 }
 
 // streamHTTPImages polls HTTP image endpoints for motion detection

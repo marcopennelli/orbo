@@ -19,6 +19,7 @@ type YOLODetector struct {
 	securityMode  bool
 	confThreshold float32
 	classesFilter string
+	drawBoxes     bool
 	healthCheck   time.Time
 	mu            sync.RWMutex
 }
@@ -71,11 +72,22 @@ type YOLOHealthResponse struct {
 
 // YOLOConfig holds configuration for the detector
 type YOLOConfig struct {
-	Enabled           bool
-	ServiceEndpoint   string
+	Enabled             bool
+	ServiceEndpoint     string
 	ConfidenceThreshold float32
-	SecurityMode      bool
-	ClassesFilter     string
+	SecurityMode        bool
+	ClassesFilter       string
+	DrawBoxes           bool
+}
+
+// YOLOAnnotatedResult represents annotated detection response with image
+type YOLOAnnotatedResult struct {
+	ImageData       []byte              `json:"-"`
+	Detections      []YOLODetection     `json:"detections"`
+	Count           int                 `json:"count"`
+	InferenceTimeMs float32             `json:"inference_time_ms"`
+	Device          string              `json:"device"`
+	ThreatAnalysis  *YOLOThreatAnalysis `json:"threat_analysis,omitempty"`
 }
 
 // NewYOLODetector creates a new YOLO-powered detector
@@ -98,6 +110,7 @@ func NewYOLODetectorWithConfig(cfg YOLOConfig) *YOLODetector {
 	d.securityMode = cfg.SecurityMode
 	d.confThreshold = cfg.ConfidenceThreshold
 	d.classesFilter = cfg.ClassesFilter
+	d.drawBoxes = cfg.DrawBoxes
 	return d
 }
 
@@ -277,6 +290,101 @@ func (yd *YOLODetector) DetectSecurity(imageData []byte, confThreshold float32) 
 	return &result, nil
 }
 
+// DetectSecurityAnnotated performs security detection and returns annotated image with bounding boxes
+func (yd *YOLODetector) DetectSecurityAnnotated(imageData []byte, confThreshold float32) (*YOLOAnnotatedResult, error) {
+	if !yd.IsHealthy() {
+		return nil, fmt.Errorf("YOLO detection service unavailable")
+	}
+
+	// Create multipart form data
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	// Add image file
+	fw, err := w.CreateFormFile("file", "frame.jpg")
+	if err != nil {
+		return nil, err
+	}
+	fw.Write(imageData)
+
+	// Add confidence threshold
+	if confThreshold <= 0 {
+		confThreshold = yd.confThreshold
+	}
+	w.WriteField("conf_threshold", fmt.Sprintf("%.3f", confThreshold))
+	w.Close()
+
+	// Make request to security annotated endpoint
+	req, err := http.NewRequest("POST", yd.endpoint+"/detect/security/annotated?format=image", &b)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	resp, err := yd.client.Do(req)
+	if err != nil {
+		yd.mu.Lock()
+		yd.enabled = false
+		yd.mu.Unlock()
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("YOLO security annotated detection failed: %s", string(body))
+	}
+
+	// Read annotated image
+	annotatedImage, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read annotated image: %w", err)
+	}
+
+	// Parse detection metadata from headers
+	count := 0
+	if countStr := resp.Header.Get("X-Detection-Count"); countStr != "" {
+		fmt.Sscanf(countStr, "%d", &count)
+	}
+
+	var inferenceTime float32
+	if timeStr := resp.Header.Get("X-Inference-Time-Ms"); timeStr != "" {
+		fmt.Sscanf(timeStr, "%f", &inferenceTime)
+	}
+
+	device := resp.Header.Get("X-Device")
+
+	// Parse threat analysis from headers
+	var highCount, mediumCount, lowCount int
+	if h := resp.Header.Get("X-High-Priority-Count"); h != "" {
+		fmt.Sscanf(h, "%d", &highCount)
+	}
+	if m := resp.Header.Get("X-Medium-Priority-Count"); m != "" {
+		fmt.Sscanf(m, "%d", &mediumCount)
+	}
+	if l := resp.Header.Get("X-Low-Priority-Count"); l != "" {
+		fmt.Sscanf(l, "%d", &lowCount)
+	}
+
+	result := &YOLOAnnotatedResult{
+		ImageData:       annotatedImage,
+		Count:           count,
+		InferenceTimeMs: inferenceTime,
+		Device:          device,
+	}
+
+	// Add threat analysis if any counts are present
+	if highCount > 0 || mediumCount > 0 || lowCount > 0 {
+		result.ThreatAnalysis = &YOLOThreatAnalysis{
+			HighPriority:   make([]YOLODetection, highCount),
+			MediumPriority: make([]YOLODetection, mediumCount),
+			LowPriority:    make([]YOLODetection, lowCount),
+		}
+	}
+
+	return result, nil
+}
+
 // Detect performs detection based on configured mode (security or general)
 func (yd *YOLODetector) Detect(imageData []byte) (*YOLOResult, error) {
 	yd.mu.RLock()
@@ -314,6 +422,7 @@ func (yd *YOLODetector) UpdateConfig(cfg YOLOConfig) {
 	yd.confThreshold = cfg.ConfidenceThreshold
 	yd.securityMode = cfg.SecurityMode
 	yd.classesFilter = cfg.ClassesFilter
+	yd.drawBoxes = cfg.DrawBoxes
 
 	// Reset health check to force re-validation
 	yd.healthCheck = time.Time{}
@@ -325,12 +434,20 @@ func (yd *YOLODetector) GetConfig() YOLOConfig {
 	defer yd.mu.RUnlock()
 
 	return YOLOConfig{
-		Enabled:           yd.enabled,
-		ServiceEndpoint:   yd.endpoint,
+		Enabled:             yd.enabled,
+		ServiceEndpoint:     yd.endpoint,
 		ConfidenceThreshold: yd.confThreshold,
-		SecurityMode:      yd.securityMode,
-		ClassesFilter:     yd.classesFilter,
+		SecurityMode:        yd.securityMode,
+		ClassesFilter:       yd.classesFilter,
+		DrawBoxes:           yd.drawBoxes,
 	}
+}
+
+// DrawBoxesEnabled returns whether bounding boxes should be drawn
+func (yd *YOLODetector) DrawBoxesEnabled() bool {
+	yd.mu.RLock()
+	defer yd.mu.RUnlock()
+	return yd.drawBoxes
 }
 
 // GetEndpoint returns the service endpoint

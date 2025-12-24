@@ -1,45 +1,229 @@
-# Orbo Helm values for GPU-enabled environments
-# Use: helm install orbo ./helm/orbo -f values-gpu.yaml
+# =============================================================================
+# Orbo Helm Values - GPU Environment (NVIDIA GPU)
+# =============================================================================
+# Usage: helm install orbo ./helm/orbo -f values-gpu.yaml
+# =============================================================================
 
-replicaCount: 1
+# -----------------------------------------------------------------------------
+# Global Settings
+# -----------------------------------------------------------------------------
+global:
+  environment: production
+  logLevel: info
 
-image:
-  repository: orbo
-  pullPolicy: IfNotPresent
-  tag: "latest"
+# -----------------------------------------------------------------------------
+# Main Orbo Application
+# -----------------------------------------------------------------------------
+orbo:
+  replicaCount: 1
 
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
+  image:
+    repository: orbo
+    tag: latest
+    pullPolicy: IfNotPresent
 
-serviceAccount:
-  create: true
-  annotations: {}
-  name: ""
+  # Server configuration
+  server:
+    host: "0.0.0.0"
+    httpPort: 8080
+    debug: false
 
-podAnnotations: {}
+  # Resource limits
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 512Mi
 
-podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
-  fsGroup: 1000
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
 
-securityContext:
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-    - ALL
-  readOnlyRootFilesystem: true
+# -----------------------------------------------------------------------------
+# Detection Configuration
+# -----------------------------------------------------------------------------
+detection:
+  # Primary detector: basic, yolo, or dinov3
+  primaryDetector: yolo
+  fallbackEnabled: true
 
+  # Basic motion detection settings
+  motion:
+    enabled: true
+    minConfidence: 0.5
+    minContourArea: 1000
+    backgroundHistory: 500
+    varThreshold: 16
+
+# -----------------------------------------------------------------------------
+# YOLO Service (GPU Enabled)
+# -----------------------------------------------------------------------------
+yolo:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: orbo-yolo
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # Detection settings
+  config:
+    confidenceThreshold: 0.5
+    securityMode: true
+    classesFilter: ""  # Empty = all classes
+    drawBoxes: true
+    model: yolov8n.pt
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8081
+
+  # GPU-accelerated resources
+  resources:
+    limits:
+      nvidia.com/gpu: 1
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      nvidia.com/gpu: 1
+      cpu: 1000m
+      memory: 2Gi
+
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop: [ALL]
+
+  # GPU settings (enabled for production)
+  gpu:
+    enabled: true
+    cudaDevices: "0"
+    nodeSelector:
+      nvidia.com/gpu.present: "true"
+
+  # Scheduling
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# DINOv3 Service (Disabled by default)
+# -----------------------------------------------------------------------------
+dinov3:
+  enabled: false
+  replicaCount: 1
+
+  image:
+    repository: orbo-dinov3
+    tag: latest
+    pullPolicy: Always
+
+  config:
+    motionThreshold: 0.85
+    confidenceThreshold: 0.6
+    fallbackToBasic: true
+    enableSceneAnalysis: true
+
+  service:
+    type: ClusterIP
+    port: 8001
+
+  resources:
+    limits:
+      nvidia.com/gpu: 1
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      nvidia.com/gpu: 1
+      cpu: 1000m
+      memory: 2Gi
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop: [ALL]
+
+  gpu:
+    enabled: true
+    cudaDevices: "0"
+    nodeSelector:
+      nvidia.com/gpu.present: "true"
+
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# Notifications
+# -----------------------------------------------------------------------------
+notifications:
+  telegram:
+    enabled: false
+    botToken: ""
+    chatId: ""
+    cooldownSeconds: 30
+
+# -----------------------------------------------------------------------------
+# Storage
+# -----------------------------------------------------------------------------
+storage:
+  # Persistent volume for frames and database
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 10Gi
+    mountPath: /app/frames
+
+  # Database
+  database:
+    path: /app/frames/orbo.db
+
+  # Frame storage
+  frames:
+    path: /app/frames
+
+# -----------------------------------------------------------------------------
+# Camera Configuration
+# -----------------------------------------------------------------------------
+camera:
+  devicePath: /dev/video0
+  privileged: false
+
+# -----------------------------------------------------------------------------
+# Networking
+# -----------------------------------------------------------------------------
 service:
   type: ClusterIP
   port: 8080
-  targetPort: 8080
 
 ingress:
   enabled: true
-  className: "nginx"
+  className: nginx
   annotations: {}
   hosts:
     - host: app.orbo.local
@@ -48,206 +232,46 @@ ingress:
           pathType: Prefix
   tls: []
 
-resources:
-  limits:
-    cpu: 500m
-    memory: 1Gi
-  requests:
-    cpu: 200m
-    memory: 512Mi
+# -----------------------------------------------------------------------------
+# Health Checks
+# -----------------------------------------------------------------------------
+probes:
+  liveness:
+    enabled: true
+    path: /healthz
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
 
+  readiness:
+    enabled: true
+    path: /readyz
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# -----------------------------------------------------------------------------
+# Autoscaling
+# -----------------------------------------------------------------------------
 autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 3
   targetCPUUtilizationPercentage: 80
 
-nodeSelector: {}
-tolerations: []
-affinity: {}
+# -----------------------------------------------------------------------------
+# Service Account
+# -----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
 
-# Application configuration
-config:
-  logLevel: "info"
-
-  server:
-    host: "0.0.0.0"
-    httpPort: "8080"
-    secure: false
-    debug: false
-
-  telegram:
-    enabled: false
-    botToken: ""
-    chatId: ""
-    cooldownSeconds: 30
-
-  motionDetection:
-    enabled: true
-    minConfidence: 0.5
-    minContourArea: 1000
-    frameStorePath: "/app/frames"
-    backgroundHistory: 500
-    varThreshold: 16
-
-  dinov3:
-    enabled: false
-    serviceEndpoint: "http://orbo-dinov3:8001"
-    motionThreshold: 0.85
-    confidenceThreshold: 0.6
-    fallbackToBasic: true
-    enableSceneAnalysis: true
-
-# Health check configuration
-healthCheck:
-  enabled: true
-  path: /healthz
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
-
-# Readiness probe configuration
-readinessProbe:
-  enabled: true
-  path: /readyz
-  initialDelaySeconds: 10
-  periodSeconds: 5
-  timeoutSeconds: 3
-  failureThreshold: 3
-
-# Camera device access
-camera:
-  devicePath: "/dev/video0"
-  privileged: false
-
-# Persistent volume for frame storage and database
-persistence:
-  enabled: true
-  storageClass: ""
-  accessMode: ReadWriteOnce
-  size: 10Gi
-  mountPath: /app/frames
-
-# Database configuration
-database:
-  path: "/app/frames/orbo.db"
-
-# Volume mounts
-volumeMounts:
-  - name: tmp
-    mountPath: /tmp
-
-# Additional volumes
-volumes:
-  - name: tmp
-    emptyDir: {}
-
-# Secrets
+# -----------------------------------------------------------------------------
+# Secrets (Use external secrets in production)
+# -----------------------------------------------------------------------------
 secrets:
   telegramBotToken: ""
   telegramChatId: ""
-
-# Detection configuration - YOLO with GPU
-detection:
-  primaryDetector: "yolo"
-  fallbackEnabled: true
-
-# DINOv3 service configuration (disabled)
-dinov3:
-  enabled: false
-  replicaCount: 1
-  image:
-    repository: orbo-dinov3
-    pullPolicy: IfNotPresent
-    tag: "latest"
-  imagePullSecrets: []
-  service:
-    type: ClusterIP
-    port: 8001
-    targetPort: 8001
-  resources:
-    limits:
-      nvidia.com/gpu: 1
-      cpu: 2000m
-      memory: 4Gi
-    requests:
-      nvidia.com/gpu: 1
-      cpu: 1000m
-      memory: 2Gi
-  podSecurityContext:
-    runAsNonRoot: true
-    runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
-  securityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-      - ALL
-    readOnlyRootFilesystem: false
-  cudaDevices: "0"
-  nodeSelector:
-    nvidia.com/gpu.present: "true"
-  tolerations: []
-  affinity: {}
-  extraEnv: []
-
-# YOLO service configuration - GPU enabled
-yolo:
-  enabled: true
-  replicaCount: 1
-
-  image:
-    repository: orbo-yolo
-    pullPolicy: IfNotPresent
-    tag: "latest"
-
-  imagePullSecrets: []
-
-  service:
-    type: ClusterIP
-    port: 8081
-    targetPort: 8081
-
-  config:
-    confidenceThreshold: 0.5
-    securityMode: true
-    classesFilter: ""
-
-  # GPU resources
-  resources:
-    limits:
-      nvidia.com/gpu: 1
-      cpu: 2000m
-      memory: 4Gi
-    requests:
-      nvidia.com/gpu: 1
-      cpu: 1000m
-      memory: 2Gi
-
-  podSecurityContext:
-    runAsNonRoot: true
-    runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
-
-  securityContext:
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-      - ALL
-    readOnlyRootFilesystem: false
-
-  cudaDevices: "0"
-
-  # Require GPU node
-  nodeSelector:
-    nvidia.com/gpu.present: "true"
-
-  tolerations: []
-  affinity: {}
-
-  extraEnv:
-    - name: YOLO_MODEL
-      value: "yolov8n.pt"

@@ -823,11 +823,17 @@ func unmarshalYOLOConfigResponseBodyToConfigYOLOConfig(v *YOLOConfigResponseBody
 	if v.SecurityMode != nil {
 		res.SecurityMode = *v.SecurityMode
 	}
+	if v.DrawBoxes != nil {
+		res.DrawBoxes = *v.DrawBoxes
+	}
 	if v.ConfidenceThreshold == nil {
 		res.ConfidenceThreshold = 0.5
 	}
 	if v.SecurityMode == nil {
 		res.SecurityMode = true
+	}
+	if v.DrawBoxes == nil {
+		res.DrawBoxes = false
 	}
 
 	return res
@@ -883,6 +889,7 @@ func marshalConfigYOLOConfigToYOLOConfigRequestBody(v *config.YOLOConfig) *YOLOC
 		ConfidenceThreshold: v.ConfidenceThreshold,
 		SecurityMode:        v.SecurityMode,
 		ClassesFilter:       v.ClassesFilter,
+		DrawBoxes:           v.DrawBoxes,
 	}
 	{
 		var zero float32
@@ -894,6 +901,12 @@ func marshalConfigYOLOConfigToYOLOConfigRequestBody(v *config.YOLOConfig) *YOLOC
 		var zero bool
 		if res.SecurityMode == zero {
 			res.SecurityMode = true
+		}
+	}
+	{
+		var zero bool
+		if res.DrawBoxes == zero {
+			res.DrawBoxes = false
 		}
 	}
 
@@ -954,6 +967,7 @@ func marshalYOLOConfigRequestBodyToConfigYOLOConfig(v *YOLOConfigRequestBody) *c
 		ConfidenceThreshold: v.ConfidenceThreshold,
 		SecurityMode:        v.SecurityMode,
 		ClassesFilter:       v.ClassesFilter,
+		DrawBoxes:           v.DrawBoxes,
 	}
 	{
 		var zero float32
@@ -965,6 +979,12 @@ func marshalYOLOConfigRequestBodyToConfigYOLOConfig(v *YOLOConfigRequestBody) *c
 		var zero bool
 		if res.SecurityMode == zero {
 			res.SecurityMode = true
+		}
+	}
+	{
+		var zero bool
+		if res.DrawBoxes == zero {
+			res.DrawBoxes = false
 		}
 	}
 

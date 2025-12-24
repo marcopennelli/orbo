@@ -6,7 +6,7 @@ metadata:
     {{- include "orbo.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.orbo.replicaCount | default 1 }}
   {{- end }}
   selector:
     matchLabels:
@@ -16,53 +16,54 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
-        {{- with .Values.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
       labels:
         {{- include "orbo.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: server
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       serviceAccountName: {{ include "orbo.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        runAsNonRoot: {{ .Values.orbo.securityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.orbo.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.orbo.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.orbo.securityContext.fsGroup }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            allowPrivilegeEscalation: {{ .Values.orbo.securityContext.allowPrivilegeEscalation }}
+            readOnlyRootFilesystem: {{ .Values.orbo.securityContext.readOnlyRootFilesystem }}
+            capabilities:
+              drop:
+                {{- toYaml .Values.orbo.securityContext.capabilities.drop | nindent 16 }}
             {{- if .Values.camera.privileged }}
             privileged: true
             {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.orbo.image.repository }}:{{ .Values.orbo.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.orbo.image.pullPolicy }}
           command:
             - "./orbo"
           args:
-            - "--host={{ .Values.config.server.host }}"
-            - "--http-port={{ .Values.config.server.httpPort }}"
-            - "--secure={{ .Values.config.server.secure }}"
-            - "--debug={{ .Values.config.server.debug }}"
+            - "--host={{ .Values.orbo.server.host }}"
+            - "--http-port={{ .Values.orbo.server.httpPort }}"
+            - "--debug={{ .Values.orbo.server.debug }}"
           ports:
             - name: http
-              containerPort: {{ .Values.service.targetPort }}
+              containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
+            # Global settings
             - name: LOG_LEVEL
-              value: {{ .Values.config.logLevel | quote }}
+              value: {{ .Values.global.logLevel | quote }}
             - name: HOST
-              value: {{ .Values.config.server.host | quote }}
+              value: {{ .Values.orbo.server.host | quote }}
             - name: HTTP_PORT
-              value: {{ .Values.config.server.httpPort | quote }}
+              value: {{ .Values.orbo.server.httpPort | quote }}
             - name: DEBUG
-              value: {{ .Values.config.server.debug | quote }}
+              value: {{ .Values.orbo.server.debug | quote }}
+
             # Telegram configuration
             - name: TELEGRAM_ENABLED
-              value: {{ .Values.config.telegram.enabled | quote }}
-            {{- if .Values.config.telegram.enabled }}
+              value: {{ .Values.notifications.telegram.enabled | quote }}
+            {{- if .Values.notifications.telegram.enabled }}
             - name: TELEGRAM_BOT_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -76,27 +77,29 @@ spec:
                   key: telegram-chat-id
                   optional: true
             - name: TELEGRAM_COOLDOWN
-              value: {{ .Values.config.telegram.cooldownSeconds | quote }}
+              value: {{ .Values.notifications.telegram.cooldownSeconds | quote }}
             {{- end }}
+
             # Motion detection configuration
             - name: MOTION_DETECTION_ENABLED
-              value: {{ .Values.config.motionDetection.enabled | quote }}
+              value: {{ .Values.detection.motion.enabled | quote }}
             - name: MIN_CONFIDENCE
-              value: {{ .Values.config.motionDetection.minConfidence | quote }}
+              value: {{ .Values.detection.motion.minConfidence | quote }}
             - name: MIN_CONTOUR_AREA
-              value: {{ .Values.config.motionDetection.minContourArea | quote }}
-            - name: FRAME_STORE_PATH
-              value: {{ .Values.config.motionDetection.frameStorePath | quote }}
+              value: {{ .Values.detection.motion.minContourArea | quote }}
             - name: FRAME_DIR
-              value: {{ .Values.persistence.mountPath | quote }}
+              value: {{ .Values.storage.frames.path | quote }}
+
             # Database configuration
             - name: DATABASE_PATH
-              value: {{ .Values.database.path | quote }}
+              value: {{ .Values.storage.database.path | quote }}
+
             # Detection configuration
             - name: PRIMARY_DETECTOR
               value: {{ .Values.detection.primaryDetector | quote }}
             - name: FALLBACK_ENABLED
               value: {{ .Values.detection.fallbackEnabled | quote }}
+
             # DINOv3 configuration
             {{- if .Values.dinov3.enabled }}
             - name: DINOV3_ENABLED
@@ -104,10 +107,11 @@ spec:
             - name: DINOV3_ENDPOINT
               value: "http://{{ include "orbo.fullname" . }}-dinov3:{{ .Values.dinov3.service.port }}"
             - name: DINOV3_MOTION_THRESHOLD
-              value: {{ .Values.config.dinov3.motionThreshold | quote }}
+              value: {{ .Values.dinov3.config.motionThreshold | quote }}
             - name: DINOV3_CONFIDENCE_THRESHOLD
-              value: {{ .Values.config.dinov3.confidenceThreshold | quote }}
+              value: {{ .Values.dinov3.config.confidenceThreshold | quote }}
             {{- end }}
+
             # YOLO configuration
             {{- if .Values.yolo.enabled }}
             - name: YOLO_ENABLED
@@ -118,69 +122,52 @@ spec:
               value: {{ .Values.yolo.config.confidenceThreshold | quote }}
             - name: YOLO_SECURITY_MODE
               value: {{ .Values.yolo.config.securityMode | quote }}
+            - name: YOLO_DRAW_BOXES
+              value: {{ .Values.yolo.config.drawBoxes | default false | quote }}
             {{- if .Values.yolo.config.classesFilter }}
             - name: YOLO_CLASSES_FILTER
               value: {{ .Values.yolo.config.classesFilter | quote }}
             {{- end }}
             {{- end }}
-          {{- if .Values.healthCheck.enabled }}
+
+          {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:
-              path: {{ .Values.healthCheck.path }}
+              path: {{ .Values.probes.liveness.path }}
               port: http
-            initialDelaySeconds: {{ .Values.healthCheck.initialDelaySeconds }}
-            periodSeconds: {{ .Values.healthCheck.periodSeconds }}
-            timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
-            failureThreshold: {{ .Values.healthCheck.failureThreshold }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
           {{- end }}
-          {{- if .Values.readinessProbe.enabled }}
+
+          {{- if .Values.probes.readiness.enabled }}
           readinessProbe:
             httpGet:
-              path: {{ .Values.readinessProbe.path }}
+              path: {{ .Values.probes.readiness.path }}
               port: http
-            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
-            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
           {{- end }}
+
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.orbo.resources | nindent 12 }}
+
           volumeMounts:
-            {{- toYaml .Values.volumeMounts | nindent 12 }}
-            {{- if .Values.persistence.enabled }}
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.storage.persistence.enabled }}
             - name: frames-storage
-              mountPath: {{ .Values.persistence.mountPath }}
+              mountPath: {{ .Values.storage.persistence.mountPath }}
             {{- end }}
-            {{- if .Values.hostDevices }}
-            {{- range .Values.hostDevices }}
-            - name: {{ .name }}
-              mountPath: {{ .containerPath }}
-            {{- end }}
-            {{- end }}
+
       volumes:
-        {{- toYaml .Values.volumes | nindent 8 }}
-        {{- if .Values.persistence.enabled }}
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.storage.persistence.enabled }}
         - name: frames-storage
           persistentVolumeClaim:
             claimName: {{ include "orbo.fullname" . }}-frames
         {{- end }}
-        {{- if .Values.hostDevices }}
-        {{- range .Values.hostDevices }}
-        - name: {{ .name }}
-          hostPath:
-            path: {{ .hostPath }}
-            type: CharDevice
-        {{- end }}
-        {{- end }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}

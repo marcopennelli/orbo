@@ -152,6 +152,9 @@ var YOLOConfig = Type("YOLOConfig", func() {
         Default(true)
     })
     Field(5, "classes_filter", String, "Comma-separated class names to filter (empty = all)")
+    Field(6, "draw_boxes", Boolean, "Draw bounding boxes on images (for Telegram, API)", func() {
+        Default(false)
+    })
     Required("enabled")
 })
 
