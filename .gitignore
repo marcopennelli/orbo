@@ -18,6 +18,7 @@ coverage.html
 # IDE
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 *~
@@ -56,6 +57,8 @@ frames/
 *.gif
 !web/static/**/*.png
 !web/static/**/*.jpg
+!assets/**/*.png
+!assets/**/*.jpg
 
 # Database
 *.db

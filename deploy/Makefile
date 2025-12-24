@@ -120,36 +120,31 @@ test-camera: ## Test camera access
 # Minikube targets
 minikube-build: ## Build and load image to Minikube
 	eval $$(minikube docker-env) && \
-	docker build -t $(SERVICE_NAME):$(VERSION) -f $(ROOT_DIR)/Dockerfile $(PROJECT_DIR)
+	docker build --no-cache -t $(SERVICE_NAME):latest -f $(ROOT_DIR)/Dockerfile $(PROJECT_DIR)
 
 minikube-build-yolo: ## Build and load YOLO image to Minikube
 	eval $$(minikube docker-env) && \
-	docker build -t $(SERVICE_NAME)-yolo:$(VERSION) -f $(PROJECT_DIR)/yolo-service/Dockerfile $(PROJECT_DIR)/yolo-service
+	docker build --no-cache -t $(SERVICE_NAME)-yolo:latest -f $(PROJECT_DIR)/yolo-service/Dockerfile $(PROJECT_DIR)/yolo-service
 
 minikube-deploy: ## Deploy to Minikube using Helm (uses values-cpu.yaml)
 	helm upgrade --install $(SERVICE_NAME) $(ROOT_DIR)/helm/orbo \
 		--namespace $(NAMESPACE) --create-namespace \
-		-f $(ROOT_DIR)/helm/orbo/values-cpu.yaml \
-		--set image.tag=$(VERSION)
+		-f $(ROOT_DIR)/helm/orbo/values-cpu.yaml
 
-minikube-deploy-cpu: ## Deploy with CPU-only detection (no GPU services)
+minikube-deploy-cpu: ## Deploy with YOLO CPU inference (uses values-cpu.yaml)
 	helm upgrade --install $(SERVICE_NAME) $(ROOT_DIR)/helm/orbo \
 		--namespace $(NAMESPACE) --create-namespace \
-		-f $(ROOT_DIR)/helm/orbo/values-cpu.yaml \
-		--set image.tag=$(VERSION)
+		-f $(ROOT_DIR)/helm/orbo/values-cpu.yaml
 
 minikube-deploy-gpu: ## Deploy with GPU detection (YOLO)
 	helm upgrade --install $(SERVICE_NAME) $(ROOT_DIR)/helm/orbo \
 		--namespace $(NAMESPACE) --create-namespace \
-		-f $(ROOT_DIR)/helm/orbo/values-gpu.yaml \
-		--set image.tag=$(VERSION) \
-		--set yolo.image.tag=$(VERSION)
+		-f $(ROOT_DIR)/helm/orbo/values-gpu.yaml
 
 minikube-deploy-test: ## Deploy with test configuration
 	helm upgrade --install $(SERVICE_NAME) $(ROOT_DIR)/helm/orbo \
 		--namespace $(NAMESPACE) --create-namespace \
-		-f $(ROOT_DIR)/helm/orbo/values-test.yaml \
-		--set image.tag=$(VERSION)
+		-f $(ROOT_DIR)/helm/orbo/values-test.yaml
 
 minikube-undeploy: ## Undeploy from Minikube
 	helm uninstall $(SERVICE_NAME) --namespace $(NAMESPACE) || true

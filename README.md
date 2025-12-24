@@ -1,5 +1,9 @@
 # Orbo - Open Source Video Alarm System
 
+<p align="center">
+  <img src="assets/cover.png" alt="Orbo Cover" width="400">
+</p>
+
 Orbo is a modern, open-source video alarm system built with Go and OpenCV, featuring real-time motion detection, USB camera support, and Telegram notifications. It's designed as a microservice following cloud-native principles and can be deployed on Kubernetes.
 
 ## Features
