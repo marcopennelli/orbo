@@ -75,12 +75,23 @@ func main() {
 	motionDetector := motion.NewMotionDetector(frameDir, db)
 
 	// Initialize Telegram bot
+	telegramEnabled := os.Getenv("TELEGRAM_ENABLED") == "true"
+	telegramCooldown := 30
+	if cooldownStr := os.Getenv("TELEGRAM_COOLDOWN"); cooldownStr != "" {
+		var cooldown int
+		if _, err := fmt.Sscanf(cooldownStr, "%d", &cooldown); err == nil && cooldown > 0 {
+			telegramCooldown = cooldown
+		}
+	}
 	telegramBot := telegram.NewTelegramBot(telegram.Config{
 		BotToken:        os.Getenv("TELEGRAM_BOT_TOKEN"),
 		ChatID:          os.Getenv("TELEGRAM_CHAT_ID"),
-		Enabled:         os.Getenv("TELEGRAM_BOT_TOKEN") != "" && os.Getenv("TELEGRAM_CHAT_ID") != "",
-		CooldownSeconds: 30,
+		Enabled:         telegramEnabled && os.Getenv("TELEGRAM_BOT_TOKEN") != "" && os.Getenv("TELEGRAM_CHAT_ID") != "",
+		CooldownSeconds: telegramCooldown,
 	})
+	if telegramEnabled {
+		logger.Printf("Telegram notifications enabled (cooldown: %ds)", telegramCooldown)
+	}
 
 	// Initialize DINOv3 detector
 	dinov3Endpoint := os.Getenv("DINOV3_ENDPOINT")

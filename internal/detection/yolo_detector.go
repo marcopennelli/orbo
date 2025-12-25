@@ -2,6 +2,7 @@ package detection
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -314,8 +315,8 @@ func (yd *YOLODetector) DetectSecurityAnnotated(imageData []byte, confThreshold 
 	w.WriteField("conf_threshold", fmt.Sprintf("%.3f", confThreshold))
 	w.Close()
 
-	// Make request to security annotated endpoint
-	req, err := http.NewRequest("POST", yd.endpoint+"/detect/security/annotated?format=image", &b)
+	// Make request to security annotated endpoint with base64 format to get detection details
+	req, err := http.NewRequest("POST", yd.endpoint+"/detect/security/annotated?format=base64", &b)
 	if err != nil {
 		return nil, err
 	}
@@ -335,51 +336,43 @@ func (yd *YOLODetector) DetectSecurityAnnotated(imageData []byte, confThreshold 
 		return nil, fmt.Errorf("YOLO security annotated detection failed: %s", string(body))
 	}
 
-	// Read annotated image
-	annotatedImage, err := io.ReadAll(resp.Body)
+	// Parse JSON response with base64 image and detection details
+	var jsonResponse struct {
+		Image struct {
+			Data        string `json:"data"`
+			ContentType string `json:"content_type"`
+		} `json:"image"`
+		Detections      []YOLODetection    `json:"detections"`
+		Count           int                `json:"count"`
+		InferenceTimeMs float32            `json:"inference_time_ms"`
+		Device          string             `json:"device"`
+		ThreatAnalysis  YOLOThreatAnalysis `json:"threat_analysis"`
+		SecurityFilter  []string           `json:"security_filter"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&jsonResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode annotated response: %w", err)
+	}
+
+	// Decode base64 image
+	annotatedImage, err := base64.StdEncoding.DecodeString(jsonResponse.Image.Data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read annotated image: %w", err)
-	}
-
-	// Parse detection metadata from headers
-	count := 0
-	if countStr := resp.Header.Get("X-Detection-Count"); countStr != "" {
-		fmt.Sscanf(countStr, "%d", &count)
-	}
-
-	var inferenceTime float32
-	if timeStr := resp.Header.Get("X-Inference-Time-Ms"); timeStr != "" {
-		fmt.Sscanf(timeStr, "%f", &inferenceTime)
-	}
-
-	device := resp.Header.Get("X-Device")
-
-	// Parse threat analysis from headers
-	var highCount, mediumCount, lowCount int
-	if h := resp.Header.Get("X-High-Priority-Count"); h != "" {
-		fmt.Sscanf(h, "%d", &highCount)
-	}
-	if m := resp.Header.Get("X-Medium-Priority-Count"); m != "" {
-		fmt.Sscanf(m, "%d", &mediumCount)
-	}
-	if l := resp.Header.Get("X-Low-Priority-Count"); l != "" {
-		fmt.Sscanf(l, "%d", &lowCount)
+		return nil, fmt.Errorf("failed to decode base64 image: %w", err)
 	}
 
 	result := &YOLOAnnotatedResult{
 		ImageData:       annotatedImage,
-		Count:           count,
-		InferenceTimeMs: inferenceTime,
-		Device:          device,
+		Detections:      jsonResponse.Detections,
+		Count:           jsonResponse.Count,
+		InferenceTimeMs: jsonResponse.InferenceTimeMs,
+		Device:          jsonResponse.Device,
 	}
 
-	// Add threat analysis if any counts are present
-	if highCount > 0 || mediumCount > 0 || lowCount > 0 {
-		result.ThreatAnalysis = &YOLOThreatAnalysis{
-			HighPriority:   make([]YOLODetection, highCount),
-			MediumPriority: make([]YOLODetection, mediumCount),
-			LowPriority:    make([]YOLODetection, lowCount),
-		}
+	// Add threat analysis
+	if len(jsonResponse.ThreatAnalysis.HighPriority) > 0 ||
+		len(jsonResponse.ThreatAnalysis.MediumPriority) > 0 ||
+		len(jsonResponse.ThreatAnalysis.LowPriority) > 0 {
+		result.ThreatAnalysis = &jsonResponse.ThreatAnalysis
 	}
 
 	return result, nil

@@ -4,7 +4,7 @@
 # Run from project root: make -C deploy <target>
 # Or from deploy dir:    make <target>
 
-.PHONY: help gen clean build build-fresh test run docker lint fmt check-opencv install-deps dev test-camera minikube-build minikube-deploy
+.PHONY: help gen clean build build-fresh test run docker lint fmt check-opencv install-deps dev test-camera minikube-build minikube-deploy frontend frontend-dev frontend-clean
 
 SERVICE_NAME := orbo
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -207,3 +207,18 @@ minikube-port-forward: ## Forward port 8080 for local access
 # End-to-end test
 minikube-e2e: ## Run end-to-end API tests
 	@$(ROOT_DIR)/scripts/e2e-test.sh $(NAMESPACE)
+
+# Frontend targets
+FRONTEND_DIR := $(PROJECT_DIR)/web/frontend
+
+frontend: ## Build React frontend
+	cd $(FRONTEND_DIR) && npm ci && npm run build
+
+frontend-dev: ## Run React frontend dev server
+	cd $(FRONTEND_DIR) && npm run dev
+
+frontend-clean: ## Clean frontend build artifacts
+	rm -rf $(FRONTEND_DIR)/dist $(FRONTEND_DIR)/node_modules
+
+# Full build (backend + frontend)
+full-build: frontend build ## Build frontend and backend

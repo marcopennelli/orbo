@@ -515,23 +515,51 @@ func (sd *StreamDetector) runDirectYOLODetectionAnnotated(cameraID string, frame
 			framePath = ""
 		}
 
-		// Create a single event for the annotated detection
+		// Find the best detection (highest confidence) for event metadata
+		var bestClass string
+		var bestConfidence float32
+		var threatLevel string
+
+		if len(annotatedResult.Detections) > 0 {
+			// Use the first (usually highest confidence) detection
+			bestDet := annotatedResult.Detections[0]
+			bestClass = bestDet.Class
+			bestConfidence = bestDet.Confidence
+
+			// Find highest confidence among all detections
+			for _, det := range annotatedResult.Detections {
+				if det.Confidence > bestConfidence {
+					bestConfidence = det.Confidence
+					bestClass = det.Class
+				}
+			}
+
+			// Determine threat level based on detected class
+			threatLevel = sd.gpuDetector.GetThreatLevel(bestDet)
+		} else {
+			bestClass = "unknown"
+			bestConfidence = 0.5
+			threatLevel = "medium"
+		}
+
+		// Create event with actual detection data
 		event := &MotionEvent{
 			ID:               uuid.New().String(),
 			CameraID:         cameraID,
 			Timestamp:        time.Now(),
-			Confidence:       1.0, // High confidence since we have detections
+			Confidence:       bestConfidence,
 			BoundingBoxes:    []BoundingBox{}, // Boxes are drawn on image, not needed here
 			FramePath:        framePath,
-			ObjectClass:      "security_detection",
-			ObjectConfidence: 1.0,
-			ThreatLevel:      "high", // Assume high since we detected something
+			ObjectClass:      bestClass,
+			ObjectConfidence: bestConfidence,
+			ThreatLevel:      threatLevel,
 			InferenceTimeMs:  annotatedResult.InferenceTimeMs,
 			DetectionDevice:  annotatedResult.Device,
 		}
 
 		sd.addEvent(event)
-		fmt.Printf("YOLO annotated detection saved for camera %s (%d objects)\n", cameraID, annotatedResult.Count)
+		fmt.Printf("YOLO annotated detection saved for camera %s: %s (%.0f%% confidence, threat: %s)\n",
+			cameraID, bestClass, bestConfidence*100, threatLevel)
 	}
 }
 

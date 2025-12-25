@@ -107,11 +107,36 @@ func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.E
 	}
 
 	// Serve static files for web UI
+	// Check for React frontend first, fall back to legacy static files
+	frontendDir := os.Getenv("FRONTEND_DIR")
+	if frontendDir == "" {
+		frontendDir = "/app/web/frontend/dist"
+	}
 	staticDir := os.Getenv("STATIC_DIR")
 	if staticDir == "" {
 		staticDir = "/app/web/static"
 	}
-	if _, err := os.Stat(staticDir); err == nil {
+
+	// Prefer React frontend if available
+	if _, err := os.Stat(frontendDir + "/index.html"); err == nil {
+		logger.Printf("Serving React frontend from %s", frontendDir)
+
+		// Create a file server for the frontend directory
+		frontendFS := http.FileServer(http.Dir(frontendDir))
+
+		// Serve index.html for root
+		mux.Handle("GET", "/", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, frontendDir+"/index.html")
+		})
+
+		// Serve assets directory
+		mux.Handle("GET", "/assets/{*path}", func(w http.ResponseWriter, r *http.Request) {
+			// Serve the file directly from frontendDir
+			frontendFS.ServeHTTP(w, r)
+		})
+	} else if _, err := os.Stat(staticDir); err == nil {
+		// Fall back to legacy static frontend
+		logger.Printf("Serving legacy static files from %s", staticDir)
 		fs := http.FileServer(http.Dir(staticDir))
 		mux.Handle("GET", "/", func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, staticDir+"/index.html")
@@ -119,7 +144,6 @@ func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.E
 		mux.Handle("GET", "/static/{*path}", func(w http.ResponseWriter, r *http.Request) {
 			http.StripPrefix("/static/", fs).ServeHTTP(w, r)
 		})
-		logger.Printf("Serving static files from %s", staticDir)
 	}
 
 	// Wrap the multiplexer with additional middlewares. Middlewares mounted
