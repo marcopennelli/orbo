@@ -280,6 +280,20 @@ sudo docker run --device=/dev/video0 ...
 podman run --device /dev/video0 ...
 ```
 
+## Roadmap
+
+Planned features and improvements:
+
+- [ ] **Authentication & Authorization** - User login, API keys, role-based access control
+- [ ] **Multi-user Support** - Multiple users with separate camera permissions
+- [ ] **Recording & Playback** - Continuous recording with timeline navigation
+- [ ] **Cloud Storage** - Optional backup to S3 for frames and recordings
+- [ ] **Zones & Masks** - Define detection zones and ignore areas per camera
+- [ ] **Scheduling** - Time-based detection rules (arm/disarm schedules)
+- [ ] **Webhooks** - Custom HTTP callbacks on detection events
+- [ ] **Audio Detection** - Sound-based alerts (glass breaking, alarms)
+- [ ] **License Plate Recognition** - ALPR integration for vehicle identification
+
 ## Contributing
 
 1. Fork the repository
@@ -292,7 +306,4 @@ podman run --device /dev/video0 ...
 MIT License - see LICENSE file for details.
 
 ---
-
-<p align="center">
-  Built with ❤️ in Puglia, Italy by <a href="https://github.com/marcopennelli">Marco Pennelli</a>
-</p>
+Built with ❤️ in Puglia, Italy by <a href="https://github.com/marcopennelli">Marco Pennelli</a>
