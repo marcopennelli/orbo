@@ -4,6 +4,7 @@ import { Header, Sidebar } from './components/layout';
 import { CameraList, CameraForm, CameraFeed, CameraGrid } from './components/cameras';
 import { EventList, EventModal } from './components/events';
 import { SettingsPanel } from './components/settings';
+import { LoginForm } from './components/auth';
 import type { MotionEvent } from './types';
 import {
   useCameras,
@@ -29,6 +30,7 @@ import {
   useDetectionConfig,
   useUpdateDetectionConfig,
 } from './hooks/useConfig';
+import { useAuth } from './hooks/useAuth';
 import type { Camera, CameraCreatePayload, CameraUpdatePayload } from './types';
 
 const queryClient = new QueryClient({
@@ -51,6 +53,9 @@ function AppContent() {
   const [eventCameraFilter, setEventCameraFilter] = useState<string>('');
   const [loadingCameraId, setLoadingCameraId] = useState<string | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<MotionEvent | null>(null);
+
+  // Auth state
+  const { isAuthenticated, authEnabled, isLoading: authLoading, logout } = useAuth();
 
   // Queries
   const { data: cameras = [], isLoading: camerasLoading } = useCameras();
@@ -166,6 +171,20 @@ function AppContent() {
   const activeCameras = systemStatus?.cameras?.filter(c => c.status === 'active').length ?? 0;
   const totalCameras = systemStatus?.cameras?.length ?? cameras.length;
 
+  // Show loading spinner while checking auth status
+  if (authLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-bg-dark">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-accent border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  // Show login form if auth is enabled and user is not authenticated
+  if (authEnabled && !isAuthenticated) {
+    return <LoginForm onSuccess={() => window.location.reload()} />;
+  }
+
   return (
     <div className="h-screen flex flex-col bg-bg-dark">
       <Header
@@ -177,6 +196,8 @@ function AppContent() {
         onToggleDetection={handleToggleDetection}
         onOpenSettings={() => setIsSettingsOpen(true)}
         isLoading={startDetection.isPending || stopDetection.isPending}
+        isAuthEnabled={authEnabled}
+        onLogout={logout}
       />
 
       <div className="flex-1 flex overflow-hidden">

@@ -5,16 +5,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	camera "orbo/gen/camera"
-	config "orbo/gen/config"
-	health "orbo/gen/health"
-	camerasvr "orbo/gen/http/camera/server"
-	configsvr "orbo/gen/http/config/server"
-	healthsvr "orbo/gen/http/health/server"
-	motionsvr "orbo/gen/http/motion/server"
-	systemsvr "orbo/gen/http/system/server"
-	motion "orbo/gen/motion"
-	system "orbo/gen/system"
 	"os"
 	"sync"
 	"time"
@@ -22,11 +12,26 @@ import (
 	goahttp "goa.design/goa/v3/http"
 	httpmdlwr "goa.design/goa/v3/http/middleware"
 	"goa.design/goa/v3/middleware"
+
+	authgen "orbo/gen/auth"
+	camera "orbo/gen/camera"
+	config "orbo/gen/config"
+	health "orbo/gen/health"
+	authsvr "orbo/gen/http/auth/server"
+	camerasvr "orbo/gen/http/camera/server"
+	configsvr "orbo/gen/http/config/server"
+	healthsvr "orbo/gen/http/health/server"
+	motionsvr "orbo/gen/http/motion/server"
+	systemsvr "orbo/gen/http/system/server"
+	motion "orbo/gen/motion"
+	system "orbo/gen/system"
+	"orbo/internal/auth"
+	authmw "orbo/internal/middleware"
 )
 
 // handleHTTPServer starts configures and starts a HTTP server on the given
 // URL. It shuts down the server if any error is received in the error channel.
-func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.Endpoints, cameraEndpoints *camera.Endpoints, motionEndpoints *motion.Endpoints, configEndpoints *config.Endpoints, systemEndpoints *system.Endpoints, wg *sync.WaitGroup, errc chan error, logger *log.Logger, debug bool) {
+func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.Endpoints, authEndpoints *authgen.Endpoints, cameraEndpoints *camera.Endpoints, motionEndpoints *motion.Endpoints, configEndpoints *config.Endpoints, systemEndpoints *system.Endpoints, authenticator *auth.Authenticator, wg *sync.WaitGroup, errc chan error, logger *log.Logger, debug bool) {
 
 	// Setup goa log adapter.
 	var (
@@ -58,6 +63,7 @@ func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.E
 	// responses.
 	var (
 		healthServer *healthsvr.Server
+		authServer   *authsvr.Server
 		cameraServer *camerasvr.Server
 		motionServer *motionsvr.Server
 		configServer *configsvr.Server
@@ -66,8 +72,9 @@ func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.E
 	{
 		eh := errorHandler(logger)
 		healthServer = healthsvr.New(healthEndpoints, mux, dec, enc, eh, nil)
+		authServer = authsvr.New(authEndpoints, mux, dec, enc, eh, nil)
 		cameraServer = camerasvr.New(cameraEndpoints, mux, dec, enc, eh, nil)
-		
+
 		// Only create servers for implemented services
 		if motionEndpoints != nil {
 			motionServer = motionsvr.New(motionEndpoints, mux, dec, enc, eh, nil)
@@ -78,9 +85,22 @@ func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.E
 		if systemEndpoints != nil {
 			systemServer = systemsvr.New(systemEndpoints, mux, dec, enc, eh, nil)
 		}
-		
+
+		// Apply auth middleware to protected services
+		authMiddleware := authmw.AuthMiddleware(authenticator)
+		cameraServer.Use(authMiddleware)
+		if motionServer != nil {
+			motionServer.Use(authMiddleware)
+		}
+		if configServer != nil {
+			configServer.Use(authMiddleware)
+		}
+		if systemServer != nil {
+			systemServer.Use(authMiddleware)
+		}
+
 		if debug {
-			servers := goahttp.Servers{healthServer, cameraServer}
+			servers := goahttp.Servers{healthServer, authServer, cameraServer}
 			if motionServer != nil {
 				servers = append(servers, motionServer)
 			}
@@ -95,6 +115,7 @@ func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.E
 	}
 	// Configure the mux.
 	healthsvr.Mount(mux, healthServer)
+	authsvr.Mount(mux, authServer)
 	camerasvr.Mount(mux, cameraServer)
 	if motionServer != nil {
 		motionsvr.Mount(mux, motionServer)
@@ -158,6 +179,9 @@ func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.E
 	// configure the server as required by your service.
 	srv := &http.Server{Addr: u.Host, Handler: handler, ReadHeaderTimeout: time.Second * 60}
 	for _, m := range healthServer.Mounts {
+		logger.Printf("HTTP %q mounted on %s %s", m.Method, m.Verb, m.Pattern)
+	}
+	for _, m := range authServer.Mounts {
 		logger.Printf("HTTP %q mounted on %s %s", m.Method, m.Verb, m.Pattern)
 	}
 	for _, m := range cameraServer.Mounts {
