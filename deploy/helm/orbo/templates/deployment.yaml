@@ -60,6 +60,30 @@ spec:
             - name: DEBUG
               value: {{ .Values.orbo.server.debug | quote }}
 
+            # Authentication configuration
+            {{- if .Values.auth.enabled }}
+            - name: AUTH_ENABLED
+              value: "true"
+            - name: AUTH_USERNAME
+              value: {{ .Values.auth.username | quote }}
+            - name: AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orbo.fullname" . }}-secrets
+                  key: auth-password
+                  optional: true
+            {{- if .Values.auth.jwtSecret }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orbo.fullname" . }}-secrets
+                  key: jwt-secret
+                  optional: true
+            {{- end }}
+            - name: JWT_EXPIRY
+              value: {{ .Values.auth.jwtExpiry | default "24h" | quote }}
+            {{- end }}
+
             # Telegram configuration
             - name: TELEGRAM_ENABLED
               value: {{ .Values.notifications.telegram.enabled | quote }}
