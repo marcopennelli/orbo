@@ -94,6 +94,11 @@ make -C deploy full-build     # Build frontend + backend
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `AUTH_ENABLED` | Enable JWT authentication | false |
+| `AUTH_USERNAME` | Admin username | admin |
+| `AUTH_PASSWORD` | Admin password (plaintext or bcrypt hash) | - |
+| `JWT_SECRET` | Secret for signing tokens | (random) |
+| `JWT_EXPIRY` | Token expiration duration | 24h |
 | `TELEGRAM_ENABLED` | Enable Telegram notifications | false |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token | - |
 | `TELEGRAM_CHAT_ID` | Telegram chat ID | - |
@@ -137,6 +142,10 @@ helm install orbo deploy/helm/orbo \
 ### Health
 - `GET /healthz` - Liveness probe
 - `GET /readyz` - Readiness probe
+
+### Authentication
+- `POST /api/v1/auth/login` - Authenticate and get JWT token
+- `GET /api/v1/auth/status` - Check auth status
 
 ### Cameras
 - `GET /api/v1/cameras` - List cameras
@@ -284,7 +293,7 @@ podman run --device /dev/video0 ...
 
 Planned features and improvements:
 
-- [ ] **Authentication & Authorization** - User login, API keys, role-based access control
+- [x] **Authentication** - JWT-based login with protected API endpoints
 - [ ] **Multi-user Support** - Multiple users with separate camera permissions
 - [ ] **Recording & Playback** - Continuous recording with timeline navigation
 - [ ] **Cloud Storage** - Optional backup to S3 for frames and recordings
@@ -306,4 +315,5 @@ Planned features and improvements:
 MIT License - see LICENSE file for details.
 
 ---
-Built with ❤️ in Puglia, Italy by <a href="https://github.com/marcopennelli">Marco Pennelli</a>
+
+> Built with ❤️ in Puglia, Italy by [Marco Pennelli](https://github.com/marcopennelli)

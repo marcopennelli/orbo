@@ -47,6 +47,12 @@ var NotReadyError = Type("NotReadyError", func() {
     Required("message")
 })
 
+var UnauthorizedError = Type("UnauthorizedError", func() {
+    Description("Authentication error")
+    Field(1, "message", String, "Error message")
+    Required("message")
+})
+
 // Data types
 var CameraInfo = Type("CameraInfo", func() {
     Description("Camera information")
@@ -184,7 +190,7 @@ var SystemStatus = Type("SystemStatus", func() {
 // Health check service
 var _ = Service("health", func() {
     Description("Health check endpoints for Kubernetes probes")
-    
+
     Method("healthz", func() {
         Description("Liveness probe endpoint - indicates if the service is alive")
         Result(Empty)
@@ -193,7 +199,7 @@ var _ = Service("health", func() {
             Response(StatusOK)
         })
     })
-    
+
     Method("readyz", func() {
         Description("Readiness probe endpoint - indicates if the service is ready to serve traffic")
         Result(Empty)
@@ -202,6 +208,45 @@ var _ = Service("health", func() {
             GET("/readyz")
             Response(StatusOK)
             Response("not_ready", StatusServiceUnavailable)
+        })
+    })
+})
+
+// Authentication service
+var _ = Service("auth", func() {
+    Description("Authentication service for JWT token management")
+
+    Method("login", func() {
+        Description("Authenticate with username and password to receive a JWT token")
+        Payload(func() {
+            Field(1, "username", String, "Username")
+            Field(2, "password", String, "Password")
+            Required("username", "password")
+        })
+        Result(func() {
+            Field(1, "token", String, "JWT access token")
+            Field(2, "expires_at", Int64, "Token expiration timestamp (Unix)")
+            Required("token", "expires_at")
+        })
+        Error("unauthorized", UnauthorizedError, "Invalid credentials")
+        HTTP(func() {
+            POST("/api/v1/auth/login")
+            Response(StatusOK)
+            Response("unauthorized", StatusUnauthorized)
+        })
+    })
+
+    Method("status", func() {
+        Description("Check authentication status and get current user info")
+        Result(func() {
+            Field(1, "enabled", Boolean, "Whether authentication is enabled")
+            Field(2, "authenticated", Boolean, "Whether current request is authenticated")
+            Field(3, "username", String, "Current username if authenticated")
+            Required("enabled", "authenticated")
+        })
+        HTTP(func() {
+            GET("/api/v1/auth/status")
+            Response(StatusOK)
         })
     })
 })

@@ -11,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	authc "orbo/gen/http/auth/client"
 	camerac "orbo/gen/http/camera/client"
 	configc "orbo/gen/http/config/client"
 	healthc "orbo/gen/http/health/client"
@@ -27,6 +28,7 @@ import (
 //	command (subcommand1|subcommand2|...)
 func UsageCommands() string {
 	return `health (healthz|readyz)
+auth (login|status)
 camera (list|get|create|update|delete|activate|deactivate|capture)
 motion (events|event|frame)
 config (get|update|test-notification|get-dinov3|update-dinov3|test-dinov3|get-yolo|update-yolo|test-yolo|get-detection|update-detection)
@@ -37,10 +39,13 @@ system (status|start-detection|stop-detection)
 // UsageExamples produces an example of a valid invocation of the CLI tool.
 func UsageExamples() string {
 	return os.Args[0] + ` health healthz` + "\n" +
+		os.Args[0] + ` auth login --body '{
+      "password": "Odio qui doloremque dolores natus facilis.",
+      "username": "Et qui et sapiente ut et."
+   }'` + "\n" +
 		os.Args[0] + ` camera list` + "\n" +
-		os.Args[0] + ` motion events --camera-id "f3a3bce2-e0de-11f0-98fa-5847ca7b8ce1" --since "2011-09-21T06:07:31Z" --limit -5601431881419779325` + "\n" +
+		os.Args[0] + ` motion events --camera-id "a14679b3-e172-11f0-8137-5847ca7b8ce1" --since "1987-01-10T10:15:28Z" --limit -7535897486488917095` + "\n" +
 		os.Args[0] + ` config get` + "\n" +
-		os.Args[0] + ` system status` + "\n" +
 		""
 }
 
@@ -59,6 +64,13 @@ func ParseEndpoint(
 		healthHealthzFlags = flag.NewFlagSet("healthz", flag.ExitOnError)
 
 		healthReadyzFlags = flag.NewFlagSet("readyz", flag.ExitOnError)
+
+		authFlags = flag.NewFlagSet("auth", flag.ContinueOnError)
+
+		authLoginFlags    = flag.NewFlagSet("login", flag.ExitOnError)
+		authLoginBodyFlag = authLoginFlags.String("body", "REQUIRED", "")
+
+		authStatusFlags = flag.NewFlagSet("status", flag.ExitOnError)
 
 		cameraFlags = flag.NewFlagSet("camera", flag.ContinueOnError)
 
@@ -139,6 +151,10 @@ func ParseEndpoint(
 	healthHealthzFlags.Usage = healthHealthzUsage
 	healthReadyzFlags.Usage = healthReadyzUsage
 
+	authFlags.Usage = authUsage
+	authLoginFlags.Usage = authLoginUsage
+	authStatusFlags.Usage = authStatusUsage
+
 	cameraFlags.Usage = cameraUsage
 	cameraListFlags.Usage = cameraListUsage
 	cameraGetFlags.Usage = cameraGetUsage
@@ -189,6 +205,8 @@ func ParseEndpoint(
 		switch svcn {
 		case "health":
 			svcf = healthFlags
+		case "auth":
+			svcf = authFlags
 		case "camera":
 			svcf = cameraFlags
 		case "motion":
@@ -219,6 +237,16 @@ func ParseEndpoint(
 
 			case "readyz":
 				epf = healthReadyzFlags
+
+			}
+
+		case "auth":
+			switch epn {
+			case "login":
+				epf = authLoginFlags
+
+			case "status":
+				epf = authStatusFlags
 
 			}
 
@@ -341,6 +369,16 @@ func ParseEndpoint(
 				data = nil
 			case "readyz":
 				endpoint = c.Readyz()
+				data = nil
+			}
+		case "auth":
+			c := authc.NewClient(scheme, host, doer, enc, dec, restore)
+			switch epn {
+			case "login":
+				endpoint = c.Login()
+				data, err = authc.BuildLoginPayload(*authLoginBodyFlag)
+			case "status":
+				endpoint = c.Status()
 				data = nil
 			}
 		case "camera":
@@ -477,6 +515,44 @@ Example:
 `, os.Args[0])
 }
 
+// authUsage displays the usage of the auth command and its subcommands.
+func authUsage() {
+	fmt.Fprintf(os.Stderr, `Authentication service for JWT token management
+Usage:
+    %[1]s [globalflags] auth COMMAND [flags]
+
+COMMAND:
+    login: Authenticate with username and password to receive a JWT token
+    status: Check authentication status and get current user info
+
+Additional help:
+    %[1]s auth COMMAND --help
+`, os.Args[0])
+}
+func authLoginUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] auth login -body JSON
+
+Authenticate with username and password to receive a JWT token
+    -body JSON: 
+
+Example:
+    %[1]s auth login --body '{
+      "password": "Odio qui doloremque dolores natus facilis.",
+      "username": "Et qui et sapiente ut et."
+   }'
+`, os.Args[0])
+}
+
+func authStatusUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] auth status
+
+Check authentication status and get current user info
+
+Example:
+    %[1]s auth status
+`, os.Args[0])
+}
+
 // cameraUsage displays the usage of the camera command and its subcommands.
 func cameraUsage() {
 	fmt.Fprintf(os.Stderr, `Camera management service for video alarm system
@@ -514,7 +590,7 @@ Get camera information by ID
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera get --id "f3a30bfd-e0de-11f0-98fa-5847ca7b8ce1"
+    %[1]s camera get --id "a145dfc2-e172-11f0-8137-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -526,10 +602,10 @@ Add a new camera
 
 Example:
     %[1]s camera create --body '{
-      "device": "Illo et tempora unde similique fuga ut.",
-      "fps": 1063017646729038636,
-      "name": "Excepturi velit laboriosam distinctio exercitationem.",
-      "resolution": "Consequatur reiciendis."
+      "device": "Excepturi non.",
+      "fps": 3348193962720747367,
+      "name": "Qui temporibus commodi voluptates quia.",
+      "resolution": "Sit dicta cumque aut velit."
    }'
 `, os.Args[0])
 }
@@ -543,10 +619,10 @@ Update camera configuration
 
 Example:
     %[1]s camera update --body '{
-      "fps": 6793418233542172098,
-      "name": "Accusantium magni eum cum.",
-      "resolution": "Cumque possimus quia repudiandae neque magni consectetur."
-   }' --id "f3a33396-e0de-11f0-98fa-5847ca7b8ce1"
+      "fps": 5209864276782110322,
+      "name": "Nulla quia velit.",
+      "resolution": "Sapiente nobis iusto quis esse quis sapiente."
+   }' --id "a1460598-e172-11f0-8137-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -557,7 +633,7 @@ Remove a camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera delete --id "f3a36fae-e0de-11f0-98fa-5847ca7b8ce1"
+    %[1]s camera delete --id "a1464435-e172-11f0-8137-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -568,7 +644,7 @@ Activate camera for motion detection
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera activate --id "f3a37733-e0de-11f0-98fa-5847ca7b8ce1"
+    %[1]s camera activate --id "a1464ac6-e172-11f0-8137-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -579,7 +655,7 @@ Deactivate camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera deactivate --id "f3a38b10-e0de-11f0-98fa-5847ca7b8ce1"
+    %[1]s camera deactivate --id "a1465c2c-e172-11f0-8137-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -590,7 +666,7 @@ Capture a single frame from camera as base64
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera capture --id "f3a39dd6-e0de-11f0-98fa-5847ca7b8ce1"
+    %[1]s camera capture --id "a1466d2e-e172-11f0-8137-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -618,7 +694,7 @@ List motion detection events
     -limit INT: 
 
 Example:
-    %[1]s motion events --camera-id "f3a3bce2-e0de-11f0-98fa-5847ca7b8ce1" --since "2011-09-21T06:07:31Z" --limit -5601431881419779325
+    %[1]s motion events --camera-id "a14679b3-e172-11f0-8137-5847ca7b8ce1" --since "1987-01-10T10:15:28Z" --limit -7535897486488917095
 `, os.Args[0])
 }
 
@@ -629,7 +705,7 @@ Get motion event by ID
     -id STRING: Event ID
 
 Example:
-    %[1]s motion event --id "f3a3e01c-e0de-11f0-98fa-5847ca7b8ce1"
+    %[1]s motion event --id "a146914b-e172-11f0-8137-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -640,7 +716,7 @@ Get captured frame for motion event as base64
     -id STRING: Event ID
 
 Example:
-    %[1]s motion frame --id "f3a41d8e-e0de-11f0-98fa-5847ca7b8ce1"
+    %[1]s motion frame --id "a146d25c-e172-11f0-8137-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -685,10 +761,10 @@ Update notification configuration
 
 Example:
     %[1]s config update --body '{
-      "cooldown_seconds": 2217979236458041470,
-      "min_confidence": 0.32006893,
-      "telegram_bot_token": "Possimus dolorem officia nulla necessitatibus.",
-      "telegram_chat_id": "Sed maiores quia delectus.",
+      "cooldown_seconds": 4735451868643412551,
+      "min_confidence": 0.5871746,
+      "telegram_bot_token": "Rerum quod.",
+      "telegram_chat_id": "Eveniet quisquam laudantium aliquid.",
       "telegram_enabled": true
    }'
 `, os.Args[0])
@@ -722,12 +798,12 @@ Update DINOv3 AI configuration
 
 Example:
     %[1]s config update-dinov3 --body '{
-      "confidence_threshold": 0.76601183,
+      "confidence_threshold": 0.8927609,
       "enable_scene_analysis": true,
-      "enabled": true,
+      "enabled": false,
       "fallback_to_basic": false,
-      "motion_threshold": 0.5300217,
-      "service_endpoint": "Commodi commodi ipsa non dolore officiis."
+      "motion_threshold": 0.033004887,
+      "service_endpoint": "Vitae nobis."
    }'
 `, os.Args[0])
 }
@@ -760,12 +836,12 @@ Update YOLO detection configuration
 
 Example:
     %[1]s config update-yolo --body '{
-      "classes_filter": "Beatae et doloremque distinctio autem ipsam.",
-      "confidence_threshold": 0.7212448,
+      "classes_filter": "Iure qui.",
+      "confidence_threshold": 0.8525825,
       "draw_boxes": true,
       "enabled": false,
       "security_mode": true,
-      "service_endpoint": "Occaecati et omnis."
+      "service_endpoint": "Consequatur non."
    }'
 `, os.Args[0])
 }
@@ -799,22 +875,22 @@ Update combined detection configuration
 Example:
     %[1]s config update-detection --body '{
       "dinov3": {
-         "confidence_threshold": 0.14756961,
+         "confidence_threshold": 0.19537966,
          "enable_scene_analysis": false,
          "enabled": true,
-         "fallback_to_basic": true,
-         "motion_threshold": 0.31562462,
-         "service_endpoint": "Quis et aliquid."
+         "fallback_to_basic": false,
+         "motion_threshold": 0.7719393,
+         "service_endpoint": "Accusantium id provident aliquam amet doloribus dolores."
       },
       "fallback_enabled": false,
       "primary_detector": "basic",
       "yolo": {
-         "classes_filter": "Porro ullam ipsa nesciunt porro atque ut.",
-         "confidence_threshold": 0.94479585,
+         "classes_filter": "Explicabo consequatur cum.",
+         "confidence_threshold": 0.9127135,
          "draw_boxes": true,
          "enabled": true,
          "security_mode": false,
-         "service_endpoint": "Ad necessitatibus quo deleniti."
+         "service_endpoint": "Est consequatur labore maiores molestiae beatae."
       }
    }'
 `, os.Args[0])

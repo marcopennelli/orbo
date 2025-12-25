@@ -1,4 +1,4 @@
-import { Settings, Play, Square } from 'lucide-react';
+import { Settings, Play, Square, LogOut } from 'lucide-react';
 import { Badge, Button } from '../ui';
 
 interface HeaderProps {
@@ -10,6 +10,8 @@ interface HeaderProps {
   onToggleDetection: () => void;
   onOpenSettings: () => void;
   isLoading?: boolean;
+  isAuthEnabled?: boolean;
+  onLogout?: () => void;
 }
 
 export default function Header({
@@ -21,6 +23,8 @@ export default function Header({
   onToggleDetection,
   onOpenSettings,
   isLoading,
+  isAuthEnabled,
+  onLogout,
 }: HeaderProps) {
   return (
     <header className="bg-bg-panel border-b border-border px-6 py-4">
@@ -70,6 +74,12 @@ export default function Header({
             <Settings className="w-4 h-4 mr-2" />
             Settings
           </Button>
+          {isAuthEnabled && onLogout && (
+            <Button variant="secondary" onClick={onLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          )}
         </div>
       </div>
     </header>

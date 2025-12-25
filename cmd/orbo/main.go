@@ -13,11 +13,13 @@ import (
 	"sync"
 	"syscall"
 
+	authService "orbo/gen/auth"
 	cameraService "orbo/gen/camera"
 	configService "orbo/gen/config"
 	healthService "orbo/gen/health"
 	motionService "orbo/gen/motion"
 	systemService "orbo/gen/system"
+	"orbo/internal/auth"
 	"orbo/internal/camera"
 	"orbo/internal/database"
 	"orbo/internal/detection"
@@ -126,9 +128,18 @@ func main() {
 	logger.Printf("  DINOv3 endpoint: %s (enabled: %v)", dinov3Endpoint, os.Getenv("DINOV3_ENABLED") == "true")
 	logger.Printf("  YOLO endpoint: %s (enabled: %v, draw_boxes: %v)", yoloEndpoint, os.Getenv("YOLO_ENABLED") == "true", drawBoxes)
 
+	// Initialize authenticator
+	authenticator := auth.NewAuthenticator()
+	if authenticator.IsEnabled() {
+		logger.Printf("Authentication enabled (user: %s)", os.Getenv("AUTH_USERNAME"))
+	} else {
+		logger.Printf("Authentication disabled (set AUTH_ENABLED=true to enable)")
+	}
+
 	// Initialize the services.
 	var (
 		healthSvc healthService.Service
+		authSvc   authService.Service
 		cameraSvc cameraService.Service
 		motionSvc motionService.Service
 		configSvc configService.Service
@@ -136,6 +147,7 @@ func main() {
 	)
 	{
 		healthSvc = services.NewHealthService()
+		authSvc = services.NewAuthService(authenticator)
 		cameraSvc = services.NewCameraService(cameraManager)
 		motionSvc = services.NewMotionService(motionDetector, cameraManager)
 		systemSvc = services.NewSystemService(cameraManager, motionDetector)
@@ -146,6 +158,7 @@ func main() {
 	// potentially running in different processes.
 	var (
 		healthEndpoints *healthService.Endpoints
+		authEndpoints   *authService.Endpoints
 		cameraEndpoints *cameraService.Endpoints
 		motionEndpoints *motionService.Endpoints
 		configEndpoints *configService.Endpoints
@@ -153,6 +166,7 @@ func main() {
 	)
 	{
 		healthEndpoints = healthService.NewEndpoints(healthSvc)
+		authEndpoints = authService.NewEndpoints(authSvc)
 		cameraEndpoints = cameraService.NewEndpoints(cameraSvc)
 		motionEndpoints = motionService.NewEndpoints(motionSvc)
 		systemEndpoints = systemService.NewEndpoints(systemSvc)
@@ -198,7 +212,7 @@ func main() {
 			} else if u.Port() == "" {
 				u.Host = net.JoinHostPort(u.Host, "80")
 			}
-			handleHTTPServer(ctx, u, healthEndpoints, cameraEndpoints, motionEndpoints, configEndpoints, systemEndpoints, &wg, errc, logger, *dbgF)
+			handleHTTPServer(ctx, u, healthEndpoints, authEndpoints, cameraEndpoints, motionEndpoints, configEndpoints, systemEndpoints, authenticator, &wg, errc, logger, *dbgF)
 		}
 
 	case "production":
@@ -223,7 +237,7 @@ func main() {
 			} else if u.Port() == "" {
 				u.Host = net.JoinHostPort(u.Host, "443")
 			}
-			handleHTTPServer(ctx, u, healthEndpoints, cameraEndpoints, motionEndpoints, configEndpoints, systemEndpoints, &wg, errc, logger, *dbgF)
+			handleHTTPServer(ctx, u, healthEndpoints, authEndpoints, cameraEndpoints, motionEndpoints, configEndpoints, systemEndpoints, authenticator, &wg, errc, logger, *dbgF)
 		}
 
 	default:
