@@ -29,14 +29,9 @@ export default function Header({
   return (
     <header className="bg-bg-panel border-b border-border px-6 py-4">
       <div className="flex items-center justify-between">
-        {/* Logo and title */}
+        {/* Title and status */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-              <span className="text-bg-dark font-bold text-lg">O</span>
-            </div>
-            <h1 className="text-xl font-semibold text-text-primary">Orbo</h1>
-          </div>
+          <h1 className="text-xl font-semibold text-text-primary">Orbo</h1>
 
           {/* Status badges */}
           <div className="flex items-center gap-2">

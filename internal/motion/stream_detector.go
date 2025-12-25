@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -990,6 +991,11 @@ func (sd *StreamDetector) GetEvents(cameraID string, since *time.Time, limit int
 		}
 		events = filtered
 	}
+
+	// Sort by timestamp descending (newest first) before applying limit
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].Timestamp.After(events[j].Timestamp)
+	})
 
 	if limit > 0 && len(events) > limit {
 		events = events[:limit]
