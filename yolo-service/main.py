@@ -102,12 +102,15 @@ class YOLODetectionService:
         try:
             # Convert bytes to PIL Image
             image = Image.open(io.BytesIO(image_data))
-            
+
             # Convert to RGB if needed
             if image.mode != 'RGB':
                 image = image.convert('RGB')
-            
-            return np.array(image)
+
+            # Convert RGB to BGR for OpenCV/YOLO compatibility
+            rgb_array = np.array(image)
+            bgr_array = cv2.cvtColor(rgb_array, cv2.COLOR_RGB2BGR)
+            return bgr_array
         except Exception as e:
             logger.error(f"Image preprocessing failed: {e}")
             raise HTTPException(status_code=400, detail="Invalid image format")
@@ -236,7 +239,8 @@ class YOLODetectionService:
             inference_time = time.time() - start_time
 
             # Convert annotated image to JPEG bytes
-            # plot() returns BGR, so we can encode directly
+            # plot() returns BGR format (OpenCV convention), cv2.imencode expects BGR
+            # so we encode directly without conversion
             _, jpeg_data = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
 
             result_info = {

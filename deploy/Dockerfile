@@ -1,4 +1,21 @@
-# Build stage
+# Frontend build stage
+FROM node:22-slim AS frontend-builder
+
+WORKDIR /frontend
+
+# Copy frontend package files
+COPY web/frontend/package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy frontend source
+COPY web/frontend/ ./
+
+# Build frontend
+RUN npm run build
+
+# Go build stage
 # Go version must match the version specified in go.mod
 FROM golang:1.24.5-bookworm AS builder
 
@@ -73,6 +90,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
+# Copy built frontend from frontend-builder stage
+COPY --from=frontend-builder /frontend/dist /build/web/frontend/dist
+
 # Build the application
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o orbo ./cmd/orbo
 
@@ -122,7 +142,7 @@ WORKDIR /app
 # Copy binary from builder
 COPY --from=builder /build/orbo .
 
-# Copy web static files
+# Copy web static files (old static + new React frontend)
 COPY --from=builder /build/web /app/web
 
 # Ensure binary is executable and static files are readable
