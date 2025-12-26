@@ -174,16 +174,17 @@ func (sd *StreamDetector) StopStreamingDetection(cameraID string) {
 		delete(sd.streamProcesses, cameraID)
 	}
 
-	// Close channels
+	// Close stop channel to signal goroutines to exit
+	// Note: We don't close frameBuffer to avoid "send on closed channel" panics.
+	// The producer goroutine will exit when it sees stopCh closed, and the
+	// frameBuffer will be garbage collected when no goroutines reference it.
 	if stopCh, exists := sd.stopChannels[cameraID]; exists {
 		close(stopCh)
 		delete(sd.stopChannels, cameraID)
 	}
 
-	if frameBuffer, exists := sd.frameBuffers[cameraID]; exists {
-		close(frameBuffer)
-		delete(sd.frameBuffers, cameraID)
-	}
+	// Remove frameBuffer reference - it will be GC'd when goroutines exit
+	delete(sd.frameBuffers, cameraID)
 
 	sd.isRunning[cameraID] = false
 	delete(sd.backgroundFrames, cameraID)
@@ -1127,6 +1128,8 @@ func (sd *StreamDetector) pollHTTPImage(cameraID, imageURL string, frameBuffer c
 			}
 
 			frameCount++
+
+			// Try non-blocking send, check stop channel first
 			select {
 			case <-stopCh:
 				fmt.Printf("HTTP polling stopped for camera %s after %d frames\n", cameraID, frameCount)

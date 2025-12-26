@@ -154,6 +154,9 @@ func main() {
 		configSvc = services.NewConfigService(telegramBot, dinov3Detector, yoloDetector, motionDetector, db)
 	}
 
+	// Initialize Telegram command handler for bot commands
+	commandHandler := telegram.NewCommandHandler(telegramBot, cameraManager, motionDetector, db)
+
 	// Wrap the services in endpoints that can be invoked from other services
 	// potentially running in different processes.
 	var (
@@ -187,6 +190,18 @@ func main() {
 
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
+
+	// Start Telegram command handler if bot is enabled
+	if telegramBot.IsEnabled() {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := commandHandler.StartPolling(ctx); err != nil {
+				logger.Printf("Telegram command handler error: %v", err)
+			}
+		}()
+		logger.Println("Telegram command handler started")
+	}
 
 	// Start the servers and send errors (if any) to the error channel.
 	switch *hostF {
