@@ -44,7 +44,7 @@ func UsageExamples() string {
       "username": "Et qui et sapiente ut et."
    }'` + "\n" +
 		os.Args[0] + ` camera list` + "\n" +
-		os.Args[0] + ` motion events --camera-id "a14679b3-e172-11f0-8137-5847ca7b8ce1" --since "1987-01-10T10:15:28Z" --limit -7535897486488917095` + "\n" +
+		os.Args[0] + ` motion events --camera-id "6dcc246a-e254-11f0-b2fa-5847ca7b8ce1" --since "1987-01-10T10:15:28Z" --limit -7535897486488917095` + "\n" +
 		os.Args[0] + ` config get` + "\n" +
 		""
 }
@@ -563,7 +563,7 @@ COMMAND:
     list: List all configured cameras
     get: Get camera information by ID
     create: Add a new camera
-    update: Update camera configuration
+    update: Update camera configuration. Device can only be changed when camera is inactive.
     delete: Remove a camera
     activate: Activate camera for motion detection
     deactivate: Deactivate camera
@@ -590,7 +590,7 @@ Get camera information by ID
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera get --id "a145dfc2-e172-11f0-8137-5847ca7b8ce1"
+    %[1]s camera get --id "6dcb7a16-e254-11f0-b2fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -613,16 +613,17 @@ Example:
 func cameraUpdateUsage() {
 	fmt.Fprintf(os.Stderr, `%[1]s [flags] camera update -body JSON -id STRING
 
-Update camera configuration
+Update camera configuration. Device can only be changed when camera is inactive.
     -body JSON: 
     -id STRING: Camera ID
 
 Example:
     %[1]s camera update --body '{
-      "fps": 5209864276782110322,
+      "device": "Sapiente nobis iusto quis esse quis sapiente.",
+      "fps": 3594970635460201636,
       "name": "Nulla quia velit.",
-      "resolution": "Sapiente nobis iusto quis esse quis sapiente."
-   }' --id "a1460598-e172-11f0-8137-5847ca7b8ce1"
+      "resolution": "Ad eligendi."
+   }' --id "6dcba450-e254-11f0-b2fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -633,7 +634,7 @@ Remove a camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera delete --id "a1464435-e172-11f0-8137-5847ca7b8ce1"
+    %[1]s camera delete --id "6dcbd60a-e254-11f0-b2fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -644,7 +645,7 @@ Activate camera for motion detection
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera activate --id "a1464ac6-e172-11f0-8137-5847ca7b8ce1"
+    %[1]s camera activate --id "6dcbe601-e254-11f0-b2fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -655,7 +656,7 @@ Deactivate camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera deactivate --id "a1465c2c-e172-11f0-8137-5847ca7b8ce1"
+    %[1]s camera deactivate --id "6dcbff73-e254-11f0-b2fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -666,7 +667,7 @@ Capture a single frame from camera as base64
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera capture --id "a1466d2e-e172-11f0-8137-5847ca7b8ce1"
+    %[1]s camera capture --id "6dcc1546-e254-11f0-b2fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -694,7 +695,7 @@ List motion detection events
     -limit INT: 
 
 Example:
-    %[1]s motion events --camera-id "a14679b3-e172-11f0-8137-5847ca7b8ce1" --since "1987-01-10T10:15:28Z" --limit -7535897486488917095
+    %[1]s motion events --camera-id "6dcc246a-e254-11f0-b2fa-5847ca7b8ce1" --since "1987-01-10T10:15:28Z" --limit -7535897486488917095
 `, os.Args[0])
 }
 
@@ -705,7 +706,7 @@ Get motion event by ID
     -id STRING: Event ID
 
 Example:
-    %[1]s motion event --id "a146914b-e172-11f0-8137-5847ca7b8ce1"
+    %[1]s motion event --id "6dcc5a6c-e254-11f0-b2fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -716,7 +717,7 @@ Get captured frame for motion event as base64
     -id STRING: Event ID
 
 Example:
-    %[1]s motion frame --id "a146d25c-e172-11f0-8137-5847ca7b8ce1"
+    %[1]s motion frame --id "6dcc8979-e254-11f0-b2fa-5847ca7b8ce1"
 `, os.Args[0])
 }
 

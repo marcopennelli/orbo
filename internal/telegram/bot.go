@@ -151,14 +151,17 @@ func (tb *TelegramBot) SendPhoto(ctx context.Context, photoData []byte, caption 
 
 // SendMotionAlert sends a motion detection alert with frame
 func (tb *TelegramBot) SendMotionAlert(ctx context.Context, cameraName string, confidence float32, frameData []byte) error {
+	// Format time with timezone to match UI display
+	now := time.Now()
+	zoneName, _ := now.Zone()
+	timestamp := fmt.Sprintf("%s %s", now.Format("Jan 2, 2006, 03:04:05 PM"), zoneName)
+
 	message := fmt.Sprintf(
-		"🚨 <b>Motion Detected!</b>\n\n" +
-		"📹 Camera: %s\n" +
-		"📊 Confidence: %.2f%%\n" +
-		"🕐 Time: %s",
+		"🚨 <b>Motion Detected!</b>\n\n"+
+			"📹 Camera: %s\n"+
+			"🕐 Time: %s",
 		cameraName,
-		confidence*100,
-		time.Now().Format("2006-01-02 15:04:05"),
+		timestamp,
 	)
 
 	if frameData != nil && len(frameData) > 0 {
@@ -170,11 +173,16 @@ func (tb *TelegramBot) SendMotionAlert(ctx context.Context, cameraName string, c
 
 // SendTestMessage sends a test message to verify the bot configuration
 func (tb *TelegramBot) SendTestMessage(ctx context.Context) error {
+	// Format time with timezone to match UI display
+	now := time.Now()
+	zoneName, _ := now.Zone()
+	timestamp := fmt.Sprintf("%s %s", now.Format("Jan 2, 2006, 03:04:05 PM"), zoneName)
+
 	message := fmt.Sprintf(
-		"🤖 <b>Orbo Test Message</b>\n\n" +
-		"✅ Telegram bot is working correctly!\n" +
-		"🕐 Test sent at: %s",
-		time.Now().Format("2006-01-02 15:04:05"),
+		"🤖 <b>Orbo Test Message</b>\n\n"+
+			"✅ Telegram bot is working correctly!\n"+
+			"🕐 Test sent at: %s",
+		timestamp,
 	)
 
 	return tb.SendMessage(ctx, message)

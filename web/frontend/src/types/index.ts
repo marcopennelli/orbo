@@ -18,6 +18,7 @@ export interface CameraCreatePayload {
 
 export interface CameraUpdatePayload {
   name?: string;
+  device?: string;  // Can only be changed when camera is inactive
   resolution?: string;
   fps?: number;
 }

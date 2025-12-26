@@ -19,7 +19,8 @@ type Service interface {
 	Get(context.Context, *GetPayload) (res *CameraInfo, err error)
 	// Add a new camera
 	Create(context.Context, *CreatePayload) (res *CameraInfo, err error)
-	// Update camera configuration
+	// Update camera configuration. Device can only be changed when camera is
+	// inactive.
 	Update(context.Context, *UpdatePayload) (res *CameraInfo, err error)
 	// Remove a camera
 	Delete(context.Context, *DeletePayload) (err error)
@@ -138,6 +139,8 @@ type UpdatePayload struct {
 	ID string
 	// Camera name
 	Name *string
+	// Camera device path (only when inactive)
+	Device *string
 	// Camera resolution
 	Resolution *string
 	// Frames per second

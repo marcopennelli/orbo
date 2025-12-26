@@ -37,13 +37,20 @@ export default function EventCard({ event, onView }: EventCardProps) {
     };
   }, [event.id]);
 
-  const formatTime = (timestamp: string) => {
+  const formatRelativeTime = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleString();
-  };
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
 
-  const formatConfidence = (confidence: number) => {
-    return `${(confidence * 100).toFixed(1)}%`;
+    if (diffSec < 60) return 'Just now';
+    if (diffMin < 60) return `${diffMin} min ago`;
+    if (diffHour < 24) return `${diffHour}h ago`;
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return date.toLocaleDateString();
   };
 
   const getDetectionType = () => {
@@ -95,11 +102,6 @@ export default function EventCard({ event, onView }: EventCardProps) {
           </Badge>
         </div>
 
-        {/* Confidence badge */}
-        <div className="absolute top-2 right-2">
-          <Badge variant="success">{formatConfidence(event.confidence)}</Badge>
-        </div>
-
         {/* Threat level indicator */}
         {event.threat_level && event.threat_level !== 'none' && (
           <div className="absolute bottom-2 left-2">
@@ -120,7 +122,7 @@ export default function EventCard({ event, onView }: EventCardProps) {
 
         <div className="flex items-center gap-2 text-xs text-text-muted mb-3">
           <Clock className="w-3 h-3" />
-          <span>{formatTime(event.timestamp)}</span>
+          <span>{formatRelativeTime(event.timestamp)}</span>
         </div>
 
         {/* Detected object class */}

@@ -31,6 +31,8 @@ type CreateRequestBody struct {
 type UpdateRequestBody struct {
 	// Camera name
 	Name *string `form:"name,omitempty" json:"name,omitempty" xml:"name,omitempty"`
+	// Camera device path (only when inactive)
+	Device *string `form:"device,omitempty" json:"device,omitempty" xml:"device,omitempty"`
 	// Camera resolution
 	Resolution *string `form:"resolution,omitempty" json:"resolution,omitempty" xml:"resolution,omitempty"`
 	// Frames per second
@@ -476,6 +478,7 @@ func NewCreatePayload(body *CreateRequestBody) *camera.CreatePayload {
 func NewUpdatePayload(body *UpdateRequestBody, id string) *camera.UpdatePayload {
 	v := &camera.UpdatePayload{
 		Name:       body.Name,
+		Device:     body.Device,
 		Resolution: body.Resolution,
 		Fps:        body.Fps,
 	}

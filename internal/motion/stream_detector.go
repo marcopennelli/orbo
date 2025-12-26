@@ -917,23 +917,15 @@ func (sd *StreamDetector) sendTelegramNotification(event *MotionEvent) {
 		}
 	}
 
-	// Build notification message
-	objectInfo := ""
-	if event.ObjectClass != "" && event.ObjectClass != "security_detection" {
-		objectInfo = fmt.Sprintf("\n🎯 Detected: %s (%.0f%%)", event.ObjectClass, event.ObjectConfidence*100)
+	// Get camera name from database, fall back to ID if not found
+	cameraName := event.CameraID
+	if sd.db != nil {
+		if cam, err := sd.db.GetCamera(event.CameraID); err == nil && cam != nil && cam.Name != "" {
+			cameraName = cam.Name
+		}
 	}
 
-	threatInfo := ""
-	if event.ThreatLevel != "" {
-		threatInfo = fmt.Sprintf("\n⚠️ Threat Level: %s", event.ThreatLevel)
-	}
-
-	deviceInfo := ""
-	if event.DetectionDevice != "" {
-		deviceInfo = fmt.Sprintf("\n🔧 Device: %s (%.1fms)", event.DetectionDevice, event.InferenceTimeMs)
-	}
-
-	err := sd.telegramBot.SendMotionAlert(ctx, event.CameraID, event.Confidence, frameData)
+	err := sd.telegramBot.SendMotionAlert(ctx, cameraName, event.Confidence, frameData)
 	if err != nil {
 		fmt.Printf("Warning: failed to send Telegram notification: %v\n", err)
 		return
@@ -951,8 +943,8 @@ func (sd *StreamDetector) sendTelegramNotification(event *MotionEvent) {
 		}
 	}
 
-	fmt.Printf("Telegram notification sent for event %s on camera %s%s%s%s\n",
-		event.ID, event.CameraID, objectInfo, threatInfo, deviceInfo)
+	fmt.Printf("Telegram notification sent for event %s on camera %s\n",
+		event.ID, cameraName)
 }
 
 func (sd *StreamDetector) cleanupOldEvents() {

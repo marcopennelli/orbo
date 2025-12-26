@@ -18,6 +18,7 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
   const [errors, setErrors] = useState<{ name?: string; device?: string }>({});
 
   const isEditing = !!camera;
+  const isActive = camera?.status === 'active';
 
   useEffect(() => {
     if (camera) {
@@ -54,12 +55,17 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
     if (!validate()) return;
 
     if (isEditing) {
-      // For updates, only send name, resolution, fps (device cannot be changed)
-      onSubmit({
+      // Include device if it was changed and camera is inactive
+      const payload: CameraUpdatePayload = {
         name: name.trim(),
         resolution,
         fps,
-      } as CameraUpdatePayload);
+      };
+      // Only include device if changed
+      if (device.trim() !== camera?.device) {
+        payload.device = device.trim();
+      }
+      onSubmit(payload);
     } else {
       onSubmit({
         name: name.trim(),
@@ -82,13 +88,17 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
         />
 
         <Input
-          label="Device Path"
+          label="Device Path / URL"
           value={device}
           onChange={(e) => setDevice(e.target.value)}
-          placeholder="/dev/video0 or rtsp://..."
+          placeholder="/dev/video0 or http://..."
           error={errors.device}
-          disabled={isEditing}
-          hint={isEditing ? 'Device path cannot be changed after creation' : 'USB: /dev/video0, HTTP: http://..., RTSP: rtsp://...'}
+          disabled={isEditing && isActive}
+          hint={
+            isEditing && isActive
+              ? 'Deactivate the camera first to change the device/URL'
+              : 'USB: /dev/video0, HTTP: http://..., RTSP: rtsp://...'
+          }
         />
 
         <Input
