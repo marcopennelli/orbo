@@ -168,7 +168,9 @@ func (sd *StreamDetector) StopStreamingDetection(cameraID string) {
 
 	// Stop the streaming process
 	if cmd, exists := sd.streamProcesses[cameraID]; exists {
-		cmd.Process.Kill()
+		if cmd.Process != nil {
+			cmd.Process.Kill()
+		}
 		delete(sd.streamProcesses, cameraID)
 	}
 
@@ -264,11 +266,16 @@ func (sd *StreamDetector) streamFrames(cameraID, cameraDevice string, stopCh cha
 		}
 	}()
 
+	// Capture frameBuffer channel reference to avoid accessing deleted map entry
+	sd.mu.RLock()
+	frameCh := sd.frameBuffers[cameraID]
+	sd.mu.RUnlock()
+
 	// Read frames from stdout
 	go func() {
 		defer stdout.Close()
 		frameBuffer := make([]byte, 0, 1024*1024) // 1MB buffer
-		
+
 		for {
 			select {
 			case <-stopCh:
@@ -283,13 +290,15 @@ func (sd *StreamDetector) streamFrames(cameraID, cameraDevice string, stopCh cha
 					}
 					return
 				}
-				
+
 				frameBuffer = append(frameBuffer, chunk[:n]...)
-				
+
 				// Look for JPEG frame boundaries (FFD8...FFD9)
 				if frame := sd.extractJPEGFrame(&frameBuffer); frame != nil {
 					select {
-					case sd.frameBuffers[cameraID] <- frame:
+					case <-stopCh:
+						return
+					case frameCh <- frame:
 					default:
 						// Drop frame if buffer is full
 					}
@@ -1127,6 +1136,9 @@ func (sd *StreamDetector) pollHTTPImage(cameraID, imageURL string, frameBuffer c
 
 			frameCount++
 			select {
+			case <-stopCh:
+				fmt.Printf("HTTP polling stopped for camera %s after %d frames\n", cameraID, frameCount)
+				return
 			case frameBuffer <- frameData:
 				if frameCount%20 == 0 { // Log every 20 frames (~10 seconds)
 					fmt.Printf("HTTP polling: sent %d frames for camera %s\n", frameCount, cameraID)
