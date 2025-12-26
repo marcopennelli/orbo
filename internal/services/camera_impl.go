@@ -120,6 +120,20 @@ func (c *CameraImplementation) Update(ctx context.Context, p *camera_service.Upd
 		}
 	}
 
+	// Check if device change is requested
+	if p.Device != nil && *p.Device != cam.Device {
+		// Device can only be changed when camera is inactive
+		if cam.GetStatus() == "active" {
+			details := "Camera must be deactivated before changing device/URL. Please deactivate the camera first."
+			return nil, &camera_service.BadRequestError{
+				Message: "Cannot change device while camera is active",
+				Details: &details,
+			}
+		}
+		// Update device
+		cam.Device = *p.Device
+	}
+
 	// Update camera configuration
 	name := cam.Name
 	if p.Name != nil {

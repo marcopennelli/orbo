@@ -74,7 +74,7 @@ func BuildUpdatePayload(cameraUpdateBody string, cameraUpdateID string) (*camera
 	{
 		err = json.Unmarshal([]byte(cameraUpdateBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"fps\": 5209864276782110322,\n      \"name\": \"Nulla quia velit.\",\n      \"resolution\": \"Sapiente nobis iusto quis esse quis sapiente.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Sapiente nobis iusto quis esse quis sapiente.\",\n      \"fps\": 3594970635460201636,\n      \"name\": \"Nulla quia velit.\",\n      \"resolution\": \"Ad eligendi.\"\n   }'")
 		}
 	}
 	var id string
@@ -87,6 +87,7 @@ func BuildUpdatePayload(cameraUpdateBody string, cameraUpdateID string) (*camera
 	}
 	v := &camera.UpdatePayload{
 		Name:       body.Name,
+		Device:     body.Device,
 		Resolution: body.Resolution,
 		Fps:        body.Fps,
 	}

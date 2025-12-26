@@ -79,28 +79,28 @@ paths:
                                     - created_at: "1984-02-02T21:37:53Z"
                                       device: Sed id odio iure eos.
                                       fps: 6161631052343823911
-                                      id: a145d5e4-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcb6d26-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Minima debitis enim amet tempora veritatis.
                                       resolution: Unde repellendus magnam.
                                       status: inactive
                                     - created_at: "1984-02-02T21:37:53Z"
                                       device: Sed id odio iure eos.
                                       fps: 6161631052343823911
-                                      id: a145d5e4-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcb6d26-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Minima debitis enim amet tempora veritatis.
                                       resolution: Unde repellendus magnam.
                                       status: inactive
                                     - created_at: "1984-02-02T21:37:53Z"
                                       device: Sed id odio iure eos.
                                       fps: 6161631052343823911
-                                      id: a145d5e4-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcb6d26-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Minima debitis enim amet tempora veritatis.
                                       resolution: Unde repellendus magnam.
                                       status: inactive
                                     - created_at: "1984-02-02T21:37:53Z"
                                       device: Sed id odio iure eos.
                                       fps: 6161631052343823911
-                                      id: a145d5e4-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcb6d26-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Minima debitis enim amet tempora veritatis.
                                       resolution: Unde repellendus magnam.
                                       status: inactive
@@ -108,28 +108,28 @@ paths:
                                 - created_at: "1984-02-02T21:37:53Z"
                                   device: Sed id odio iure eos.
                                   fps: 6161631052343823911
-                                  id: a145d5e4-e172-11f0-8137-5847ca7b8ce1
+                                  id: 6dcb6d26-e254-11f0-b2fa-5847ca7b8ce1
                                   name: Minima debitis enim amet tempora veritatis.
                                   resolution: Unde repellendus magnam.
                                   status: inactive
                                 - created_at: "1984-02-02T21:37:53Z"
                                   device: Sed id odio iure eos.
                                   fps: 6161631052343823911
-                                  id: a145d5e4-e172-11f0-8137-5847ca7b8ce1
+                                  id: 6dcb6d26-e254-11f0-b2fa-5847ca7b8ce1
                                   name: Minima debitis enim amet tempora veritatis.
                                   resolution: Unde repellendus magnam.
                                   status: inactive
                                 - created_at: "1984-02-02T21:37:53Z"
                                   device: Sed id odio iure eos.
                                   fps: 6161631052343823911
-                                  id: a145d5e4-e172-11f0-8137-5847ca7b8ce1
+                                  id: 6dcb6d26-e254-11f0-b2fa-5847ca7b8ce1
                                   name: Minima debitis enim amet tempora veritatis.
                                   resolution: Unde repellendus magnam.
                                   status: inactive
                                 - created_at: "1984-02-02T21:37:53Z"
                                   device: Sed id odio iure eos.
                                   fps: 6161631052343823911
-                                  id: a145d5e4-e172-11f0-8137-5847ca7b8ce1
+                                  id: 6dcb6d26-e254-11f0-b2fa-5847ca7b8ce1
                                   name: Minima debitis enim amet tempora veritatis.
                                   resolution: Unde repellendus magnam.
                                   status: inactive
@@ -161,7 +161,7 @@ paths:
                                 created_at: "1983-03-16T22:07:03Z"
                                 device: Temporibus dicta.
                                 fps: 5095128030313805338
-                                id: a145f91b-e172-11f0-8137-5847ca7b8ce1
+                                id: 6dcb954b-e254-11f0-b2fa-5847ca7b8ce1
                                 name: Nobis rerum cum.
                                 resolution: Blanditiis et fugit tempora officiis.
                                 status: inactive
@@ -189,9 +189,9 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: a148997d-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce5f40-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
-                  example: a1489a32-e172-11f0-8137-5847ca7b8ce1
+                  example: 6dce600b-e254-11f0-b2fa-5847ca7b8ce1
             responses:
                 "204":
                     description: No Content response.
@@ -218,9 +218,9 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: a1489642-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce5b64-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
-                  example: a14896f4-e172-11f0-8137-5847ca7b8ce1
+                  example: 6dce5c18-e254-11f0-b2fa-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
@@ -232,7 +232,7 @@ paths:
                                 created_at: "1985-08-08T12:35:56Z"
                                 device: Natus inventore quos nam et.
                                 fps: 8213050823063294515
-                                id: a145e4d4-e172-11f0-8137-5847ca7b8ce1
+                                id: 6dcb8019-e254-11f0-b2fa-5847ca7b8ce1
                                 name: Et sed quam.
                                 resolution: Aut odio in enim hic.
                                 status: inactive
@@ -249,7 +249,7 @@ paths:
             tags:
                 - camera
             summary: update camera
-            description: Update camera configuration
+            description: Update camera configuration. Device can only be changed when camera is inactive.
             operationId: camera#update
             parameters:
                 - name: id
@@ -259,9 +259,9 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: a14897fb-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce5d6e-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
-                  example: a14898a5-e172-11f0-8137-5847ca7b8ce1
+                  example: 6dce5e41-e254-11f0-b2fa-5847ca7b8ce1
             requestBody:
                 required: true
                 content:
@@ -269,9 +269,10 @@ paths:
                         schema:
                             $ref: '#/components/schemas/UpdateRequestBody'
                         example:
-                            fps: 5209864276782110322
+                            device: Sapiente nobis iusto quis esse quis sapiente.
+                            fps: 3594970635460201636
                             name: Nulla quia velit.
-                            resolution: Sapiente nobis iusto quis esse quis sapiente.
+                            resolution: Ad eligendi.
             responses:
                 "200":
                     description: OK response.
@@ -281,12 +282,12 @@ paths:
                                 $ref: '#/components/schemas/CameraInfo'
                             example:
                                 created_at: "1993-08-28T18:45:03Z"
-                                device: Ipsa tempora aut fuga.
+                                device: Aut fuga aut dolore.
                                 fps: 8193460505685241291
-                                id: a1462771-e172-11f0-8137-5847ca7b8ce1
-                                name: Quaerat reiciendis.
-                                resolution: Temporibus qui dolor non provident hic.
-                                status: active
+                                id: 6dcbc01e-e254-11f0-b2fa-5847ca7b8ce1
+                                name: Reiciendis consectetur ipsa.
+                                resolution: Dolor non provident hic.
+                                status: inactive
                 "400":
                     description: 'bad_request: Invalid camera configuration'
                     content:
@@ -320,9 +321,9 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: a1489b11-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce6122-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
-                  example: a1489bc6-e172-11f0-8137-5847ca7b8ce1
+                  example: 6dce61c5-e254-11f0-b2fa-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
@@ -334,7 +335,7 @@ paths:
                                 created_at: "1995-08-24T14:56:18Z"
                                 device: Beatae et aut non.
                                 fps: 4910316854844244467
-                                id: a1464ef9-e172-11f0-8137-5847ca7b8ce1
+                                id: 6dcbebcf-e254-11f0-b2fa-5847ca7b8ce1
                                 name: Doloribus voluptates aut culpa.
                                 resolution: Vel iste temporibus.
                                 status: error
@@ -370,9 +371,9 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: a1489cb2-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce62d8-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
-                  example: a1489d54-e172-11f0-8137-5847ca7b8ce1
+                  example: 6dce6386-e254-11f0-b2fa-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
@@ -384,7 +385,7 @@ paths:
                                 created_at: "1988-11-19T05:25:05Z"
                                 device: Quasi quidem ratione.
                                 fps: 5450269461386449353
-                                id: a1466098-e172-11f0-8137-5847ca7b8ce1
+                                id: 6dcc0775-e254-11f0-b2fa-5847ca7b8ce1
                                 name: Aliquam dignissimos accusamus quis.
                                 resolution: Laborum aut ut nemo autem.
                                 status: error
@@ -412,9 +413,9 @@ paths:
                   schema:
                     type: string
                     description: Camera ID
-                    example: a1489e4d-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce649e-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
-                  example: a1489ef4-e172-11f0-8137-5847ca7b8ce1
+                  example: 6dce654e-e254-11f0-b2fa-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
@@ -818,9 +819,9 @@ paths:
                   schema:
                     type: string
                     description: Filter by camera ID
-                    example: a1489fe0-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce668a-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
-                  example: a148a080-e172-11f0-8137-5847ca7b8ce1
+                  example: 6dce677b-e254-11f0-b2fa-5847ca7b8ce1
                 - name: since
                   in: query
                   description: Show events since timestamp
@@ -828,9 +829,9 @@ paths:
                   schema:
                     type: string
                     description: Show events since timestamp
-                    example: "2011-05-03T18:31:28Z"
+                    example: "1989-05-07T10:31:03Z"
                     format: date-time
-                  example: "1981-03-30T20:01:47Z"
+                  example: "2010-03-30T06:02:42Z"
                 - name: limit
                   in: query
                   description: Maximum number of events to return
@@ -839,9 +840,9 @@ paths:
                     type: integer
                     description: Maximum number of events to return
                     default: 50
-                    example: -6183663501480719944
+                    example: -3793165161732455842
                     maximum: 500
-                  example: -7737177717517201684
+                  example: -6862303438814565932
             responses:
                 "200":
                     description: OK response.
@@ -869,11 +870,11 @@ paths:
                                           width: 8828327642219360905
                                           x: 628889715675093927
                                           "y": 4528200106111172187
-                                      camera_id: a1468036-e172-11f0-8137-5847ca7b8ce1
+                                      camera_id: 6dcc2f91-e254-11f0-b2fa-5847ca7b8ce1
                                       confidence: 0.20852205
                                       detection_device: cuda
                                       frame_path: Error repellat et velit.
-                                      id: a1467f67-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcc2a6a-e254-11f0-b2fa-5847ca7b8ce1
                                       inference_time_ms: 0.0026714422
                                       notification_sent: false
                                       object_class: Animi dolores deleniti recusandae quidem perferendis.
@@ -897,11 +898,11 @@ paths:
                                           width: 8828327642219360905
                                           x: 628889715675093927
                                           "y": 4528200106111172187
-                                      camera_id: a1468036-e172-11f0-8137-5847ca7b8ce1
+                                      camera_id: 6dcc2f91-e254-11f0-b2fa-5847ca7b8ce1
                                       confidence: 0.20852205
                                       detection_device: cuda
                                       frame_path: Error repellat et velit.
-                                      id: a1467f67-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcc2a6a-e254-11f0-b2fa-5847ca7b8ce1
                                       inference_time_ms: 0.0026714422
                                       notification_sent: false
                                       object_class: Animi dolores deleniti recusandae quidem perferendis.
@@ -925,11 +926,39 @@ paths:
                                           width: 8828327642219360905
                                           x: 628889715675093927
                                           "y": 4528200106111172187
-                                      camera_id: a1468036-e172-11f0-8137-5847ca7b8ce1
+                                      camera_id: 6dcc2f91-e254-11f0-b2fa-5847ca7b8ce1
                                       confidence: 0.20852205
                                       detection_device: cuda
                                       frame_path: Error repellat et velit.
-                                      id: a1467f67-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcc2a6a-e254-11f0-b2fa-5847ca7b8ce1
+                                      inference_time_ms: 0.0026714422
+                                      notification_sent: false
+                                      object_class: Animi dolores deleniti recusandae quidem perferendis.
+                                      object_confidence: 0.92720807
+                                      threat_level: low
+                                      timestamp: "1977-03-10T09:27:58Z"
+                                    - bounding_boxes:
+                                        - height: 6904859616600551361
+                                          width: 8828327642219360905
+                                          x: 628889715675093927
+                                          "y": 4528200106111172187
+                                        - height: 6904859616600551361
+                                          width: 8828327642219360905
+                                          x: 628889715675093927
+                                          "y": 4528200106111172187
+                                        - height: 6904859616600551361
+                                          width: 8828327642219360905
+                                          x: 628889715675093927
+                                          "y": 4528200106111172187
+                                        - height: 6904859616600551361
+                                          width: 8828327642219360905
+                                          x: 628889715675093927
+                                          "y": 4528200106111172187
+                                      camera_id: 6dcc2f91-e254-11f0-b2fa-5847ca7b8ce1
+                                      confidence: 0.20852205
+                                      detection_device: cuda
+                                      frame_path: Error repellat et velit.
+                                      id: 6dcc2a6a-e254-11f0-b2fa-5847ca7b8ce1
                                       inference_time_ms: 0.0026714422
                                       notification_sent: false
                                       object_class: Animi dolores deleniti recusandae quidem perferendis.
@@ -954,11 +983,11 @@ paths:
                                       width: 8828327642219360905
                                       x: 628889715675093927
                                       "y": 4528200106111172187
-                                  camera_id: a1468036-e172-11f0-8137-5847ca7b8ce1
+                                  camera_id: 6dcc2f91-e254-11f0-b2fa-5847ca7b8ce1
                                   confidence: 0.20852205
                                   detection_device: cuda
                                   frame_path: Error repellat et velit.
-                                  id: a1467f67-e172-11f0-8137-5847ca7b8ce1
+                                  id: 6dcc2a6a-e254-11f0-b2fa-5847ca7b8ce1
                                   inference_time_ms: 0.0026714422
                                   notification_sent: false
                                   object_class: Animi dolores deleniti recusandae quidem perferendis.
@@ -982,11 +1011,11 @@ paths:
                                       width: 8828327642219360905
                                       x: 628889715675093927
                                       "y": 4528200106111172187
-                                  camera_id: a1468036-e172-11f0-8137-5847ca7b8ce1
+                                  camera_id: 6dcc2f91-e254-11f0-b2fa-5847ca7b8ce1
                                   confidence: 0.20852205
                                   detection_device: cuda
                                   frame_path: Error repellat et velit.
-                                  id: a1467f67-e172-11f0-8137-5847ca7b8ce1
+                                  id: 6dcc2a6a-e254-11f0-b2fa-5847ca7b8ce1
                                   inference_time_ms: 0.0026714422
                                   notification_sent: false
                                   object_class: Animi dolores deleniti recusandae quidem perferendis.
@@ -1010,11 +1039,11 @@ paths:
                                       width: 8828327642219360905
                                       x: 628889715675093927
                                       "y": 4528200106111172187
-                                  camera_id: a1468036-e172-11f0-8137-5847ca7b8ce1
+                                  camera_id: 6dcc2f91-e254-11f0-b2fa-5847ca7b8ce1
                                   confidence: 0.20852205
                                   detection_device: cuda
                                   frame_path: Error repellat et velit.
-                                  id: a1467f67-e172-11f0-8137-5847ca7b8ce1
+                                  id: 6dcc2a6a-e254-11f0-b2fa-5847ca7b8ce1
                                   inference_time_ms: 0.0026714422
                                   notification_sent: false
                                   object_class: Animi dolores deleniti recusandae quidem perferendis.
@@ -1036,9 +1065,9 @@ paths:
                   schema:
                     type: string
                     description: Event ID
-                    example: a148a2bf-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce6a49-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
-                  example: a148a396-e172-11f0-8137-5847ca7b8ce1
+                  example: 6dce6b27-e254-11f0-b2fa-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
@@ -1056,11 +1085,11 @@ paths:
                                       width: 1310507306466389737
                                       x: 1531423249414200305
                                       "y": 2443003381466388584
-                                camera_id: a146b4a0-e172-11f0-8137-5847ca7b8ce1
+                                camera_id: 6dcc6e87-e254-11f0-b2fa-5847ca7b8ce1
                                 confidence: 0.95154583
                                 detection_device: cpu
                                 frame_path: Nostrum nisi et voluptatem cumque dolores.
-                                id: a146b167-e172-11f0-8137-5847ca7b8ce1
+                                id: 6dcc6d25-e254-11f0-b2fa-5847ca7b8ce1
                                 inference_time_ms: 0.63716656
                                 notification_sent: false
                                 object_class: Est non rerum in velit odio soluta.
@@ -1091,9 +1120,9 @@ paths:
                   schema:
                     type: string
                     description: Event ID
-                    example: a148a46d-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce6c2c-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
-                  example: a148a50e-e172-11f0-8137-5847ca7b8ce1
+                  example: 6dce6ce0-e254-11f0-b2fa-5847ca7b8ce1
             responses:
                 "200":
                     description: OK response.
@@ -1132,14 +1161,14 @@ paths:
                                     - created_at: "1992-01-02T05:51:59Z"
                                       device: Modi praesentium ut consectetur pariatur nihil.
                                       fps: 6128737826501940979
-                                      id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Et maiores aut minus velit occaecati maiores.
                                       resolution: Sed consectetur veritatis doloremque.
                                       status: active
                                     - created_at: "1992-01-02T05:51:59Z"
                                       device: Modi praesentium ut consectetur pariatur nihil.
                                       fps: 6128737826501940979
-                                      id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Et maiores aut minus velit occaecati maiores.
                                       resolution: Sed consectetur veritatis doloremque.
                                       status: active
@@ -1173,28 +1202,28 @@ paths:
                                     - created_at: "1992-01-02T05:51:59Z"
                                       device: Modi praesentium ut consectetur pariatur nihil.
                                       fps: 6128737826501940979
-                                      id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Et maiores aut minus velit occaecati maiores.
                                       resolution: Sed consectetur veritatis doloremque.
                                       status: active
                                     - created_at: "1992-01-02T05:51:59Z"
                                       device: Modi praesentium ut consectetur pariatur nihil.
                                       fps: 6128737826501940979
-                                      id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Et maiores aut minus velit occaecati maiores.
                                       resolution: Sed consectetur veritatis doloremque.
                                       status: active
                                     - created_at: "1992-01-02T05:51:59Z"
                                       device: Modi praesentium ut consectetur pariatur nihil.
                                       fps: 6128737826501940979
-                                      id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Et maiores aut minus velit occaecati maiores.
                                       resolution: Sed consectetur veritatis doloremque.
                                       status: active
                                     - created_at: "1992-01-02T05:51:59Z"
                                       device: Modi praesentium ut consectetur pariatur nihil.
                                       fps: 6128737826501940979
-                                      id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Et maiores aut minus velit occaecati maiores.
                                       resolution: Sed consectetur veritatis doloremque.
                                       status: active
@@ -1220,14 +1249,14 @@ paths:
                                     - created_at: "1992-01-02T05:51:59Z"
                                       device: Modi praesentium ut consectetur pariatur nihil.
                                       fps: 6128737826501940979
-                                      id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Et maiores aut minus velit occaecati maiores.
                                       resolution: Sed consectetur veritatis doloremque.
                                       status: active
                                     - created_at: "1992-01-02T05:51:59Z"
                                       device: Modi praesentium ut consectetur pariatur nihil.
                                       fps: 6128737826501940979
-                                      id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                                       name: Et maiores aut minus velit occaecati maiores.
                                       resolution: Sed consectetur veritatis doloremque.
                                       status: active
@@ -1271,29 +1300,29 @@ components:
                 height:
                     type: integer
                     description: Height
-                    example: 4710169937010312508
+                    example: 499494334199356050
                     format: int64
                 width:
                     type: integer
                     description: Width
-                    example: 5302970414299303237
+                    example: 2307375324180545968
                     format: int64
                 x:
                     type: integer
                     description: X coordinate
-                    example: 2337633584566381368
+                    example: 1575572857437693704
                     format: int64
                 "y":
                     type: integer
                     description: Y coordinate
-                    example: 2416883667192877889
+                    example: 3491809124235954534
                     format: int64
             description: Bounding box coordinates
             example:
-                height: 5895919035791570486
-                width: 8212891577177293839
-                x: 1561698427632995
-                "y": 3822342507847146077
+                height: 8310802685441454748
+                width: 8957692429546487665
+                x: 4793236530266650282
+                "y": 2965754629847278787
             required:
                 - x
                 - "y"
@@ -1319,7 +1348,7 @@ components:
                 id:
                     type: string
                     description: Camera unique identifier
-                    example: a1488491-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce4339-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
                 name:
                     type: string
@@ -1342,7 +1371,7 @@ components:
                 created_at: "2010-05-10T02:58:32Z"
                 device: Nam quia consequatur quisquam et possimus inventore.
                 fps: 8497670600518471493
-                id: a14885f4-e172-11f0-8137-5847ca7b8ce1
+                id: 6dce45bb-e254-11f0-b2fa-5847ca7b8ce1
                 name: Quisquam quia velit ullam optio.
                 resolution: Ad quae animi est perferendis excepturi incidunt.
                 status: inactive
@@ -1388,13 +1417,13 @@ components:
                     type: number
                     description: Minimum confidence for alerts (0-1)
                     default: 0.6
-                    example: 0.21378319
+                    example: 0.7527948
                     format: float
                 enable_scene_analysis:
                     type: boolean
                     description: Enable advanced scene analysis
                     default: true
-                    example: true
+                    example: false
                 enabled:
                     type: boolean
                     description: Enable DINOv3 AI detection
@@ -1403,24 +1432,24 @@ components:
                     type: boolean
                     description: Fallback to basic detection when DINOv3 unavailable
                     default: true
-                    example: false
+                    example: true
                 motion_threshold:
                     type: number
                     description: Motion detection threshold (0-1)
                     default: 0.85
-                    example: 0.650724
+                    example: 0.5893124
                     format: float
                 service_endpoint:
                     type: string
                     description: DINOv3 service endpoint URL
-                    example: Omnis occaecati qui quae quod non quia.
+                    example: Optio voluptatem et quis.
             example:
-                confidence_threshold: 0.03986046
-                enable_scene_analysis: true
+                confidence_threshold: 0.6318368
+                enable_scene_analysis: false
                 enabled: false
-                fallback_to_basic: false
-                motion_threshold: 0.074472256
-                service_endpoint: Aut optio voluptatem et quis fuga nihil.
+                fallback_to_basic: true
+                motion_threshold: 0.5636887
+                service_endpoint: Earum autem quasi numquam repudiandae.
             required:
                 - enabled
         DetectionConfig:
@@ -1432,7 +1461,7 @@ components:
                     type: boolean
                     description: Enable fallback to basic detection
                     default: true
-                    example: false
+                    example: true
                 primary_detector:
                     type: string
                     description: Primary detector to use
@@ -1452,7 +1481,7 @@ components:
                     fallback_to_basic: false
                     motion_threshold: 0.45487222
                     service_endpoint: Porro ullam ipsa nesciunt porro atque ut.
-                fallback_enabled: true
+                fallback_enabled: false
                 primary_detector: yolo
                 yolo:
                     classes_filter: Ad necessitatibus quo deleniti.
@@ -1470,14 +1499,14 @@ components:
                     type: string
                     description: Image MIME type
                     default: image/jpeg
-                    example: Ut ut doloribus doloremque quia tempore.
+                    example: Amet dolor eos.
                 data:
                     type: string
                     description: Base64 encoded JPEG image data
-                    example: Praesentium ipsa perspiciatis dignissimos fugit distinctio aut.
+                    example: Omnis alias magni inventore non voluptas.
             example:
-                content_type: Voluptatem omnis alias magni inventore non.
-                data: Fugit corporis.
+                content_type: Cum dicta et quos.
+                data: Dolorem est amet sint ea sapiente vitae.
             required:
                 - data
                 - content_type
@@ -1533,24 +1562,20 @@ components:
                           width: 8828327642219360905
                           x: 628889715675093927
                           "y": 4528200106111172187
-                        - height: 6904859616600551361
-                          width: 8828327642219360905
-                          x: 628889715675093927
-                          "y": 4528200106111172187
                 camera_id:
                     type: string
                     description: Camera ID
-                    example: a1488b68-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce4d11-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
                 confidence:
                     type: number
                     description: Motion confidence score (0-1)
-                    example: 0.17729644
+                    example: 0.5182289
                     format: float
                 detection_device:
                     type: string
                     description: Device used for detection
-                    example: cuda
+                    example: dinov3
                     enum:
                         - cpu
                         - cuda
@@ -1558,16 +1583,16 @@ components:
                 frame_path:
                     type: string
                     description: Path to captured frame
-                    example: Minima aut qui labore.
+                    example: Reprehenderit voluptatum.
                 id:
                     type: string
                     description: Event unique identifier
-                    example: a1488aa4-e172-11f0-8137-5847ca7b8ce1
+                    example: 6dce4c1b-e254-11f0-b2fa-5847ca7b8ce1
                     format: uuid
                 inference_time_ms:
                     type: number
                     description: AI inference time in milliseconds
-                    example: 0.32154775
+                    example: 0.28929228
                     format: float
                 notification_sent:
                     type: boolean
@@ -1576,16 +1601,16 @@ components:
                 object_class:
                     type: string
                     description: Detected object class
-                    example: Veritatis est et necessitatibus.
+                    example: Eligendi ratione laboriosam quas commodi.
                 object_confidence:
                     type: number
                     description: AI detection confidence
-                    example: 0.054155283
+                    example: 0.106520854
                     format: float
                 threat_level:
                     type: string
                     description: Threat level assessment
-                    example: medium
+                    example: low
                     enum:
                         - none
                         - low
@@ -1594,7 +1619,7 @@ components:
                 timestamp:
                     type: string
                     description: Event timestamp
-                    example: "2010-03-16T07:26:08Z"
+                    example: "1974-12-06T13:32:54Z"
                     format: date-time
             description: Motion detection event
             example:
@@ -1607,17 +1632,25 @@ components:
                       width: 8828327642219360905
                       x: 628889715675093927
                       "y": 4528200106111172187
-                camera_id: a1488dfa-e172-11f0-8137-5847ca7b8ce1
-                confidence: 0.11500942
-                detection_device: cpu
-                frame_path: Dolorem non.
-                id: a1488d48-e172-11f0-8137-5847ca7b8ce1
-                inference_time_ms: 0.5420015
+                    - height: 6904859616600551361
+                      width: 8828327642219360905
+                      x: 628889715675093927
+                      "y": 4528200106111172187
+                    - height: 6904859616600551361
+                      width: 8828327642219360905
+                      x: 628889715675093927
+                      "y": 4528200106111172187
+                camera_id: 6dce508f-e254-11f0-b2fa-5847ca7b8ce1
+                confidence: 0.65129364
+                detection_device: dinov3
+                frame_path: Commodi est est doloremque animi.
+                id: 6dce4fe1-e254-11f0-b2fa-5847ca7b8ce1
+                inference_time_ms: 0.20985004
                 notification_sent: false
-                object_class: Et vitae dicta vitae eum.
-                object_confidence: 0.8425852
-                threat_level: high
-                timestamp: "2003-01-09T16:43:52Z"
+                object_class: Et aut sint.
+                object_confidence: 0.30846885
+                threat_level: medium
+                timestamp: "2012-03-19T00:26:49Z"
             required:
                 - id
                 - camera_id
@@ -1664,30 +1697,30 @@ components:
                 cooldown_seconds:
                     type: integer
                     description: Cooldown period between notifications
-                    example: 1350134603221624818
+                    example: 1908247453642111413
                     format: int64
                 min_confidence:
                     type: number
                     description: Minimum confidence threshold for notifications
-                    example: 0.86417985
+                    example: 0.7493643
                     format: float
                 telegram_bot_token:
                     type: string
                     description: Telegram bot token
-                    example: Culpa laudantium et aut.
+                    example: Eius molestias occaecati.
                 telegram_chat_id:
                     type: string
                     description: Telegram chat ID
-                    example: Facilis ad omnis delectus.
+                    example: Tenetur nisi.
                 telegram_enabled:
                     type: boolean
                     description: Enable Telegram notifications
-                    example: false
+                    example: true
             example:
-                cooldown_seconds: 8398109553682633674
-                min_confidence: 0.6847813
-                telegram_bot_token: Molestias occaecati omnis tenetur nisi.
-                telegram_chat_id: Aliquam cupiditate.
+                cooldown_seconds: 4623833786929197046
+                min_confidence: 0.37398875
+                telegram_bot_token: Ab excepturi quis perspiciatis incidunt est.
+                telegram_chat_id: Sapiente fugiat hic eos praesentium aspernatur.
                 telegram_enabled: true
             required:
                 - telegram_enabled
@@ -1725,28 +1758,14 @@ components:
                         - created_at: "1992-01-02T05:51:59Z"
                           device: Modi praesentium ut consectetur pariatur nihil.
                           fps: 6128737826501940979
-                          id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                          id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                           name: Et maiores aut minus velit occaecati maiores.
                           resolution: Sed consectetur veritatis doloremque.
                           status: active
                         - created_at: "1992-01-02T05:51:59Z"
                           device: Modi praesentium ut consectetur pariatur nihil.
                           fps: 6128737826501940979
-                          id: a147c12b-e172-11f0-8137-5847ca7b8ce1
-                          name: Et maiores aut minus velit occaecati maiores.
-                          resolution: Sed consectetur veritatis doloremque.
-                          status: active
-                        - created_at: "1992-01-02T05:51:59Z"
-                          device: Modi praesentium ut consectetur pariatur nihil.
-                          fps: 6128737826501940979
-                          id: a147c12b-e172-11f0-8137-5847ca7b8ce1
-                          name: Et maiores aut minus velit occaecati maiores.
-                          resolution: Sed consectetur veritatis doloremque.
-                          status: active
-                        - created_at: "1992-01-02T05:51:59Z"
-                          device: Modi praesentium ut consectetur pariatur nihil.
-                          fps: 6128737826501940979
-                          id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                          id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                           name: Et maiores aut minus velit occaecati maiores.
                           resolution: Sed consectetur veritatis doloremque.
                           status: active
@@ -1757,31 +1776,45 @@ components:
                 notifications_active:
                     type: boolean
                     description: Notification status
-                    example: false
+                    example: true
                 uptime_seconds:
                     type: integer
                     description: System uptime in seconds
-                    example: 175569978392477662
+                    example: 8006820831664716171
                     format: int64
             example:
                 cameras:
                     - created_at: "1992-01-02T05:51:59Z"
                       device: Modi praesentium ut consectetur pariatur nihil.
                       fps: 6128737826501940979
-                      id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                       name: Et maiores aut minus velit occaecati maiores.
                       resolution: Sed consectetur veritatis doloremque.
                       status: active
                     - created_at: "1992-01-02T05:51:59Z"
                       device: Modi praesentium ut consectetur pariatur nihil.
                       fps: 6128737826501940979
-                      id: a147c12b-e172-11f0-8137-5847ca7b8ce1
+                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
+                      name: Et maiores aut minus velit occaecati maiores.
+                      resolution: Sed consectetur veritatis doloremque.
+                      status: active
+                    - created_at: "1992-01-02T05:51:59Z"
+                      device: Modi praesentium ut consectetur pariatur nihil.
+                      fps: 6128737826501940979
+                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
+                      name: Et maiores aut minus velit occaecati maiores.
+                      resolution: Sed consectetur veritatis doloremque.
+                      status: active
+                    - created_at: "1992-01-02T05:51:59Z"
+                      device: Modi praesentium ut consectetur pariatur nihil.
+                      fps: 6128737826501940979
+                      id: 6dcd87f7-e254-11f0-b2fa-5847ca7b8ce1
                       name: Et maiores aut minus velit occaecati maiores.
                       resolution: Sed consectetur veritatis doloremque.
                       status: active
                 motion_detection_active: false
                 notifications_active: false
-                uptime_seconds: 5131110099342320024
+                uptime_seconds: 4276255467555270419
             required:
                 - cameras
                 - motion_detection_active
@@ -1793,30 +1826,30 @@ components:
                 device:
                     type: string
                     description: Detection device
-                    example: Sunt et aut vitae quas.
+                    example: Velit voluptate.
                 endpoint:
                     type: string
                     description: Service endpoint
-                    example: Quasi numquam repudiandae illo.
+                    example: Vitae quas illo sit officiis et.
                 healthy:
                     type: boolean
                     description: Service health status
-                    example: false
+                    example: true
                 message:
                     type: string
                     description: Status message
-                    example: Sit officiis et.
+                    example: Aliquid quo.
                 response_time_ms:
                     type: number
                     description: Response time in milliseconds
-                    example: 0.6318368
+                    example: 0.20815936
                     format: float
             example:
-                device: Quo incidunt fuga quaerat dolor.
-                endpoint: Velit voluptate.
+                device: Laborum eos vel non.
+                endpoint: Quaerat dolor aut et.
                 healthy: true
-                message: Et ut debitis laborum eos vel.
-                response_time_ms: 0.89095795
+                message: Recusandae modi laborum vel tempora nam ducimus.
+                response_time_ms: 0.40094364
             required:
                 - healthy
                 - message
@@ -1826,14 +1859,14 @@ components:
                 message:
                     type: string
                     description: Result message
-                    example: Perspiciatis incidunt est nihil sapiente fugiat hic.
+                    example: Qui sed omnis occaecati qui quae quod.
                 success:
                     type: boolean
                     description: Test result
                     example: true
             example:
-                message: Aspernatur iste dicta vel et.
-                success: false
+                message: Reiciendis dolorum saepe culpa nihil.
+                success: true
             required:
                 - success
                 - message
@@ -1843,35 +1876,35 @@ components:
                 device:
                     type: string
                     description: Detection device (cpu/cuda)
-                    example: Nulla iure magnam.
+                    example: Doloremque ut at asperiores odit dicta.
                 endpoint:
                     type: string
                     description: Service endpoint
-                    example: Velit accusamus rerum non officiis inventore.
+                    example: Iure magnam necessitatibus aut eaque.
                 healthy:
                     type: boolean
                     description: Service health status
-                    example: true
+                    example: false
                 message:
                     type: string
                     description: Status message
-                    example: Eaque ut odio doloremque ut at asperiores.
+                    example: Quidem soluta occaecati ut sint.
                 model_loaded:
                     type: boolean
                     description: Model loaded status
-                    example: false
+                    example: true
                 response_time_ms:
                     type: number
                     description: Response time in milliseconds
-                    example: 0.73718625
+                    example: 0.14730638
                     format: float
             example:
-                device: Occaecati ut sint labore numquam sit.
-                endpoint: Laudantium commodi.
-                healthy: true
-                message: Ipsum id.
+                device: Possimus qui similique ex nulla quo.
+                endpoint: Sit et ab ipsum.
+                healthy: false
+                message: Aut quia enim nihil.
                 model_loaded: true
-                response_time_ms: 0.95786417
+                response_time_ms: 0.24582125
             required:
                 - healthy
                 - message
@@ -1890,10 +1923,14 @@ components:
         UpdateRequestBody:
             type: object
             properties:
+                device:
+                    type: string
+                    description: Camera device path (only when inactive)
+                    example: Eaque sed eligendi optio nobis et voluptate.
                 fps:
                     type: integer
                     description: Frames per second
-                    example: 8170289460468746470
+                    example: 2428554783219616828
                     format: int64
                 name:
                     type: string
@@ -1902,23 +1939,24 @@ components:
                 resolution:
                     type: string
                     description: Camera resolution
-                    example: Eaque sed eligendi optio nobis et voluptate.
+                    example: Alias dolor similique quibusdam dolores nesciunt rerum.
             example:
-                fps: 5972196183250707315
-                name: Dolor similique.
-                resolution: Dolores nesciunt.
+                device: Omnis ut ut doloribus doloremque quia tempore.
+                fps: 8938476789534072608
+                name: Ipsa perspiciatis dignissimos fugit distinctio.
+                resolution: Fugit corporis.
         YOLOConfig:
             type: object
             properties:
                 classes_filter:
                     type: string
                     description: Comma-separated class names to filter (empty = all)
-                    example: Magnam nihil quo ea reiciendis.
+                    example: At est aut aut.
                 confidence_threshold:
                     type: number
                     description: Minimum confidence for detections (0-1)
                     default: 0.5
-                    example: 0.35215932
+                    example: 0.31234947
                     format: float
                 draw_boxes:
                     type: boolean
@@ -1937,14 +1975,14 @@ components:
                 service_endpoint:
                     type: string
                     description: YOLO service endpoint URL
-                    example: Recusandae modi laborum vel tempora nam ducimus.
+                    example: Id magnam nihil quo ea.
             example:
-                classes_filter: Perferendis nobis eum.
-                confidence_threshold: 0.1727744
-                draw_boxes: true
+                classes_filter: Velit accusamus rerum non officiis inventore.
+                confidence_threshold: 0.8774683
+                draw_boxes: false
                 enabled: false
-                security_mode: false
-                service_endpoint: Est aut aut voluptas.
+                security_mode: true
+                service_endpoint: Reprehenderit perferendis nobis eum.
             required:
                 - enabled
 tags:

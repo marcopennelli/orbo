@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Activity, Clock, Camera, Target, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Activity, Clock, Camera, AlertTriangle, X, Maximize2 } from 'lucide-react';
 import type { MotionEvent } from '../../types';
 import { getEventFrame, frameResponseToDataUrl } from '../../api/events';
 import { Modal, Badge, Spinner } from '../ui';
@@ -14,6 +14,25 @@ export default function EventModal({ event, isOpen, onClose }: EventModalProps) 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const closeFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+  }, []);
+
+  // Handle Escape key to close fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeFullscreen();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen, closeFullscreen]);
 
   useEffect(() => {
     if (!event || !isOpen) {
@@ -49,13 +68,18 @@ export default function EventModal({ event, isOpen, onClose }: EventModalProps) 
 
   if (!event) return null;
 
-  const formatTime = (timestamp: string) => {
+  const formatTimeWithTimezone = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleString();
-  };
-
-  const formatConfidence = (confidence: number) => {
-    return `${(confidence * 100).toFixed(1)}%`;
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZoneName: 'short',
+    };
+    return date.toLocaleString(undefined, options);
   };
 
   const getDetectionType = () => {
@@ -82,7 +106,7 @@ export default function EventModal({ event, isOpen, onClose }: EventModalProps) 
     <Modal isOpen={isOpen} onClose={onClose} title="Event Details" size="lg">
       <div className="space-y-4">
         {/* Image */}
-        <div className="aspect-video bg-bg-dark rounded-lg overflow-hidden flex items-center justify-center">
+        <div className="aspect-video bg-bg-dark rounded-lg overflow-hidden flex items-center justify-center relative group">
           {imageLoading ? (
             <Spinner />
           ) : imageError ? (
@@ -90,13 +114,45 @@ export default function EventModal({ event, isOpen, onClose }: EventModalProps) 
               <Activity className="w-8 h-8" />
             </div>
           ) : imageSrc ? (
+            <>
+              <img
+                src={imageSrc}
+                alt={`Event ${event.id}`}
+                className="w-full h-full object-contain cursor-pointer"
+                onClick={() => setIsFullscreen(true)}
+              />
+              <button
+                onClick={() => setIsFullscreen(true)}
+                className="absolute top-2 right-2 p-2 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity text-white hover:bg-black/70"
+                title="View fullscreen"
+              >
+                <Maximize2 className="w-5 h-5" />
+              </button>
+            </>
+          ) : null}
+        </div>
+
+        {/* Fullscreen image overlay */}
+        {isFullscreen && imageSrc && (
+          <div
+            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+            onClick={closeFullscreen}
+          >
+            <button
+              onClick={closeFullscreen}
+              className="absolute top-4 right-4 p-2 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-colors"
+              title="Close (Esc)"
+            >
+              <X className="w-6 h-6" />
+            </button>
             <img
               src={imageSrc}
               alt={`Event ${event.id}`}
-              className="w-full h-full object-contain"
+              className="max-w-[95vw] max-h-[95vh] object-contain"
+              onClick={(e) => e.stopPropagation()}
             />
-          ) : null}
-        </div>
+          </div>
+        )}
 
         {/* Details grid */}
         <div className="grid grid-cols-2 gap-4">
@@ -112,7 +168,7 @@ export default function EventModal({ event, isOpen, onClose }: EventModalProps) 
             <Clock className="w-5 h-5 text-accent" />
             <div>
               <p className="text-xs text-text-muted">Timestamp</p>
-              <p className="text-sm text-text-primary">{formatTime(event.timestamp)}</p>
+              <p className="text-sm text-text-primary">{formatTimeWithTimezone(event.timestamp)}</p>
             </div>
           </div>
 
@@ -121,14 +177,6 @@ export default function EventModal({ event, isOpen, onClose }: EventModalProps) 
             <div>
               <p className="text-xs text-text-muted">Detection Type</p>
               <p className="text-sm text-text-primary">{getDetectionType()}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 p-3 bg-bg-card rounded-lg">
-            <Target className="w-5 h-5 text-accent" />
-            <div>
-              <p className="text-xs text-text-muted">Confidence</p>
-              <p className="text-sm text-text-primary">{formatConfidence(event.confidence)}</p>
             </div>
           </div>
         </div>

@@ -304,14 +304,15 @@ var _ = Service("camera", func() {
     })
     
     Method("update", func() {
-        Description("Update camera configuration")
+        Description("Update camera configuration. Device can only be changed when camera is inactive.")
         Payload(func() {
             Field(1, "id", String, "Camera ID", func() {
                 Format(FormatUUID)
             })
             Field(2, "name", String, "Camera name")
-            Field(3, "resolution", String, "Camera resolution")
-            Field(4, "fps", Int, "Frames per second")
+            Field(3, "device", String, "Camera device path (only when inactive)")
+            Field(4, "resolution", String, "Camera resolution")
+            Field(5, "fps", Int, "Frames per second")
             Required("id")
         })
         Result(CameraInfo)
