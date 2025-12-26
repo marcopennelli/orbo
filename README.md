@@ -12,7 +12,7 @@ Orbo is a modern, open-source video alarm system built with Go and OpenCV. It fe
 - **Camera Support**: USB cameras (`/dev/video*`), HTTP endpoints, and RTSP streams
 - **Motion Detection**: OpenCV-based with configurable sensitivity
 - **AI Object Detection**: YOLO integration for persons, vehicles, and 80+ COCO classes
-- **Telegram Notifications**: Instant alerts with captured frames
+- **Telegram Integration**: Instant alerts with captured frames + bot commands for remote control
 - **REST API**: Complete HTTP API for camera management and system control
 - **Database Persistence**: SQLite for cameras, events, and configuration
 - **Cloud Native**: Docker/Podman containers with Helm charts
@@ -136,6 +136,22 @@ helm install orbo deploy/helm/orbo \
 1. Message @BotFather on Telegram and use `/newbot`
 2. Get chat ID from `https://api.telegram.org/bot<TOKEN>/getUpdates`
 3. Configure via environment variables or Helm values
+
+### Telegram Bot Commands
+
+Once configured, control Orbo directly from Telegram:
+
+| Command | Description |
+|---------|-------------|
+| `/status` | System status (cameras, detection, uptime) |
+| `/cameras` | List all cameras with status |
+| `/enable <name>` | Enable a camera |
+| `/disable <name>` | Disable a camera |
+| `/start_detection` | Start motion detection on all cameras |
+| `/stop_detection` | Stop motion detection |
+| `/snapshot <name>` | Capture and send a frame from a camera |
+| `/events [limit]` | Show recent motion events (default: 5) |
+| `/help` | Show available commands |
 
 ## API Reference
 

@@ -94,3 +94,19 @@ func (md *MotionDetector) DrawBoxesEnabled() bool {
 func (md *MotionDetector) SetTelegramBot(bot *telegram.TelegramBot) {
 	md.streamDetector.SetTelegramBot(bot)
 }
+
+// GetEventsForTelegram returns events in a format suitable for Telegram command handler
+// This avoids circular imports by returning a simpler struct
+func (md *MotionDetector) GetEventsForTelegram(cameraID string, since *time.Time, limit int) []telegram.MotionEventInfo {
+	events := md.streamDetector.GetEvents(cameraID, since, limit)
+	result := make([]telegram.MotionEventInfo, len(events))
+	for i, e := range events {
+		result[i] = telegram.MotionEventInfo{
+			ID:          e.ID,
+			CameraID:    e.CameraID,
+			Timestamp:   e.Timestamp,
+			ObjectClass: e.ObjectClass,
+		}
+	}
+	return result
+}
