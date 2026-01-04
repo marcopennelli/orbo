@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.10-slim
 
 # Set working directory
 WORKDIR /app
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 
-# Install dependencies
+# Install dependencies (onnxruntime needs specific version for compatibility)
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Pre-download InsightFace model
