@@ -1,11 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Header, Sidebar } from './components/layout';
 import { CameraList, CameraForm, CameraFeed, CameraGrid } from './components/cameras';
 import { EventList, EventModal } from './components/events';
 import { SettingsPanel } from './components/settings';
+import { FaceManagement } from './components/faces';
 import { LoginForm } from './components/auth';
 import type { MotionEvent } from './types';
+import * as recognitionApi from './api/recognition';
+import type { Face } from './api/recognition';
 import {
   useCameras,
   useCreateCamera,
@@ -42,7 +45,7 @@ const queryClient = new QueryClient({
   },
 });
 
-type TabId = 'cameras' | 'events' | 'grid' | 'settings';
+type TabId = 'cameras' | 'events' | 'grid' | 'faces' | 'settings';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('cameras');
@@ -53,6 +56,10 @@ function AppContent() {
   const [eventCameraFilter, setEventCameraFilter] = useState<string>('');
   const [loadingCameraId, setLoadingCameraId] = useState<string | undefined>();
   const [selectedEvent, setSelectedEvent] = useState<MotionEvent | null>(null);
+
+  // Face recognition state
+  const [faces, setFaces] = useState<Face[]>([]);
+  const [facesLoading, setFacesLoading] = useState(false);
 
   // Auth state
   const { isAuthenticated, authEnabled, isLoading: authLoading, logout } = useAuth();
@@ -140,12 +147,32 @@ function AppContent() {
   }, [systemStatus, startDetection, stopDetection]);
 
   const handleTabChange = useCallback((tab: TabId) => {
-    setActiveTab(tab);
     if (tab === 'settings') {
       setIsSettingsOpen(true);
-      setActiveTab('cameras');
+    } else {
+      setActiveTab(tab);
     }
   }, []);
+
+  // Load faces when faces tab is active
+  const loadFaces = useCallback(async () => {
+    setFacesLoading(true);
+    try {
+      const response = await recognitionApi.listFaces();
+      setFaces(response.faces);
+    } catch (error) {
+      console.error('Failed to load faces:', error);
+      setFaces([]);
+    } finally {
+      setFacesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'faces') {
+      loadFaces();
+    }
+  }, [activeTab, loadFaces]);
 
   // Default configs for settings panel
   const defaultTelegramConfig = telegramConfig || {
@@ -252,6 +279,16 @@ function AppContent() {
                 events={events}
                 eventsLoading={eventsLoading}
                 onViewEvent={(event) => setSelectedEvent(event)}
+              />
+            </div>
+          )}
+
+          {activeTab === 'faces' && (
+            <div className="h-full bg-bg-panel rounded-lg border border-border overflow-auto p-4">
+              <FaceManagement
+                faces={faces}
+                isLoading={facesLoading}
+                onRefresh={loadFaces}
               />
             </div>
           )}

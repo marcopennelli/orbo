@@ -1,6 +1,6 @@
-import { Camera, Activity, Grid3X3, Settings } from 'lucide-react';
+import { Camera, Activity, Grid3X3, Settings, UserCircle } from 'lucide-react';
 
-type TabId = 'cameras' | 'events' | 'grid' | 'settings';
+type TabId = 'cameras' | 'events' | 'grid' | 'faces' | 'settings';
 
 interface SidebarProps {
   activeTab: TabId;
@@ -11,6 +11,7 @@ const tabs = [
   { id: 'cameras' as TabId, label: 'Cameras', icon: Camera },
   { id: 'events' as TabId, label: 'Events', icon: Activity },
   { id: 'grid' as TabId, label: 'Grid View', icon: Grid3X3 },
+  { id: 'faces' as TabId, label: 'Faces', icon: UserCircle },
   { id: 'settings' as TabId, label: 'Settings', icon: Settings },
 ];
 
