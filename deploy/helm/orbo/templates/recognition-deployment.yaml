@@ -1,0 +1,97 @@
+{{- if .Values.recognition.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "orbo.fullname" . }}-recognition
+  labels:
+    {{- include "orbo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: recognition-service
+spec:
+  replicas: {{ .Values.recognition.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "orbo.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: recognition-service
+  template:
+    metadata:
+      labels:
+        {{- include "orbo.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: recognition-service
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "orbo.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: {{ .Values.recognition.securityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.recognition.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.recognition.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.recognition.securityContext.fsGroup }}
+      containers:
+        - name: recognition-service
+          securityContext:
+            allowPrivilegeEscalation: {{ .Values.recognition.securityContext.allowPrivilegeEscalation }}
+            readOnlyRootFilesystem: false  # Needs to write face database
+            capabilities:
+              drop:
+                {{- toYaml .Values.recognition.securityContext.capabilities.drop | nindent 16 }}
+          image: "{{ .Values.recognition.image.repository }}:{{ .Values.recognition.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.recognition.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.recognition.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.recognition.resources | nindent 12 }}
+          env:
+            - name: PORT
+              value: {{ .Values.recognition.service.port | quote }}
+            - name: HOST
+              value: "0.0.0.0"
+            - name: SIMILARITY_THRESHOLD
+              value: {{ .Values.recognition.config.similarityThreshold | quote }}
+            - name: INSIGHTFACE_MODEL
+              value: {{ .Values.recognition.config.model | quote }}
+            - name: FACES_DB_PATH
+              value: "/app/data/faces.pkl"
+            - name: FACES_IMAGES_PATH
+              value: "/app/data/faces"
+          volumeMounts:
+            - name: faces-data
+              mountPath: /app/data
+      volumes:
+        - name: faces-data
+          {{- if .Values.recognition.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "orbo.fullname" . }}-recognition-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.recognition.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.recognition.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.recognition.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

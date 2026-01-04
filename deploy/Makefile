@@ -4,7 +4,7 @@
 # Run from project root: make -C deploy <target>
 # Or from deploy dir:    make <target>
 
-.PHONY: help gen clean build build-fresh test run docker lint fmt check-opencv install-deps dev test-camera minikube-build minikube-deploy frontend frontend-dev frontend-clean
+.PHONY: help gen clean build build-fresh test run docker docker-yolo docker-recognition lint fmt check-opencv install-deps dev test-camera minikube-build minikube-build-yolo minikube-build-recognition minikube-deploy frontend frontend-dev frontend-clean
 
 SERVICE_NAME := orbo
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -68,6 +68,11 @@ docker-yolo: ## Build YOLO service Docker image
 	docker build -t $(REGISTRY)/$(SERVICE_NAME)-yolo:$(VERSION) \
 		-f $(PROJECT_DIR)/yolo-service/Dockerfile $(PROJECT_DIR)/yolo-service
 
+# Build Recognition service Docker image
+docker-recognition: ## Build Recognition service Docker image
+	docker build -t $(REGISTRY)/$(SERVICE_NAME)-recognition:$(VERSION) \
+		-f $(PROJECT_DIR)/recognition-service/Dockerfile $(PROJECT_DIR)/recognition-service
+
 # Lint code
 lint: ## Lint code (requires golangci-lint)
 	@command -v golangci-lint >/dev/null 2>&1 || { \
@@ -125,6 +130,10 @@ minikube-build: ## Build and load image to Minikube
 minikube-build-yolo: ## Build and load YOLO image to Minikube
 	eval $$(minikube docker-env) && \
 	docker build --no-cache -t $(SERVICE_NAME)-yolo:latest -f $(PROJECT_DIR)/yolo-service/Dockerfile $(PROJECT_DIR)/yolo-service
+
+minikube-build-recognition: ## Build and load Recognition image to Minikube
+	eval $$(minikube docker-env) && \
+	docker build --no-cache -t $(SERVICE_NAME)-recognition:latest -f $(PROJECT_DIR)/recognition-service/Dockerfile $(PROJECT_DIR)/recognition-service
 
 minikube-deploy: ## Deploy to Minikube using Helm (uses values-cpu.yaml)
 	helm upgrade --install $(SERVICE_NAME) $(ROOT_DIR)/helm/orbo \

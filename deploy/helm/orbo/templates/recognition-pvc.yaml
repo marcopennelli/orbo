@@ -1,0 +1,18 @@
+{{- if and .Values.recognition.enabled .Values.recognition.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "orbo.fullname" . }}-recognition-data
+  labels:
+    {{- include "orbo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: recognition-service
+spec:
+  accessModes:
+    - {{ .Values.recognition.persistence.accessMode | default "ReadWriteOnce" }}
+  resources:
+    requests:
+      storage: {{ .Values.recognition.persistence.size | default "1Gi" }}
+  {{- if .Values.recognition.persistence.storageClass }}
+  storageClassName: {{ .Values.recognition.persistence.storageClass }}
+  {{- end }}
+{{- end }}

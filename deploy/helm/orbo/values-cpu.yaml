@@ -131,6 +131,59 @@ yolo:
   affinity: {}
 
 # -----------------------------------------------------------------------------
+# Face Recognition Service (InsightFace)
+# -----------------------------------------------------------------------------
+recognition:
+  enabled: false
+  replicaCount: 1
+
+  image:
+    repository: orbo-recognition
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # Recognition settings
+  config:
+    similarityThreshold: 0.5  # 0.0-1.0, higher = stricter matching
+    model: buffalo_l  # InsightFace model: buffalo_l, buffalo_s, buffalo_sc
+
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8082
+
+  # Persistence for face database
+  persistence:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    storageClass: ""
+
+  # CPU-only resources
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ALL]
+
+  # Scheduling
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
 # DINOv3 Service (Disabled)
 # -----------------------------------------------------------------------------
 dinov3:

@@ -12,6 +12,7 @@ Orbo is a modern, open-source video alarm system built with Go and OpenCV. It fe
 - **Camera Support**: USB cameras (`/dev/video*`), HTTP endpoints, and RTSP streams
 - **Motion Detection**: OpenCV-based with configurable sensitivity
 - **AI Object Detection**: YOLO integration for persons, vehicles, and 80+ COCO classes
+- **Face Recognition**: InsightFace-based face detection and identity matching
 - **Telegram Integration**: Instant alerts with captured frames + bot commands for remote control
 - **REST API**: Complete HTTP API for camera management and system control
 - **Database Persistence**: SQLite for cameras, events, and configuration
@@ -191,6 +192,15 @@ Once configured, control Orbo directly from Telegram:
 - `POST /detect/security` - Security-focused detection
 - `GET /classes` - List supported classes
 
+### Face Recognition Service
+- `POST /detect` - Detect faces with age/gender estimation
+- `POST /recognize` - Detect and identify known faces
+- `POST /recognize/annotated` - Recognize with annotated image
+- `POST /faces/register` - Register a new face identity
+- `GET /faces` - List registered identities
+- `DELETE /faces/{name}` - Remove a registered identity
+- `GET /faces/{name}/image` - Get registered face image
+
 ## Architecture
 
 ```
@@ -213,12 +223,12 @@ Once configured, control Orbo directly from Telegram:
     │  frame capture) │  │   AI integration)   │  │   images)     │
     └────────┬────────┘  └──────────┬──────────┘  └───────────────┘
              │                      │
-             │           ┌──────────┴──────────┐
-             │           │  Detection Engines  │
-             │           ├─────────┬───────────┤
-             │           │  YOLO   │  DINOv3   │
-             │           │ Service │  Service  │
-             │           └─────────┴───────────┘
+             │           ┌──────────┴──────────────────────┐
+             │           │      Detection Engines         │
+             │           ├─────────┬──────────┬───────────┤
+             │           │  YOLO   │  Face    │  DINOv3   │
+             │           │ Service │  Recog.  │  Service  │
+             │           └─────────┴──────────┴───────────┘
              │
     ┌────────▼────────────────────────────────┐
     │          Camera Sources                 │
@@ -256,7 +266,8 @@ orbo/
 │       │   ├── hooks/     # React Query hooks
 │       │   └── types/     # TypeScript types
 │       └── dist/          # Production build
-├── yolo-service/      # YOLO detection service (Python)
+├── yolo-service/         # YOLO detection service (Python)
+├── recognition-service/  # Face recognition service (InsightFace)
 └── deploy/
     ├── Dockerfile
     ├── Makefile
