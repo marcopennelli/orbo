@@ -5,8 +5,8 @@ bin/
 *.dll
 *.so
 *.dylib
-orbo
-orbo-*
+/orbo
+/orbo-*
 
 # Test binaries
 *.test
