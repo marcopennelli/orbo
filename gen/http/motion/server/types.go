@@ -42,11 +42,28 @@ type EventResponseBody struct {
 	InferenceTimeMs *float32 `form:"inference_time_ms,omitempty" json:"inference_time_ms,omitempty" xml:"inference_time_ms,omitempty"`
 	// Device used for detection
 	DetectionDevice *string `form:"detection_device,omitempty" json:"detection_device,omitempty" xml:"detection_device,omitempty"`
+	// Number of faces detected in frame
+	FacesDetected *int `form:"faces_detected,omitempty" json:"faces_detected,omitempty" xml:"faces_detected,omitempty"`
+	// Names of recognized known faces
+	KnownIdentities []string `form:"known_identities,omitempty" json:"known_identities,omitempty" xml:"known_identities,omitempty"`
+	// Number of unknown/unrecognized faces
+	UnknownFacesCount *int `form:"unknown_faces_count,omitempty" json:"unknown_faces_count,omitempty" xml:"unknown_faces_count,omitempty"`
+	// Paths to forensic face analysis images with landmarks
+	ForensicThumbnails []string `form:"forensic_thumbnails,omitempty" json:"forensic_thumbnails,omitempty" xml:"forensic_thumbnails,omitempty"`
 }
 
 // FrameResponseBody is the type of the "motion" service "frame" endpoint HTTP
 // response body.
 type FrameResponseBody struct {
+	// Base64 encoded JPEG image data
+	Data string `form:"data" json:"data" xml:"data"`
+	// Image MIME type
+	ContentType string `form:"content_type" json:"content_type" xml:"content_type"`
+}
+
+// ForensicThumbnailResponseBody is the type of the "motion" service
+// "forensic_thumbnail" endpoint HTTP response body.
+type ForensicThumbnailResponseBody struct {
 	// Base64 encoded JPEG image data
 	Data string `form:"data" json:"data" xml:"data"`
 	// Image MIME type
@@ -65,6 +82,15 @@ type EventNotFoundResponseBody struct {
 // FrameNotFoundResponseBody is the type of the "motion" service "frame"
 // endpoint HTTP response body for the "not_found" error.
 type FrameNotFoundResponseBody struct {
+	// Error message
+	Message string `form:"message" json:"message" xml:"message"`
+	// Resource ID
+	ID string `form:"id" json:"id" xml:"id"`
+}
+
+// ForensicThumbnailNotFoundResponseBody is the type of the "motion" service
+// "forensic_thumbnail" endpoint HTTP response body for the "not_found" error.
+type ForensicThumbnailNotFoundResponseBody struct {
 	// Error message
 	Message string `form:"message" json:"message" xml:"message"`
 	// Resource ID
@@ -97,6 +123,14 @@ type MotionEventResponse struct {
 	InferenceTimeMs *float32 `form:"inference_time_ms,omitempty" json:"inference_time_ms,omitempty" xml:"inference_time_ms,omitempty"`
 	// Device used for detection
 	DetectionDevice *string `form:"detection_device,omitempty" json:"detection_device,omitempty" xml:"detection_device,omitempty"`
+	// Number of faces detected in frame
+	FacesDetected *int `form:"faces_detected,omitempty" json:"faces_detected,omitempty" xml:"faces_detected,omitempty"`
+	// Names of recognized known faces
+	KnownIdentities []string `form:"known_identities,omitempty" json:"known_identities,omitempty" xml:"known_identities,omitempty"`
+	// Number of unknown/unrecognized faces
+	UnknownFacesCount *int `form:"unknown_faces_count,omitempty" json:"unknown_faces_count,omitempty" xml:"unknown_faces_count,omitempty"`
+	// Paths to forensic face analysis images with landmarks
+	ForensicThumbnails []string `form:"forensic_thumbnails,omitempty" json:"forensic_thumbnails,omitempty" xml:"forensic_thumbnails,omitempty"`
 }
 
 // BoundingBoxResponse is used to define fields on response body types.
@@ -137,22 +171,36 @@ func NewEventsResponseBody(res []*motion.MotionEvent) EventsResponseBody {
 // "event" endpoint of the "motion" service.
 func NewEventResponseBody(res *motion.MotionEvent) *EventResponseBody {
 	body := &EventResponseBody{
-		ID:               res.ID,
-		CameraID:         res.CameraID,
-		Timestamp:        res.Timestamp,
-		Confidence:       res.Confidence,
-		FramePath:        res.FramePath,
-		NotificationSent: res.NotificationSent,
-		ObjectClass:      res.ObjectClass,
-		ObjectConfidence: res.ObjectConfidence,
-		ThreatLevel:      res.ThreatLevel,
-		InferenceTimeMs:  res.InferenceTimeMs,
-		DetectionDevice:  res.DetectionDevice,
+		ID:                res.ID,
+		CameraID:          res.CameraID,
+		Timestamp:         res.Timestamp,
+		Confidence:        res.Confidence,
+		FramePath:         res.FramePath,
+		NotificationSent:  res.NotificationSent,
+		ObjectClass:       res.ObjectClass,
+		ObjectConfidence:  res.ObjectConfidence,
+		ThreatLevel:       res.ThreatLevel,
+		InferenceTimeMs:   res.InferenceTimeMs,
+		DetectionDevice:   res.DetectionDevice,
+		FacesDetected:     res.FacesDetected,
+		UnknownFacesCount: res.UnknownFacesCount,
 	}
 	if res.BoundingBoxes != nil {
 		body.BoundingBoxes = make([]*BoundingBoxResponseBody, len(res.BoundingBoxes))
 		for i, val := range res.BoundingBoxes {
 			body.BoundingBoxes[i] = marshalMotionBoundingBoxToBoundingBoxResponseBody(val)
+		}
+	}
+	if res.KnownIdentities != nil {
+		body.KnownIdentities = make([]string, len(res.KnownIdentities))
+		for i, val := range res.KnownIdentities {
+			body.KnownIdentities[i] = val
+		}
+	}
+	if res.ForensicThumbnails != nil {
+		body.ForensicThumbnails = make([]string, len(res.ForensicThumbnails))
+		for i, val := range res.ForensicThumbnails {
+			body.ForensicThumbnails[i] = val
 		}
 	}
 	return body
@@ -162,6 +210,16 @@ func NewEventResponseBody(res *motion.MotionEvent) *EventResponseBody {
 // "frame" endpoint of the "motion" service.
 func NewFrameResponseBody(res *motion.FrameResponse) *FrameResponseBody {
 	body := &FrameResponseBody{
+		Data:        res.Data,
+		ContentType: res.ContentType,
+	}
+	return body
+}
+
+// NewForensicThumbnailResponseBody builds the HTTP response body from the
+// result of the "forensic_thumbnail" endpoint of the "motion" service.
+func NewForensicThumbnailResponseBody(res *motion.FrameResponse) *ForensicThumbnailResponseBody {
+	body := &ForensicThumbnailResponseBody{
 		Data:        res.Data,
 		ContentType: res.ContentType,
 	}
@@ -182,6 +240,16 @@ func NewEventNotFoundResponseBody(res *motion.NotFoundError) *EventNotFoundRespo
 // of the "frame" endpoint of the "motion" service.
 func NewFrameNotFoundResponseBody(res *motion.NotFoundError) *FrameNotFoundResponseBody {
 	body := &FrameNotFoundResponseBody{
+		Message: res.Message,
+		ID:      res.ID,
+	}
+	return body
+}
+
+// NewForensicThumbnailNotFoundResponseBody builds the HTTP response body from
+// the result of the "forensic_thumbnail" endpoint of the "motion" service.
+func NewForensicThumbnailNotFoundResponseBody(res *motion.NotFoundError) *ForensicThumbnailNotFoundResponseBody {
+	body := &ForensicThumbnailNotFoundResponseBody{
 		Message: res.Message,
 		ID:      res.ID,
 	}
@@ -210,6 +278,16 @@ func NewEventPayload(id string) *motion.EventPayload {
 func NewFramePayload(id string) *motion.FramePayload {
 	v := &motion.FramePayload{}
 	v.ID = id
+
+	return v
+}
+
+// NewForensicThumbnailPayload builds a motion service forensic_thumbnail
+// endpoint payload.
+func NewForensicThumbnailPayload(id string, index int) *motion.ForensicThumbnailPayload {
+	v := &motion.ForensicThumbnailPayload{}
+	v.ID = id
+	v.Index = index
 
 	return v
 }

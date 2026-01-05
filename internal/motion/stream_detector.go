@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -23,22 +24,23 @@ import (
 
 // StreamDetector handles streaming motion detection
 type StreamDetector struct {
-	mu              sync.RWMutex
-	events          map[string]*MotionEvent
-	eventsByCamera  map[string][]*MotionEvent
-	isRunning       map[string]bool
-	stopChannels    map[string]chan struct{}
-	streamProcesses map[string]*exec.Cmd
-	sensitivity     float32
-	minMotionArea   int
-	maxEvents       int
-	frameDir        string
+	mu               sync.RWMutex
+	events           map[string]*MotionEvent
+	eventsByCamera   map[string][]*MotionEvent
+	isRunning        map[string]bool
+	stopChannels     map[string]chan struct{}
+	streamProcesses  map[string]*exec.Cmd
+	sensitivity      float32
+	minMotionArea    int
+	maxEvents        int
+	frameDir         string
 	backgroundFrames map[string]image.Image
-	frameBuffers    map[string]chan []byte
-	gpuDetector     *detection.GPUDetector     // GPU object detection
-	dinov3Detector  *detection.DINOv3Detector  // DINOv3 AI-powered detection
-	db              *database.Database         // Database for event persistence
-	telegramBot     *telegram.TelegramBot      // Telegram notifications
+	frameBuffers     map[string]chan []byte
+	gpuDetector      *detection.GPUDetector     // GPU object detection
+	dinov3Detector   *detection.DINOv3Detector  // DINOv3 AI-powered detection
+	faceRecognizer   *detection.FaceRecognizer  // Face recognition
+	db               *database.Database         // Database for event persistence
+	telegramBot      *telegram.TelegramBot      // Telegram notifications
 }
 
 // NewStreamDetector creates a new streaming motion detector
@@ -46,30 +48,48 @@ func NewStreamDetector(frameDir string, db *database.Database) *StreamDetector {
 	// Get YOLO endpoint from environment or use default Kubernetes service name
 	yoloEndpoint := os.Getenv("YOLO_SERVICE_ENDPOINT")
 	if yoloEndpoint == "" {
+		yoloEndpoint = os.Getenv("YOLO_ENDPOINT") // Helm chart uses this name
+	}
+	if yoloEndpoint == "" {
 		yoloEndpoint = "http://orbo-yolo:8081"
 	}
 
 	// Get DINOv3 endpoint from environment or use default
 	dinov3Endpoint := os.Getenv("DINOV3_SERVICE_ENDPOINT")
 	if dinov3Endpoint == "" {
+		dinov3Endpoint = os.Getenv("DINOV3_ENDPOINT") // Helm chart uses this name
+	}
+	if dinov3Endpoint == "" {
 		dinov3Endpoint = "http://orbo-dinov3:8001"
 	}
 
+	// Get Face Recognition endpoint from environment or use default
+	recognitionEndpoint := os.Getenv("RECOGNITION_SERVICE_ENDPOINT")
+	if recognitionEndpoint == "" {
+		recognitionEndpoint = "http://orbo-recognition:8082"
+	}
+	recognitionEnabled := os.Getenv("RECOGNITION_ENABLED") == "true"
+
 	sd := &StreamDetector{
-		events:          make(map[string]*MotionEvent),
-		eventsByCamera:  make(map[string][]*MotionEvent),
-		isRunning:       make(map[string]bool),
-		stopChannels:    make(map[string]chan struct{}),
-		streamProcesses: make(map[string]*exec.Cmd),
+		events:           make(map[string]*MotionEvent),
+		eventsByCamera:   make(map[string][]*MotionEvent),
+		isRunning:        make(map[string]bool),
+		stopChannels:     make(map[string]chan struct{}),
+		streamProcesses:  make(map[string]*exec.Cmd),
 		backgroundFrames: make(map[string]image.Image),
-		frameBuffers:    make(map[string]chan []byte),
-		sensitivity:     0.15, // More sensitive for real-time detection
-		minMotionArea:   300,  // Smaller minimum area for faster detection
-		maxEvents:       1000,
-		frameDir:        frameDir,
-		gpuDetector:     detection.NewGPUDetector(yoloEndpoint),
-		dinov3Detector:  detection.NewDINOv3Detector(dinov3Endpoint),
-		db:              db,
+		frameBuffers:     make(map[string]chan []byte),
+		sensitivity:      0.15, // More sensitive for real-time detection
+		minMotionArea:    300,  // Smaller minimum area for faster detection
+		maxEvents:        1000,
+		frameDir:         frameDir,
+		gpuDetector:      detection.NewGPUDetector(yoloEndpoint),
+		dinov3Detector:   detection.NewDINOv3Detector(dinov3Endpoint),
+		faceRecognizer: detection.NewFaceRecognizer(detection.FaceRecognizerConfig{
+			Enabled:             recognitionEnabled,
+			ServiceEndpoint:     recognitionEndpoint,
+			SimilarityThreshold: 0.5,
+		}),
+		db: db,
 	}
 
 	// Load events from database on startup
@@ -107,18 +127,22 @@ func (sd *StreamDetector) loadEventsFromDB() error {
 		}
 
 		event := &MotionEvent{
-			ID:               record.ID,
-			CameraID:         record.CameraID,
-			Timestamp:        record.Timestamp,
-			Confidence:       float32(record.Confidence),
-			BoundingBoxes:    bboxes,
-			FramePath:        record.FramePath,
-			NotificationSent: record.NotificationSent,
-			ObjectClass:      record.ObjectClass,
-			ObjectConfidence: float32(record.ObjectConfidence),
-			ThreatLevel:      record.ThreatLevel,
-			InferenceTimeMs:  float32(record.InferenceTimeMs),
-			DetectionDevice:  record.DetectionDevice,
+			ID:                 record.ID,
+			CameraID:           record.CameraID,
+			Timestamp:          record.Timestamp,
+			Confidence:         float32(record.Confidence),
+			BoundingBoxes:      bboxes,
+			FramePath:          record.FramePath,
+			NotificationSent:   record.NotificationSent,
+			ObjectClass:        record.ObjectClass,
+			ObjectConfidence:   float32(record.ObjectConfidence),
+			ThreatLevel:        record.ThreatLevel,
+			InferenceTimeMs:    float32(record.InferenceTimeMs),
+			DetectionDevice:    record.DetectionDevice,
+			FacesDetected:      record.FacesDetected,
+			KnownIdentities:    record.KnownIdentities,
+			UnknownFacesCount:  record.UnknownFacesCount,
+			ForensicThumbnails: record.ForensicThumbnails,
 		}
 
 		sd.events[event.ID] = event
@@ -497,6 +521,11 @@ func (sd *StreamDetector) runDirectYOLODetection(cameraID string, frameData []by
 					DetectionDevice:  securityResult.Device,
 				}
 
+				// If person detected, try face recognition
+				if det.Class == "person" {
+					sd.performFaceRecognition(cameraID, frameData, event)
+				}
+
 				sd.addEvent(event)
 				fmt.Printf("YOLO direct detection: %s on camera %s (confidence: %.2f, threat: %s)\n",
 					det.Class, cameraID, det.Confidence, event.ThreatLevel)
@@ -566,6 +595,19 @@ func (sd *StreamDetector) runDirectYOLODetectionAnnotated(cameraID string, frame
 			ThreatLevel:      threatLevel,
 			InferenceTimeMs:  annotatedResult.InferenceTimeMs,
 			DetectionDevice:  annotatedResult.Device,
+		}
+
+		// Check if person detected and face recognition is enabled
+		hasPersonDetection := false
+		for _, det := range annotatedResult.Detections {
+			if det.Class == "person" {
+				hasPersonDetection = true
+				break
+			}
+		}
+
+		if hasPersonDetection {
+			sd.performFaceRecognition(cameraID, frameData, event)
 		}
 
 		sd.addEvent(event)
@@ -754,6 +796,94 @@ func (sd *StreamDetector) createBasicMotionEvent(cameraID string, frameData []by
 	fmt.Printf("Basic motion detected on camera %s with confidence %.2f\n", cameraID, confidence)
 }
 
+// performFaceRecognition runs face recognition on a frame and updates the event with results
+func (sd *StreamDetector) performFaceRecognition(cameraID string, frameData []byte, event *MotionEvent) {
+	// Check if face recognition is enabled
+	if sd.faceRecognizer == nil || !sd.faceRecognizer.IsEnabled() {
+		return
+	}
+
+	// Check if service is healthy (don't block on health check every time)
+	if !sd.faceRecognizer.IsHealthy() {
+		// Try a health check
+		if err := sd.faceRecognizer.CheckHealth(); err != nil {
+			fmt.Printf("Face recognition service unhealthy for camera %s: %v\n", cameraID, err)
+			return
+		}
+	}
+
+	// Run face recognition
+	result, err := sd.faceRecognizer.RecognizeFaces(frameData)
+	if err != nil {
+		fmt.Printf("Face recognition failed for camera %s: %v\n", cameraID, err)
+		return
+	}
+
+	// Update event with face recognition results
+	if result.Count > 0 {
+		event.FacesDetected = result.Count
+		event.KnownIdentities = result.GetKnownIdentities()
+		event.UnknownFacesCount = result.UnknownCount
+
+		// Log the results
+		sd.faceRecognizer.LogRecognitionResult(result, cameraID)
+
+		// Update threat level if unknown faces detected
+		if result.UnknownCount > 0 && event.ThreatLevel != "high" {
+			event.ThreatLevel = "high" // Unknown person = high threat
+		}
+
+		// Run forensic analysis to get face thumbnails with landmarks
+		sd.performForensicAnalysis(cameraID, frameData, event)
+	}
+}
+
+// performForensicAnalysis generates NSA-style forensic face thumbnails with landmarks
+func (sd *StreamDetector) performForensicAnalysis(cameraID string, frameData []byte, event *MotionEvent) {
+	forensicResult, err := sd.faceRecognizer.AnalyzeForensic(frameData)
+	if err != nil {
+		fmt.Printf("Forensic analysis failed for camera %s: %v\n", cameraID, err)
+		return
+	}
+
+	if forensicResult.Count == 0 {
+		return
+	}
+
+	// Save forensic thumbnails to disk
+	var thumbnailPaths []string
+	for i, face := range forensicResult.Faces {
+		// Decode base64 image data
+		imageData, err := base64.StdEncoding.DecodeString(face.ImageBase64)
+		if err != nil {
+			fmt.Printf("Failed to decode forensic thumbnail %d: %v\n", i, err)
+			continue
+		}
+
+		// Generate filename
+		identity := "unknown"
+		if face.Identity != nil {
+			identity = *face.Identity
+		}
+		thumbnailPath := fmt.Sprintf("%s/forensic_%s_%s_face%d_%d.jpg",
+			sd.frameDir, cameraID, identity, i, time.Now().UnixNano())
+
+		// Save thumbnail
+		if err := sd.saveFrameBytes(imageData, thumbnailPath); err != nil {
+			fmt.Printf("Failed to save forensic thumbnail: %v\n", err)
+			continue
+		}
+
+		thumbnailPaths = append(thumbnailPaths, thumbnailPath)
+		fmt.Printf("Saved forensic face thumbnail: %s (age: %d, gender: %s, known: %v)\n",
+			thumbnailPath, face.Age, face.Gender, face.IsKnown)
+	}
+
+	event.ForensicThumbnails = thumbnailPaths
+	fmt.Printf("Forensic analysis complete for camera %s: %d face thumbnails saved\n",
+		cameraID, len(thumbnailPaths))
+}
+
 // saveFrameBytes saves frame data directly to disk
 func (sd *StreamDetector) saveFrameBytes(frameData []byte, path string) error {
 	return os.WriteFile(path, frameData, 0644)
@@ -874,18 +1004,22 @@ func (sd *StreamDetector) addEvent(event *MotionEvent) {
 		}
 
 		record := &database.MotionEventRecord{
-			ID:               event.ID,
-			CameraID:         event.CameraID,
-			Timestamp:        event.Timestamp,
-			Confidence:       float64(event.Confidence),
-			BoundingBoxes:    dbBBoxes,
-			FramePath:        event.FramePath,
-			NotificationSent: event.NotificationSent,
-			ObjectClass:      event.ObjectClass,
-			ObjectConfidence: float64(event.ObjectConfidence),
-			ThreatLevel:      event.ThreatLevel,
-			InferenceTimeMs:  float64(event.InferenceTimeMs),
-			DetectionDevice:  event.DetectionDevice,
+			ID:                 event.ID,
+			CameraID:           event.CameraID,
+			Timestamp:          event.Timestamp,
+			Confidence:         float64(event.Confidence),
+			BoundingBoxes:      dbBBoxes,
+			FramePath:          event.FramePath,
+			NotificationSent:   event.NotificationSent,
+			ObjectClass:        event.ObjectClass,
+			ObjectConfidence:   float64(event.ObjectConfidence),
+			ThreatLevel:        event.ThreatLevel,
+			InferenceTimeMs:    float64(event.InferenceTimeMs),
+			DetectionDevice:    event.DetectionDevice,
+			FacesDetected:      event.FacesDetected,
+			KnownIdentities:    event.KnownIdentities,
+			UnknownFacesCount:  event.UnknownFacesCount,
+			ForensicThumbnails: event.ForensicThumbnails,
 		}
 		if err := sd.db.SaveMotionEvent(record); err != nil {
 			fmt.Printf("Warning: failed to persist event to database: %v\n", err)
@@ -926,7 +1060,36 @@ func (sd *StreamDetector) sendTelegramNotification(event *MotionEvent) {
 		}
 	}
 
-	err := sd.telegramBot.SendMotionAlert(ctx, cameraName, event.Confidence, frameData)
+	var err error
+	// Use enhanced notification with face info if available
+	if event.FacesDetected > 0 {
+		faceInfo := &telegram.FaceRecognitionInfo{
+			FacesDetected:     event.FacesDetected,
+			KnownIdentities:   event.KnownIdentities,
+			UnknownFacesCount: event.UnknownFacesCount,
+		}
+
+		// Load forensic thumbnails if available
+		if len(event.ForensicThumbnails) > 0 {
+			for _, thumbnailPath := range event.ForensicThumbnails {
+				thumbnailData, err := os.ReadFile(thumbnailPath)
+				if err != nil {
+					fmt.Printf("Warning: failed to read forensic thumbnail %s: %v\n", thumbnailPath, err)
+					continue
+				}
+				faceInfo.ForensicThumbnails = append(faceInfo.ForensicThumbnails, thumbnailData)
+			}
+		}
+
+		err = sd.telegramBot.SendMotionAlertWithFaces(ctx, cameraName, event.ObjectClass, event.ThreatLevel, faceInfo, frameData)
+	} else if event.ObjectClass != "" && event.ObjectClass != "unknown" {
+		// Use enhanced notification with object class but no face info
+		err = sd.telegramBot.SendMotionAlertWithFaces(ctx, cameraName, event.ObjectClass, event.ThreatLevel, nil, frameData)
+	} else {
+		// Fall back to basic notification
+		err = sd.telegramBot.SendMotionAlert(ctx, cameraName, event.Confidence, frameData)
+	}
+
 	if err != nil {
 		fmt.Printf("Warning: failed to send Telegram notification: %v\n", err)
 		return
@@ -1034,18 +1197,22 @@ func (sd *StreamDetector) GetEvent(eventID string) (*MotionEvent, error) {
 			}
 
 			event = &MotionEvent{
-				ID:               record.ID,
-				CameraID:         record.CameraID,
-				Timestamp:        record.Timestamp,
-				Confidence:       float32(record.Confidence),
-				BoundingBoxes:    bboxes,
-				FramePath:        record.FramePath,
-				NotificationSent: record.NotificationSent,
-				ObjectClass:      record.ObjectClass,
-				ObjectConfidence: float32(record.ObjectConfidence),
-				ThreatLevel:      record.ThreatLevel,
-				InferenceTimeMs:  float32(record.InferenceTimeMs),
-				DetectionDevice:  record.DetectionDevice,
+				ID:                 record.ID,
+				CameraID:           record.CameraID,
+				Timestamp:          record.Timestamp,
+				Confidence:         float32(record.Confidence),
+				BoundingBoxes:      bboxes,
+				FramePath:          record.FramePath,
+				NotificationSent:   record.NotificationSent,
+				ObjectClass:        record.ObjectClass,
+				ObjectConfidence:   float32(record.ObjectConfidence),
+				ThreatLevel:        record.ThreatLevel,
+				InferenceTimeMs:    float32(record.InferenceTimeMs),
+				DetectionDevice:    record.DetectionDevice,
+				FacesDetected:      record.FacesDetected,
+				KnownIdentities:    record.KnownIdentities,
+				UnknownFacesCount:  record.UnknownFacesCount,
+				ForensicThumbnails: record.ForensicThumbnails,
 			}
 			return event, nil
 		}

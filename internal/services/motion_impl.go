@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"time"
 
 	motion_service "orbo/gen/motion"
@@ -93,6 +94,50 @@ func (m *MotionImplementation) Frame(ctx context.Context, p *motion_service.Fram
 	}, nil
 }
 
+// ForensicThumbnail gets a forensic face analysis thumbnail for a motion event
+func (m *MotionImplementation) ForensicThumbnail(ctx context.Context, p *motion_service.ForensicThumbnailPayload) (*motion_service.FrameResponse, error) {
+	fmt.Printf("Forensic thumbnail request for event ID: %s, index: %d\n", p.ID, p.Index)
+
+	// Get the event to access forensic thumbnails
+	event, err := m.motionDetector.GetEvent(p.ID)
+	if err != nil {
+		fmt.Printf("Forensic thumbnail request failed - event not found: %s\n", p.ID)
+		return nil, &motion_service.NotFoundError{
+			Message: "Event not found",
+			ID:      p.ID,
+		}
+	}
+
+	// Check if index is valid
+	if p.Index < 0 || p.Index >= len(event.ForensicThumbnails) {
+		fmt.Printf("Forensic thumbnail request failed - invalid index %d (have %d thumbnails)\n", p.Index, len(event.ForensicThumbnails))
+		return nil, &motion_service.NotFoundError{
+			Message: fmt.Sprintf("Thumbnail index %d not found (event has %d face thumbnails)", p.Index, len(event.ForensicThumbnails)),
+			ID:      p.ID,
+		}
+	}
+
+	// Read the thumbnail file
+	thumbnailPath := event.ForensicThumbnails[p.Index]
+	thumbnailData, err := os.ReadFile(thumbnailPath)
+	if err != nil {
+		fmt.Printf("Forensic thumbnail request failed - file read error: %v\n", err)
+		return nil, &motion_service.NotFoundError{
+			Message: "Thumbnail file not found",
+			ID:      p.ID,
+		}
+	}
+
+	// Encode as base64
+	base64Data := base64.StdEncoding.EncodeToString(thumbnailData)
+	fmt.Printf("Forensic thumbnail request succeeded for event %s index %d: %d bytes\n", p.ID, p.Index, len(thumbnailData))
+
+	return &motion_service.FrameResponse{
+		Data:        base64Data,
+		ContentType: "image/jpeg",
+	}, nil
+}
+
 // convertMotionEvent converts internal motion event to service event
 func (m *MotionImplementation) convertMotionEvent(event *motion.MotionEvent) *motion_service.MotionEvent {
 	// Convert bounding boxes
@@ -106,7 +151,7 @@ func (m *MotionImplementation) convertMotionEvent(event *motion.MotionEvent) *mo
 		}
 	}
 
-	return &motion_service.MotionEvent{
+	result := &motion_service.MotionEvent{
 		ID:               event.ID,
 		CameraID:         event.CameraID,
 		Timestamp:        event.Timestamp.Format(time.RFC3339),
@@ -115,4 +160,35 @@ func (m *MotionImplementation) convertMotionEvent(event *motion.MotionEvent) *mo
 		FramePath:        &event.FramePath,
 		NotificationSent: &event.NotificationSent,
 	}
+
+	// Add AI detection fields if present
+	if event.ObjectClass != "" {
+		result.ObjectClass = &event.ObjectClass
+	}
+	if event.ObjectConfidence > 0 {
+		result.ObjectConfidence = &event.ObjectConfidence
+	}
+	if event.ThreatLevel != "" {
+		result.ThreatLevel = &event.ThreatLevel
+	}
+	if event.InferenceTimeMs > 0 {
+		result.InferenceTimeMs = &event.InferenceTimeMs
+	}
+	if event.DetectionDevice != "" {
+		result.DetectionDevice = &event.DetectionDevice
+	}
+
+	// Add face recognition fields if present
+	if event.FacesDetected > 0 {
+		result.FacesDetected = &event.FacesDetected
+		result.KnownIdentities = event.KnownIdentities
+		result.UnknownFacesCount = &event.UnknownFacesCount
+	}
+
+	// Add forensic thumbnails if present
+	if len(event.ForensicThumbnails) > 0 {
+		result.ForensicThumbnails = event.ForensicThumbnails
+	}
+
+	return result
 }

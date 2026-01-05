@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Activity, Clock, Camera, Eye, AlertTriangle } from 'lucide-react';
-import type { MotionEvent } from '../../types';
+import { Activity, Clock, Camera, Eye, AlertTriangle, User, UserCheck, UserX } from 'lucide-react';
+import type { MotionEvent, Camera as CameraType } from '../../types';
 import { getEventFrame, frameResponseToDataUrl } from '../../api/events';
 import { Badge, Button } from '../ui';
 
 interface EventCardProps {
   event: MotionEvent;
+  cameras: CameraType[];
   onView: () => void;
 }
 
-export default function EventCard({ event, onView }: EventCardProps) {
+export default function EventCard({ event, cameras, onView }: EventCardProps) {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -73,6 +74,12 @@ export default function EventCard({ event, onView }: EventCardProps) {
     }
   };
 
+  // Get camera name from cameras list, fallback to truncated ID
+  const getCameraName = () => {
+    const camera = cameras.find(c => c.id === event.camera_id);
+    return camera?.name || `Camera ${event.camera_id.slice(0, 8)}...`;
+  };
+
   return (
     <div className="bg-bg-card border border-border rounded-lg overflow-hidden hover:border-text-muted transition-colors">
       {/* Thumbnail */}
@@ -102,6 +109,28 @@ export default function EventCard({ event, onView }: EventCardProps) {
           </Badge>
         </div>
 
+        {/* Face recognition badge */}
+        {event.faces_detected !== undefined && event.faces_detected > 0 && (
+          <div className="absolute top-2 right-2">
+            {event.known_identities && event.known_identities.length > 0 ? (
+              <Badge variant="success">
+                <UserCheck className="w-3 h-3 mr-1" />
+                {event.known_identities.length}
+              </Badge>
+            ) : event.unknown_faces_count && event.unknown_faces_count > 0 ? (
+              <Badge variant="warning">
+                <UserX className="w-3 h-3 mr-1" />
+                {event.unknown_faces_count}
+              </Badge>
+            ) : (
+              <Badge variant="default">
+                <User className="w-3 h-3 mr-1" />
+                {event.faces_detected}
+              </Badge>
+            )}
+          </div>
+        )}
+
         {/* Threat level indicator */}
         {event.threat_level && event.threat_level !== 'none' && (
           <div className="absolute bottom-2 left-2">
@@ -117,7 +146,7 @@ export default function EventCard({ event, onView }: EventCardProps) {
       <div className="p-3">
         <div className="flex items-center gap-2 text-xs text-text-secondary mb-2">
           <Camera className="w-3 h-3" />
-          <span className="truncate">Camera {event.camera_id.slice(0, 8)}...</span>
+          <span className="truncate">{getCameraName()}</span>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-text-muted mb-3">
@@ -127,11 +156,25 @@ export default function EventCard({ event, onView }: EventCardProps) {
 
         {/* Detected object class */}
         {event.object_class && (
-          <div className="mb-3">
+          <div className="mb-2">
             <Badge variant="info" className="text-xs">
               {event.object_class}
               {event.object_confidence && ` (${(event.object_confidence * 100).toFixed(0)}%)`}
             </Badge>
+          </div>
+        )}
+
+        {/* Face recognition identities */}
+        {event.known_identities && event.known_identities.length > 0 && (
+          <div className="flex items-center gap-1 text-xs text-green-400 mb-2">
+            <UserCheck className="w-3 h-3" />
+            <span className="truncate">{event.known_identities.join(', ')}</span>
+          </div>
+        )}
+        {event.unknown_faces_count !== undefined && event.unknown_faces_count > 0 && (
+          <div className="flex items-center gap-1 text-xs text-yellow-400 mb-2">
+            <UserX className="w-3 h-3" />
+            <span>{event.unknown_faces_count} unknown</span>
           </div>
         )}
 

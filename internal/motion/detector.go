@@ -18,12 +18,17 @@ type MotionEvent struct {
 	BoundingBoxes     []BoundingBox `json:"bounding_boxes"`
 	FramePath         string        `json:"frame_path"`
 	NotificationSent  bool          `json:"notification_sent"`
-	// NEW: AI-enhanced fields
-	ObjectClass       string        `json:"object_class,omitempty"`        // "person", "car", etc.
-	ObjectConfidence  float32       `json:"object_confidence,omitempty"`   // AI confidence
-	ThreatLevel       string        `json:"threat_level,omitempty"`        // "high", "medium", "low"
-	InferenceTimeMs   float32       `json:"inference_time_ms,omitempty"`   // GPU inference time
-	DetectionDevice   string        `json:"detection_device,omitempty"`    // "cuda", "cpu"
+	// AI-enhanced fields
+	ObjectClass      string  `json:"object_class,omitempty"`      // "person", "car", etc.
+	ObjectConfidence float32 `json:"object_confidence,omitempty"` // AI confidence
+	ThreatLevel      string  `json:"threat_level,omitempty"`      // "high", "medium", "low"
+	InferenceTimeMs  float32 `json:"inference_time_ms,omitempty"` // GPU inference time
+	DetectionDevice  string  `json:"detection_device,omitempty"`  // "cuda", "cpu"
+	// Face recognition fields
+	FacesDetected       int      `json:"faces_detected,omitempty"`        // Number of faces detected
+	KnownIdentities     []string `json:"known_identities,omitempty"`      // Recognized face names
+	UnknownFacesCount   int      `json:"unknown_faces_count,omitempty"`   // Number of unrecognized faces
+	ForensicThumbnails  []string `json:"forensic_thumbnails,omitempty"`   // Paths to forensic face analysis images
 }
 
 // BoundingBox represents detected motion area coordinates

@@ -18,10 +18,11 @@ import (
 
 // Server lists the motion service endpoint HTTP handlers.
 type Server struct {
-	Mounts []*MountPoint
-	Events http.Handler
-	Event  http.Handler
-	Frame  http.Handler
+	Mounts            []*MountPoint
+	Events            http.Handler
+	Event             http.Handler
+	Frame             http.Handler
+	ForensicThumbnail http.Handler
 }
 
 // MountPoint holds information about the mounted endpoints.
@@ -54,10 +55,12 @@ func New(
 			{"Events", "GET", "/api/v1/motion/events"},
 			{"Event", "GET", "/api/v1/motion/events/{id}"},
 			{"Frame", "GET", "/api/v1/motion/events/{id}/frame"},
+			{"ForensicThumbnail", "GET", "/api/v1/motion/events/{id}/forensic/{index}"},
 		},
-		Events: NewEventsHandler(e.Events, mux, decoder, encoder, errhandler, formatter),
-		Event:  NewEventHandler(e.Event, mux, decoder, encoder, errhandler, formatter),
-		Frame:  NewFrameHandler(e.Frame, mux, decoder, encoder, errhandler, formatter),
+		Events:            NewEventsHandler(e.Events, mux, decoder, encoder, errhandler, formatter),
+		Event:             NewEventHandler(e.Event, mux, decoder, encoder, errhandler, formatter),
+		Frame:             NewFrameHandler(e.Frame, mux, decoder, encoder, errhandler, formatter),
+		ForensicThumbnail: NewForensicThumbnailHandler(e.ForensicThumbnail, mux, decoder, encoder, errhandler, formatter),
 	}
 }
 
@@ -69,6 +72,7 @@ func (s *Server) Use(m func(http.Handler) http.Handler) {
 	s.Events = m(s.Events)
 	s.Event = m(s.Event)
 	s.Frame = m(s.Frame)
+	s.ForensicThumbnail = m(s.ForensicThumbnail)
 }
 
 // MethodNames returns the methods served.
@@ -79,6 +83,7 @@ func Mount(mux goahttp.Muxer, h *Server) {
 	MountEventsHandler(mux, h.Events)
 	MountEventHandler(mux, h.Event)
 	MountFrameHandler(mux, h.Frame)
+	MountForensicThumbnailHandler(mux, h.ForensicThumbnail)
 }
 
 // Mount configures the mux to serve the motion endpoints.
@@ -218,6 +223,57 @@ func NewFrameHandler(
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
 		ctx = context.WithValue(ctx, goa.MethodKey, "frame")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "motion")
+		payload, err := decodeRequest(r)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		res, err := endpoint(ctx, payload)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountForensicThumbnailHandler configures the mux to serve the "motion"
+// service "forensic_thumbnail" endpoint.
+func MountForensicThumbnailHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("GET", "/api/v1/motion/events/{id}/forensic/{index}", f)
+}
+
+// NewForensicThumbnailHandler creates a HTTP handler which loads the HTTP
+// request and calls the "motion" service "forensic_thumbnail" endpoint.
+func NewForensicThumbnailHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		decodeRequest  = DecodeForensicThumbnailRequest(mux, decoder)
+		encodeResponse = EncodeForensicThumbnailResponse(encoder)
+		encodeError    = EncodeForensicThumbnailError(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "forensic_thumbnail")
 		ctx = context.WithValue(ctx, goa.ServiceKey, "motion")
 		payload, err := decodeRequest(r)
 		if err != nil {

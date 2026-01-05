@@ -15,17 +15,19 @@ import (
 
 // Endpoints wraps the "motion" service endpoints.
 type Endpoints struct {
-	Events goa.Endpoint
-	Event  goa.Endpoint
-	Frame  goa.Endpoint
+	Events            goa.Endpoint
+	Event             goa.Endpoint
+	Frame             goa.Endpoint
+	ForensicThumbnail goa.Endpoint
 }
 
 // NewEndpoints wraps the methods of the "motion" service with endpoints.
 func NewEndpoints(s Service) *Endpoints {
 	return &Endpoints{
-		Events: NewEventsEndpoint(s),
-		Event:  NewEventEndpoint(s),
-		Frame:  NewFrameEndpoint(s),
+		Events:            NewEventsEndpoint(s),
+		Event:             NewEventEndpoint(s),
+		Frame:             NewFrameEndpoint(s),
+		ForensicThumbnail: NewForensicThumbnailEndpoint(s),
 	}
 }
 
@@ -34,6 +36,7 @@ func (e *Endpoints) Use(m func(goa.Endpoint) goa.Endpoint) {
 	e.Events = m(e.Events)
 	e.Event = m(e.Event)
 	e.Frame = m(e.Frame)
+	e.ForensicThumbnail = m(e.ForensicThumbnail)
 }
 
 // NewEventsEndpoint returns an endpoint function that calls the method
@@ -60,5 +63,14 @@ func NewFrameEndpoint(s Service) goa.Endpoint {
 	return func(ctx context.Context, req any) (any, error) {
 		p := req.(*FramePayload)
 		return s.Frame(ctx, p)
+	}
+}
+
+// NewForensicThumbnailEndpoint returns an endpoint function that calls the
+// method "forensic_thumbnail" of service "motion".
+func NewForensicThumbnailEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		p := req.(*ForensicThumbnailPayload)
+		return s.ForensicThumbnail(ctx, p)
 	}
 }

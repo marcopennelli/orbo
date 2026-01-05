@@ -41,7 +41,7 @@ func BuildCreatePayload(cameraCreateBody string) (*camera.CreatePayload, error) 
 	{
 		err = json.Unmarshal([]byte(cameraCreateBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Excepturi non.\",\n      \"fps\": 3348193962720747367,\n      \"name\": \"Qui temporibus commodi voluptates quia.\",\n      \"resolution\": \"Sit dicta cumque aut velit.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Magni maxime error necessitatibus.\",\n      \"fps\": 4197915549386585666,\n      \"name\": \"Perferendis possimus sit expedita qui.\",\n      \"resolution\": \"Autem quo et hic ad consequatur.\"\n   }'")
 		}
 	}
 	v := &camera.CreatePayload{
@@ -74,7 +74,7 @@ func BuildUpdatePayload(cameraUpdateBody string, cameraUpdateID string) (*camera
 	{
 		err = json.Unmarshal([]byte(cameraUpdateBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Sapiente nobis iusto quis esse quis sapiente.\",\n      \"fps\": 3594970635460201636,\n      \"name\": \"Nulla quia velit.\",\n      \"resolution\": \"Ad eligendi.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Commodi provident incidunt et rerum quia aut.\",\n      \"fps\": 142419975465936439,\n      \"name\": \"Qui dolor non provident hic suscipit.\",\n      \"resolution\": \"Veniam iste consequatur id eum amet quis.\"\n   }'")
 		}
 	}
 	var id string

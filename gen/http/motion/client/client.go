@@ -26,6 +26,10 @@ type Client struct {
 	// Frame Doer is the HTTP client used to make requests to the frame endpoint.
 	FrameDoer goahttp.Doer
 
+	// ForensicThumbnail Doer is the HTTP client used to make requests to the
+	// forensic_thumbnail endpoint.
+	ForensicThumbnailDoer goahttp.Doer
+
 	// RestoreResponseBody controls whether the response bodies are reset after
 	// decoding so they can be read again.
 	RestoreResponseBody bool
@@ -46,14 +50,15 @@ func NewClient(
 	restoreBody bool,
 ) *Client {
 	return &Client{
-		EventsDoer:          doer,
-		EventDoer:           doer,
-		FrameDoer:           doer,
-		RestoreResponseBody: restoreBody,
-		scheme:              scheme,
-		host:                host,
-		decoder:             dec,
-		encoder:             enc,
+		EventsDoer:            doer,
+		EventDoer:             doer,
+		FrameDoer:             doer,
+		ForensicThumbnailDoer: doer,
+		RestoreResponseBody:   restoreBody,
+		scheme:                scheme,
+		host:                  host,
+		decoder:               dec,
+		encoder:               enc,
 	}
 }
 
@@ -114,6 +119,25 @@ func (c *Client) Frame() goa.Endpoint {
 		resp, err := c.FrameDoer.Do(req)
 		if err != nil {
 			return nil, goahttp.ErrRequestError("motion", "frame", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// ForensicThumbnail returns an endpoint that makes HTTP requests to the motion
+// service forensic_thumbnail server.
+func (c *Client) ForensicThumbnail() goa.Endpoint {
+	var (
+		decodeResponse = DecodeForensicThumbnailResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildForensicThumbnailRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.ForensicThumbnailDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("motion", "forensic_thumbnail", err)
 		}
 		return decodeResponse(resp)
 	}

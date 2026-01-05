@@ -15,17 +15,19 @@ import (
 
 // Client is the "motion" service client.
 type Client struct {
-	EventsEndpoint goa.Endpoint
-	EventEndpoint  goa.Endpoint
-	FrameEndpoint  goa.Endpoint
+	EventsEndpoint            goa.Endpoint
+	EventEndpoint             goa.Endpoint
+	FrameEndpoint             goa.Endpoint
+	ForensicThumbnailEndpoint goa.Endpoint
 }
 
 // NewClient initializes a "motion" service client given the endpoints.
-func NewClient(events, event, frame goa.Endpoint) *Client {
+func NewClient(events, event, frame, forensicThumbnail goa.Endpoint) *Client {
 	return &Client{
-		EventsEndpoint: events,
-		EventEndpoint:  event,
-		FrameEndpoint:  frame,
+		EventsEndpoint:            events,
+		EventEndpoint:             event,
+		FrameEndpoint:             frame,
+		ForensicThumbnailEndpoint: forensicThumbnail,
 	}
 }
 
@@ -59,6 +61,20 @@ func (c *Client) Event(ctx context.Context, p *EventPayload) (res *MotionEvent, 
 func (c *Client) Frame(ctx context.Context, p *FramePayload) (res *FrameResponse, err error) {
 	var ires any
 	ires, err = c.FrameEndpoint(ctx, p)
+	if err != nil {
+		return
+	}
+	return ires.(*FrameResponse), nil
+}
+
+// ForensicThumbnail calls the "forensic_thumbnail" endpoint of the "motion"
+// service.
+// ForensicThumbnail may return the following errors:
+//   - "not_found" (type *NotFoundError): Event or thumbnail not found
+//   - error: internal error
+func (c *Client) ForensicThumbnail(ctx context.Context, p *ForensicThumbnailPayload) (res *FrameResponse, err error) {
+	var ires any
+	ires, err = c.ForensicThumbnailEndpoint(ctx, p)
 	if err != nil {
 		return
 	}

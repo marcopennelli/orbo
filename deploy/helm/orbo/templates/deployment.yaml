@@ -154,6 +154,16 @@ spec:
             {{- end }}
             {{- end }}
 
+            # Face Recognition configuration
+            {{- if .Values.recognition.enabled }}
+            - name: RECOGNITION_ENABLED
+              value: "true"
+            - name: RECOGNITION_SERVICE_ENDPOINT
+              value: "http://{{ include "orbo.fullname" . }}-recognition:{{ .Values.recognition.service.port }}"
+            - name: RECOGNITION_SIMILARITY_THRESHOLD
+              value: {{ .Values.recognition.config.similarityThreshold | default 0.5 | quote }}
+            {{- end }}
+
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:

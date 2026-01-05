@@ -36,3 +36,10 @@ func (s *motionsrvc) Frame(ctx context.Context, p *motion.FramePayload) (res *mo
 	s.logger.Print("motion.frame")
 	return
 }
+
+// Get forensic face analysis thumbnail for motion event
+func (s *motionsrvc) ForensicThumbnail(ctx context.Context, p *motion.ForensicThumbnailPayload) (res *motion.FrameResponse, err error) {
+	res = &motion.FrameResponse{}
+	s.logger.Print("motion.forensic_thumbnail")
+	return
+}

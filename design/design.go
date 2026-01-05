@@ -97,6 +97,11 @@ var MotionEvent = Type("MotionEvent", func() {
     Field(12, "detection_device", String, "Device used for detection", func() {
         Enum("cpu", "cuda", "dinov3")
     })
+    // Face recognition fields
+    Field(13, "faces_detected", Int, "Number of faces detected in frame")
+    Field(14, "known_identities", ArrayOf(String), "Names of recognized known faces")
+    Field(15, "unknown_faces_count", Int, "Number of unknown/unrecognized faces")
+    Field(16, "forensic_thumbnails", ArrayOf(String), "Paths to forensic face analysis images with landmarks")
     Required("id", "camera_id", "timestamp", "confidence")
 })
 
@@ -456,6 +461,24 @@ var _ = Service("motion", func() {
         Error("not_found", NotFoundError, "Event or frame not found")
         HTTP(func() {
             GET("/api/v1/motion/events/{id}/frame")
+            Response(StatusOK)
+            Response("not_found", StatusNotFound)
+        })
+    })
+
+    Method("forensic_thumbnail", func() {
+        Description("Get forensic face analysis thumbnail (NSA-style with landmarks) for a motion event")
+        Payload(func() {
+            Field(1, "id", String, "Event ID", func() {
+                Format(FormatUUID)
+            })
+            Field(2, "index", Int, "Face thumbnail index (0-based)")
+            Required("id", "index")
+        })
+        Result(FrameResponse)
+        Error("not_found", NotFoundError, "Event or thumbnail not found")
+        HTTP(func() {
+            GET("/api/v1/motion/events/{id}/forensic/{index}")
             Response(StatusOK)
             Response("not_found", StatusNotFound)
         })

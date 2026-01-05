@@ -30,7 +30,7 @@ func UsageCommands() string {
 	return `health (healthz|readyz)
 auth (login|status)
 camera (list|get|create|update|delete|activate|deactivate|capture)
-motion (events|event|frame)
+motion (events|event|frame|forensic-thumbnail)
 config (get|update|test-notification|get-dinov3|update-dinov3|test-dinov3|get-yolo|update-yolo|test-yolo|get-detection|update-detection)
 system (status|start-detection|stop-detection)
 `
@@ -40,11 +40,11 @@ system (status|start-detection|stop-detection)
 func UsageExamples() string {
 	return os.Args[0] + ` health healthz` + "\n" +
 		os.Args[0] + ` auth login --body '{
-      "password": "Odio qui doloremque dolores natus facilis.",
-      "username": "Et qui et sapiente ut et."
+      "password": "Libero similique minima autem accusamus deleniti.",
+      "username": "Qui voluptatibus corrupti quia."
    }'` + "\n" +
 		os.Args[0] + ` camera list` + "\n" +
-		os.Args[0] + ` motion events --camera-id "6dcc246a-e254-11f0-b2fa-5847ca7b8ce1" --since "1987-01-10T10:15:28Z" --limit -7535897486488917095` + "\n" +
+		os.Args[0] + ` motion events --camera-id "24f49399-ea47-11f0-ab56-5847ca7b8ce1" --since "1997-03-22T09:04:14Z" --limit -2503163051202457742` + "\n" +
 		os.Args[0] + ` config get` + "\n" +
 		""
 }
@@ -111,6 +111,10 @@ func ParseEndpoint(
 		motionFrameFlags  = flag.NewFlagSet("frame", flag.ExitOnError)
 		motionFrameIDFlag = motionFrameFlags.String("id", "REQUIRED", "Event ID")
 
+		motionForensicThumbnailFlags     = flag.NewFlagSet("forensic-thumbnail", flag.ExitOnError)
+		motionForensicThumbnailIDFlag    = motionForensicThumbnailFlags.String("id", "REQUIRED", "Event ID")
+		motionForensicThumbnailIndexFlag = motionForensicThumbnailFlags.String("index", "REQUIRED", "Face thumbnail index (0-based)")
+
 		configFlags = flag.NewFlagSet("config", flag.ContinueOnError)
 
 		configGetFlags = flag.NewFlagSet("get", flag.ExitOnError)
@@ -169,6 +173,7 @@ func ParseEndpoint(
 	motionEventsFlags.Usage = motionEventsUsage
 	motionEventFlags.Usage = motionEventUsage
 	motionFrameFlags.Usage = motionFrameUsage
+	motionForensicThumbnailFlags.Usage = motionForensicThumbnailUsage
 
 	configFlags.Usage = configUsage
 	configGetFlags.Usage = configGetUsage
@@ -288,6 +293,9 @@ func ParseEndpoint(
 
 			case "frame":
 				epf = motionFrameFlags
+
+			case "forensic-thumbnail":
+				epf = motionForensicThumbnailFlags
 
 			}
 
@@ -421,6 +429,9 @@ func ParseEndpoint(
 			case "frame":
 				endpoint = c.Frame()
 				data, err = motionc.BuildFramePayload(*motionFrameIDFlag)
+			case "forensic-thumbnail":
+				endpoint = c.ForensicThumbnail()
+				data, err = motionc.BuildForensicThumbnailPayload(*motionForensicThumbnailIDFlag, *motionForensicThumbnailIndexFlag)
 			}
 		case "config":
 			c := configc.NewClient(scheme, host, doer, enc, dec, restore)
@@ -537,8 +548,8 @@ Authenticate with username and password to receive a JWT token
 
 Example:
     %[1]s auth login --body '{
-      "password": "Odio qui doloremque dolores natus facilis.",
-      "username": "Et qui et sapiente ut et."
+      "password": "Libero similique minima autem accusamus deleniti.",
+      "username": "Qui voluptatibus corrupti quia."
    }'
 `, os.Args[0])
 }
@@ -590,7 +601,7 @@ Get camera information by ID
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera get --id "6dcb7a16-e254-11f0-b2fa-5847ca7b8ce1"
+    %[1]s camera get --id "24f3b423-ea47-11f0-ab56-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -602,10 +613,10 @@ Add a new camera
 
 Example:
     %[1]s camera create --body '{
-      "device": "Excepturi non.",
-      "fps": 3348193962720747367,
-      "name": "Qui temporibus commodi voluptates quia.",
-      "resolution": "Sit dicta cumque aut velit."
+      "device": "Magni maxime error necessitatibus.",
+      "fps": 4197915549386585666,
+      "name": "Perferendis possimus sit expedita qui.",
+      "resolution": "Autem quo et hic ad consequatur."
    }'
 `, os.Args[0])
 }
@@ -619,11 +630,11 @@ Update camera configuration. Device can only be changed when camera is inactive.
 
 Example:
     %[1]s camera update --body '{
-      "device": "Sapiente nobis iusto quis esse quis sapiente.",
-      "fps": 3594970635460201636,
-      "name": "Nulla quia velit.",
-      "resolution": "Ad eligendi."
-   }' --id "6dcba450-e254-11f0-b2fa-5847ca7b8ce1"
+      "device": "Commodi provident incidunt et rerum quia aut.",
+      "fps": 142419975465936439,
+      "name": "Qui dolor non provident hic suscipit.",
+      "resolution": "Veniam iste consequatur id eum amet quis."
+   }' --id "24f42977-ea47-11f0-ab56-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -634,7 +645,7 @@ Remove a camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera delete --id "6dcbd60a-e254-11f0-b2fa-5847ca7b8ce1"
+    %[1]s camera delete --id "24f4449d-ea47-11f0-ab56-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -645,7 +656,7 @@ Activate camera for motion detection
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera activate --id "6dcbe601-e254-11f0-b2fa-5847ca7b8ce1"
+    %[1]s camera activate --id "24f44d3e-ea47-11f0-ab56-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -656,7 +667,7 @@ Deactivate camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera deactivate --id "6dcbff73-e254-11f0-b2fa-5847ca7b8ce1"
+    %[1]s camera deactivate --id "24f46ef7-ea47-11f0-ab56-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -667,7 +678,7 @@ Capture a single frame from camera as base64
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera capture --id "6dcc1546-e254-11f0-b2fa-5847ca7b8ce1"
+    %[1]s camera capture --id "24f4876c-ea47-11f0-ab56-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -681,6 +692,7 @@ COMMAND:
     events: List motion detection events
     event: Get motion event by ID
     frame: Get captured frame for motion event as base64
+    forensic-thumbnail: Get forensic face analysis thumbnail (NSA-style with landmarks) for a motion event
 
 Additional help:
     %[1]s motion COMMAND --help
@@ -695,7 +707,7 @@ List motion detection events
     -limit INT: 
 
 Example:
-    %[1]s motion events --camera-id "6dcc246a-e254-11f0-b2fa-5847ca7b8ce1" --since "1987-01-10T10:15:28Z" --limit -7535897486488917095
+    %[1]s motion events --camera-id "24f49399-ea47-11f0-ab56-5847ca7b8ce1" --since "1997-03-22T09:04:14Z" --limit -2503163051202457742
 `, os.Args[0])
 }
 
@@ -706,7 +718,7 @@ Get motion event by ID
     -id STRING: Event ID
 
 Example:
-    %[1]s motion event --id "6dcc5a6c-e254-11f0-b2fa-5847ca7b8ce1"
+    %[1]s motion event --id "24f4cbd7-ea47-11f0-ab56-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -717,7 +729,19 @@ Get captured frame for motion event as base64
     -id STRING: Event ID
 
 Example:
-    %[1]s motion frame --id "6dcc8979-e254-11f0-b2fa-5847ca7b8ce1"
+    %[1]s motion frame --id "24f4f801-ea47-11f0-ab56-5847ca7b8ce1"
+`, os.Args[0])
+}
+
+func motionForensicThumbnailUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] motion forensic-thumbnail -id STRING -index INT
+
+Get forensic face analysis thumbnail (NSA-style with landmarks) for a motion event
+    -id STRING: Event ID
+    -index INT: Face thumbnail index (0-based)
+
+Example:
+    %[1]s motion forensic-thumbnail --id "24f5017b-ea47-11f0-ab56-5847ca7b8ce1" --index 311134681063260563
 `, os.Args[0])
 }
 
@@ -762,11 +786,11 @@ Update notification configuration
 
 Example:
     %[1]s config update --body '{
-      "cooldown_seconds": 4735451868643412551,
-      "min_confidence": 0.5871746,
-      "telegram_bot_token": "Rerum quod.",
-      "telegram_chat_id": "Eveniet quisquam laudantium aliquid.",
-      "telegram_enabled": true
+      "cooldown_seconds": 6199094676929008997,
+      "min_confidence": 0.31767568,
+      "telegram_bot_token": "Deserunt consequuntur.",
+      "telegram_chat_id": "Non et maiores aut minus velit.",
+      "telegram_enabled": false
    }'
 `, os.Args[0])
 }
@@ -799,12 +823,12 @@ Update DINOv3 AI configuration
 
 Example:
     %[1]s config update-dinov3 --body '{
-      "confidence_threshold": 0.8927609,
-      "enable_scene_analysis": true,
-      "enabled": false,
-      "fallback_to_basic": false,
-      "motion_threshold": 0.033004887,
-      "service_endpoint": "Vitae nobis."
+      "confidence_threshold": 0.7122667,
+      "enable_scene_analysis": false,
+      "enabled": true,
+      "fallback_to_basic": true,
+      "motion_threshold": 0.5078036,
+      "service_endpoint": "Eveniet eum officia."
    }'
 `, os.Args[0])
 }
@@ -837,12 +861,12 @@ Update YOLO detection configuration
 
 Example:
     %[1]s config update-yolo --body '{
-      "classes_filter": "Iure qui.",
-      "confidence_threshold": 0.8525825,
-      "draw_boxes": true,
-      "enabled": false,
+      "classes_filter": "Aut facere ut laboriosam repellat cumque ut.",
+      "confidence_threshold": 0.6749429,
+      "draw_boxes": false,
+      "enabled": true,
       "security_mode": true,
-      "service_endpoint": "Consequatur non."
+      "service_endpoint": "Excepturi dolor dolorem voluptas ut."
    }'
 `, os.Args[0])
 }
@@ -876,22 +900,22 @@ Update combined detection configuration
 Example:
     %[1]s config update-detection --body '{
       "dinov3": {
-         "confidence_threshold": 0.19537966,
-         "enable_scene_analysis": false,
-         "enabled": true,
+         "confidence_threshold": 0.23535487,
+         "enable_scene_analysis": true,
+         "enabled": false,
          "fallback_to_basic": false,
-         "motion_threshold": 0.7719393,
-         "service_endpoint": "Accusantium id provident aliquam amet doloribus dolores."
+         "motion_threshold": 0.8356456,
+         "service_endpoint": "Ullam fuga aliquid tenetur incidunt tenetur natus."
       },
       "fallback_enabled": false,
-      "primary_detector": "basic",
+      "primary_detector": "yolo",
       "yolo": {
-         "classes_filter": "Explicabo consequatur cum.",
-         "confidence_threshold": 0.9127135,
+         "classes_filter": "Ea magnam.",
+         "confidence_threshold": 0.23477662,
          "draw_boxes": true,
          "enabled": true,
          "security_mode": false,
-         "service_endpoint": "Est consequatur labore maiores molestiae beatae."
+         "service_endpoint": "Error deserunt aperiam qui illum perferendis."
       }
    }'
 `, os.Args[0])

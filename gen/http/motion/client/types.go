@@ -44,11 +44,28 @@ type EventResponseBody struct {
 	InferenceTimeMs *float32 `form:"inference_time_ms,omitempty" json:"inference_time_ms,omitempty" xml:"inference_time_ms,omitempty"`
 	// Device used for detection
 	DetectionDevice *string `form:"detection_device,omitempty" json:"detection_device,omitempty" xml:"detection_device,omitempty"`
+	// Number of faces detected in frame
+	FacesDetected *int `form:"faces_detected,omitempty" json:"faces_detected,omitempty" xml:"faces_detected,omitempty"`
+	// Names of recognized known faces
+	KnownIdentities []string `form:"known_identities,omitempty" json:"known_identities,omitempty" xml:"known_identities,omitempty"`
+	// Number of unknown/unrecognized faces
+	UnknownFacesCount *int `form:"unknown_faces_count,omitempty" json:"unknown_faces_count,omitempty" xml:"unknown_faces_count,omitempty"`
+	// Paths to forensic face analysis images with landmarks
+	ForensicThumbnails []string `form:"forensic_thumbnails,omitempty" json:"forensic_thumbnails,omitempty" xml:"forensic_thumbnails,omitempty"`
 }
 
 // FrameResponseBody is the type of the "motion" service "frame" endpoint HTTP
 // response body.
 type FrameResponseBody struct {
+	// Base64 encoded JPEG image data
+	Data *string `form:"data,omitempty" json:"data,omitempty" xml:"data,omitempty"`
+	// Image MIME type
+	ContentType *string `form:"content_type,omitempty" json:"content_type,omitempty" xml:"content_type,omitempty"`
+}
+
+// ForensicThumbnailResponseBody is the type of the "motion" service
+// "forensic_thumbnail" endpoint HTTP response body.
+type ForensicThumbnailResponseBody struct {
 	// Base64 encoded JPEG image data
 	Data *string `form:"data,omitempty" json:"data,omitempty" xml:"data,omitempty"`
 	// Image MIME type
@@ -67,6 +84,15 @@ type EventNotFoundResponseBody struct {
 // FrameNotFoundResponseBody is the type of the "motion" service "frame"
 // endpoint HTTP response body for the "not_found" error.
 type FrameNotFoundResponseBody struct {
+	// Error message
+	Message *string `form:"message,omitempty" json:"message,omitempty" xml:"message,omitempty"`
+	// Resource ID
+	ID *string `form:"id,omitempty" json:"id,omitempty" xml:"id,omitempty"`
+}
+
+// ForensicThumbnailNotFoundResponseBody is the type of the "motion" service
+// "forensic_thumbnail" endpoint HTTP response body for the "not_found" error.
+type ForensicThumbnailNotFoundResponseBody struct {
 	// Error message
 	Message *string `form:"message,omitempty" json:"message,omitempty" xml:"message,omitempty"`
 	// Resource ID
@@ -99,6 +125,14 @@ type MotionEventResponse struct {
 	InferenceTimeMs *float32 `form:"inference_time_ms,omitempty" json:"inference_time_ms,omitempty" xml:"inference_time_ms,omitempty"`
 	// Device used for detection
 	DetectionDevice *string `form:"detection_device,omitempty" json:"detection_device,omitempty" xml:"detection_device,omitempty"`
+	// Number of faces detected in frame
+	FacesDetected *int `form:"faces_detected,omitempty" json:"faces_detected,omitempty" xml:"faces_detected,omitempty"`
+	// Names of recognized known faces
+	KnownIdentities []string `form:"known_identities,omitempty" json:"known_identities,omitempty" xml:"known_identities,omitempty"`
+	// Number of unknown/unrecognized faces
+	UnknownFacesCount *int `form:"unknown_faces_count,omitempty" json:"unknown_faces_count,omitempty" xml:"unknown_faces_count,omitempty"`
+	// Paths to forensic face analysis images with landmarks
+	ForensicThumbnails []string `form:"forensic_thumbnails,omitempty" json:"forensic_thumbnails,omitempty" xml:"forensic_thumbnails,omitempty"`
 }
 
 // BoundingBoxResponse is used to define fields on response body types.
@@ -140,22 +174,36 @@ func NewEventsMotionEventOK(body []*MotionEventResponse) []*motion.MotionEvent {
 // a HTTP "OK" response.
 func NewEventMotionEventOK(body *EventResponseBody) *motion.MotionEvent {
 	v := &motion.MotionEvent{
-		ID:               *body.ID,
-		CameraID:         *body.CameraID,
-		Timestamp:        *body.Timestamp,
-		Confidence:       *body.Confidence,
-		FramePath:        body.FramePath,
-		NotificationSent: body.NotificationSent,
-		ObjectClass:      body.ObjectClass,
-		ObjectConfidence: body.ObjectConfidence,
-		ThreatLevel:      body.ThreatLevel,
-		InferenceTimeMs:  body.InferenceTimeMs,
-		DetectionDevice:  body.DetectionDevice,
+		ID:                *body.ID,
+		CameraID:          *body.CameraID,
+		Timestamp:         *body.Timestamp,
+		Confidence:        *body.Confidence,
+		FramePath:         body.FramePath,
+		NotificationSent:  body.NotificationSent,
+		ObjectClass:       body.ObjectClass,
+		ObjectConfidence:  body.ObjectConfidence,
+		ThreatLevel:       body.ThreatLevel,
+		InferenceTimeMs:   body.InferenceTimeMs,
+		DetectionDevice:   body.DetectionDevice,
+		FacesDetected:     body.FacesDetected,
+		UnknownFacesCount: body.UnknownFacesCount,
 	}
 	if body.BoundingBoxes != nil {
 		v.BoundingBoxes = make([]*motion.BoundingBox, len(body.BoundingBoxes))
 		for i, val := range body.BoundingBoxes {
 			v.BoundingBoxes[i] = unmarshalBoundingBoxResponseBodyToMotionBoundingBox(val)
+		}
+	}
+	if body.KnownIdentities != nil {
+		v.KnownIdentities = make([]string, len(body.KnownIdentities))
+		for i, val := range body.KnownIdentities {
+			v.KnownIdentities[i] = val
+		}
+	}
+	if body.ForensicThumbnails != nil {
+		v.ForensicThumbnails = make([]string, len(body.ForensicThumbnails))
+		for i, val := range body.ForensicThumbnails {
+			v.ForensicThumbnails[i] = val
 		}
 	}
 
@@ -185,6 +233,28 @@ func NewFrameResponseOK(body *FrameResponseBody) *motion.FrameResponse {
 
 // NewFrameNotFound builds a motion service frame endpoint not_found error.
 func NewFrameNotFound(body *FrameNotFoundResponseBody) *motion.NotFoundError {
+	v := &motion.NotFoundError{
+		Message: *body.Message,
+		ID:      *body.ID,
+	}
+
+	return v
+}
+
+// NewForensicThumbnailFrameResponseOK builds a "motion" service
+// "forensic_thumbnail" endpoint result from a HTTP "OK" response.
+func NewForensicThumbnailFrameResponseOK(body *ForensicThumbnailResponseBody) *motion.FrameResponse {
+	v := &motion.FrameResponse{
+		Data:        *body.Data,
+		ContentType: *body.ContentType,
+	}
+
+	return v
+}
+
+// NewForensicThumbnailNotFound builds a motion service forensic_thumbnail
+// endpoint not_found error.
+func NewForensicThumbnailNotFound(body *ForensicThumbnailNotFoundResponseBody) *motion.NotFoundError {
 	v := &motion.NotFoundError{
 		Message: *body.Message,
 		ID:      *body.ID,
@@ -247,6 +317,18 @@ func ValidateFrameResponseBody(body *FrameResponseBody) (err error) {
 	return
 }
 
+// ValidateForensicThumbnailResponseBody runs the validations defined on
+// forensic_thumbnail_response_body
+func ValidateForensicThumbnailResponseBody(body *ForensicThumbnailResponseBody) (err error) {
+	if body.Data == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("data", "body"))
+	}
+	if body.ContentType == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("content_type", "body"))
+	}
+	return
+}
+
 // ValidateEventNotFoundResponseBody runs the validations defined on
 // event_not_found_response_body
 func ValidateEventNotFoundResponseBody(body *EventNotFoundResponseBody) (err error) {
@@ -262,6 +344,18 @@ func ValidateEventNotFoundResponseBody(body *EventNotFoundResponseBody) (err err
 // ValidateFrameNotFoundResponseBody runs the validations defined on
 // frame_not_found_response_body
 func ValidateFrameNotFoundResponseBody(body *FrameNotFoundResponseBody) (err error) {
+	if body.Message == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("message", "body"))
+	}
+	if body.ID == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("id", "body"))
+	}
+	return
+}
+
+// ValidateForensicThumbnailNotFoundResponseBody runs the validations defined
+// on forensic_thumbnail_not_found_response_body
+func ValidateForensicThumbnailNotFoundResponseBody(body *ForensicThumbnailNotFoundResponseBody) (err error) {
 	if body.Message == nil {
 		err = goa.MergeErrors(err, goa.MissingFieldError("message", "body"))
 	}

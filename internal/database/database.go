@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -27,18 +28,22 @@ type CameraRecord struct {
 
 // MotionEventRecord represents a motion event stored in the database
 type MotionEventRecord struct {
-	ID               string
-	CameraID         string
-	Timestamp        time.Time
-	Confidence       float64
-	BoundingBoxes    []BoundingBoxRecord
-	FramePath        string
-	NotificationSent bool
-	ObjectClass      string
-	ObjectConfidence float64
-	ThreatLevel      string
-	InferenceTimeMs  float64
-	DetectionDevice  string
+	ID                 string
+	CameraID           string
+	Timestamp          time.Time
+	Confidence         float64
+	BoundingBoxes      []BoundingBoxRecord
+	FramePath          string
+	NotificationSent   bool
+	ObjectClass        string
+	ObjectConfidence   float64
+	ThreatLevel        string
+	InferenceTimeMs    float64
+	DetectionDevice    string
+	FacesDetected      int
+	KnownIdentities    []string
+	UnknownFacesCount  int
+	ForensicThumbnails []string
 }
 
 // BoundingBoxRecord represents a bounding box
@@ -108,8 +113,18 @@ func (d *Database) Migrate() error {
 			threat_level TEXT,
 			inference_time_ms REAL,
 			detection_device TEXT,
+			faces_detected INTEGER DEFAULT 0,
+			known_identities TEXT,
+			unknown_faces_count INTEGER DEFAULT 0,
+			forensic_thumbnails TEXT,
 			FOREIGN KEY (camera_id) REFERENCES cameras(id)
 		)`,
+		// Add face recognition columns if they don't exist (migration for existing databases)
+		`ALTER TABLE motion_events ADD COLUMN faces_detected INTEGER DEFAULT 0`,
+		`ALTER TABLE motion_events ADD COLUMN known_identities TEXT`,
+		`ALTER TABLE motion_events ADD COLUMN unknown_faces_count INTEGER DEFAULT 0`,
+		// Add forensic thumbnails column for NSA-style face analysis images
+		`ALTER TABLE motion_events ADD COLUMN forensic_thumbnails TEXT`,
 		`CREATE TABLE IF NOT EXISTS app_config (
 			key TEXT PRIMARY KEY,
 			value TEXT NOT NULL,
@@ -121,6 +136,10 @@ func (d *Database) Migrate() error {
 
 	for _, migration := range migrations {
 		if _, err := d.db.Exec(migration); err != nil {
+			// Ignore "duplicate column" errors from ALTER TABLE migrations
+			if strings.Contains(err.Error(), "duplicate column") {
+				continue
+			}
 			return fmt.Errorf("migration failed: %w", err)
 		}
 	}
@@ -208,6 +227,16 @@ func (d *Database) SaveMotionEvent(event *MotionEventRecord) error {
 		return fmt.Errorf("failed to marshal bounding boxes: %w", err)
 	}
 
+	knownIdentitiesJSON, err := json.Marshal(event.KnownIdentities)
+	if err != nil {
+		return fmt.Errorf("failed to marshal known identities: %w", err)
+	}
+
+	forensicThumbnailsJSON, err := json.Marshal(event.ForensicThumbnails)
+	if err != nil {
+		return fmt.Errorf("failed to marshal forensic thumbnails: %w", err)
+	}
+
 	notificationSent := 0
 	if event.NotificationSent {
 		notificationSent = 1
@@ -215,14 +244,20 @@ func (d *Database) SaveMotionEvent(event *MotionEventRecord) error {
 
 	query := `INSERT INTO motion_events
 		(id, camera_id, timestamp, confidence, bounding_boxes, frame_path, notification_sent,
-		 object_class, object_confidence, threat_level, inference_time_ms, detection_device)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 object_class, object_confidence, threat_level, inference_time_ms, detection_device,
+		 faces_detected, known_identities, unknown_faces_count, forensic_thumbnails)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
-			notification_sent = excluded.notification_sent`
+			notification_sent = excluded.notification_sent,
+			faces_detected = excluded.faces_detected,
+			known_identities = excluded.known_identities,
+			unknown_faces_count = excluded.unknown_faces_count,
+			forensic_thumbnails = excluded.forensic_thumbnails`
 
 	_, err = d.db.Exec(query, event.ID, event.CameraID, event.Timestamp, event.Confidence,
 		string(bboxJSON), event.FramePath, notificationSent, event.ObjectClass,
-		event.ObjectConfidence, event.ThreatLevel, event.InferenceTimeMs, event.DetectionDevice)
+		event.ObjectConfidence, event.ThreatLevel, event.InferenceTimeMs, event.DetectionDevice,
+		event.FacesDetected, string(knownIdentitiesJSON), event.UnknownFacesCount, string(forensicThumbnailsJSON))
 	if err != nil {
 		return fmt.Errorf("failed to save motion event: %w", err)
 	}
@@ -232,17 +267,21 @@ func (d *Database) SaveMotionEvent(event *MotionEventRecord) error {
 // GetMotionEvent retrieves a motion event by ID
 func (d *Database) GetMotionEvent(id string) (*MotionEventRecord, error) {
 	query := `SELECT id, camera_id, timestamp, confidence, bounding_boxes, frame_path,
-		notification_sent, object_class, object_confidence, threat_level, inference_time_ms, detection_device
+		notification_sent, object_class, object_confidence, threat_level, inference_time_ms, detection_device,
+		faces_detected, known_identities, unknown_faces_count, forensic_thumbnails
 		FROM motion_events WHERE id = ?`
 
 	var event MotionEventRecord
 	var bboxJSON string
+	var knownIdentitiesJSON sql.NullString
+	var forensicThumbnailsJSON sql.NullString
 	var notificationSent int
 
 	err := d.db.QueryRow(query, id).Scan(&event.ID, &event.CameraID, &event.Timestamp,
 		&event.Confidence, &bboxJSON, &event.FramePath, &notificationSent,
 		&event.ObjectClass, &event.ObjectConfidence, &event.ThreatLevel,
-		&event.InferenceTimeMs, &event.DetectionDevice)
+		&event.InferenceTimeMs, &event.DetectionDevice,
+		&event.FacesDetected, &knownIdentitiesJSON, &event.UnknownFacesCount, &forensicThumbnailsJSON)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -254,6 +293,16 @@ func (d *Database) GetMotionEvent(id string) (*MotionEventRecord, error) {
 	if bboxJSON != "" {
 		if err := json.Unmarshal([]byte(bboxJSON), &event.BoundingBoxes); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal bounding boxes: %w", err)
+		}
+	}
+	if knownIdentitiesJSON.Valid && knownIdentitiesJSON.String != "" {
+		if err := json.Unmarshal([]byte(knownIdentitiesJSON.String), &event.KnownIdentities); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal known identities: %w", err)
+		}
+	}
+	if forensicThumbnailsJSON.Valid && forensicThumbnailsJSON.String != "" {
+		if err := json.Unmarshal([]byte(forensicThumbnailsJSON.String), &event.ForensicThumbnails); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal forensic thumbnails: %w", err)
 		}
 	}
 
@@ -273,7 +322,8 @@ func (d *Database) MarkNotificationSent(eventID string) error {
 // ListMotionEvents returns motion events with optional filtering
 func (d *Database) ListMotionEvents(cameraID string, since *time.Time, limit int) ([]*MotionEventRecord, error) {
 	query := `SELECT id, camera_id, timestamp, confidence, bounding_boxes, frame_path,
-		notification_sent, object_class, object_confidence, threat_level, inference_time_ms, detection_device
+		notification_sent, object_class, object_confidence, threat_level, inference_time_ms, detection_device,
+		faces_detected, known_identities, unknown_faces_count, forensic_thumbnails
 		FROM motion_events WHERE 1=1`
 	args := []interface{}{}
 
@@ -304,11 +354,14 @@ func (d *Database) ListMotionEvents(cameraID string, since *time.Time, limit int
 	for rows.Next() {
 		var event MotionEventRecord
 		var bboxJSON string
+		var knownIdentitiesJSON sql.NullString
+		var forensicThumbnailsJSON sql.NullString
 		var notificationSent int
 
 		if err := rows.Scan(&event.ID, &event.CameraID, &event.Timestamp, &event.Confidence,
 			&bboxJSON, &event.FramePath, &notificationSent, &event.ObjectClass,
-			&event.ObjectConfidence, &event.ThreatLevel, &event.InferenceTimeMs, &event.DetectionDevice); err != nil {
+			&event.ObjectConfidence, &event.ThreatLevel, &event.InferenceTimeMs, &event.DetectionDevice,
+			&event.FacesDetected, &knownIdentitiesJSON, &event.UnknownFacesCount, &forensicThumbnailsJSON); err != nil {
 			return nil, fmt.Errorf("failed to scan motion event: %w", err)
 		}
 
@@ -316,6 +369,16 @@ func (d *Database) ListMotionEvents(cameraID string, since *time.Time, limit int
 		if bboxJSON != "" {
 			if err := json.Unmarshal([]byte(bboxJSON), &event.BoundingBoxes); err != nil {
 				return nil, fmt.Errorf("failed to unmarshal bounding boxes: %w", err)
+			}
+		}
+		if knownIdentitiesJSON.Valid && knownIdentitiesJSON.String != "" {
+			if err := json.Unmarshal([]byte(knownIdentitiesJSON.String), &event.KnownIdentities); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal known identities: %w", err)
+			}
+		}
+		if forensicThumbnailsJSON.Valid && forensicThumbnailsJSON.String != "" {
+			if err := json.Unmarshal([]byte(forensicThumbnailsJSON.String), &event.ForensicThumbnails); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal forensic thumbnails: %w", err)
 			}
 		}
 		events = append(events, &event)

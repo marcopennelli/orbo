@@ -19,6 +19,9 @@ type Service interface {
 	Event(context.Context, *EventPayload) (res *MotionEvent, err error)
 	// Get captured frame for motion event as base64
 	Frame(context.Context, *FramePayload) (res *FrameResponse, err error)
+	// Get forensic face analysis thumbnail (NSA-style with landmarks) for a motion
+	// event
+	ForensicThumbnail(context.Context, *ForensicThumbnailPayload) (res *FrameResponse, err error)
 }
 
 // ServiceName is the name of the service as defined in the design. This is the
@@ -29,7 +32,7 @@ const ServiceName = "motion"
 // MethodNames lists the service method names as defined in the design. These
 // are the same values that are set in the endpoint request contexts under the
 // MethodKey key.
-var MethodNames = [3]string{"events", "event", "frame"}
+var MethodNames = [4]string{"events", "event", "frame", "forensic_thumbnail"}
 
 // Bounding box coordinates
 type BoundingBox struct {
@@ -57,6 +60,15 @@ type EventsPayload struct {
 	Since *string
 	// Maximum number of events to return
 	Limit int
+}
+
+// ForensicThumbnailPayload is the payload type of the motion service
+// forensic_thumbnail method.
+type ForensicThumbnailPayload struct {
+	// Event ID
+	ID string
+	// Face thumbnail index (0-based)
+	Index int
 }
 
 // FramePayload is the payload type of the motion service frame method.
@@ -99,6 +111,14 @@ type MotionEvent struct {
 	InferenceTimeMs *float32
 	// Device used for detection
 	DetectionDevice *string
+	// Number of faces detected in frame
+	FacesDetected *int
+	// Names of recognized known faces
+	KnownIdentities []string
+	// Number of unknown/unrecognized faces
+	UnknownFacesCount *int
+	// Paths to forensic face analysis images with landmarks
+	ForensicThumbnails []string
 }
 
 // Resource not found error

@@ -26,6 +26,10 @@ export async function getEventFrame(id: string): Promise<FrameResponse> {
   return get<FrameResponse>(`/motion/events/${id}/frame`);
 }
 
+export async function getForensicThumbnail(eventId: string, index: number): Promise<FrameResponse> {
+  return get<FrameResponse>(`/motion/events/${eventId}/forensic/${index}`);
+}
+
 // Helper to convert base64 frame response to data URL
 export function frameResponseToDataUrl(frame: FrameResponse): string {
   return `data:${frame.content_type};base64,${frame.data}`;

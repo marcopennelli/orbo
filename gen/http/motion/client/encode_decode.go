@@ -266,26 +266,124 @@ func DecodeFrameResponse(decoder func(*http.Response) goahttp.Decoder, restoreBo
 	}
 }
 
+// BuildForensicThumbnailRequest instantiates a HTTP request object with method
+// and path set to call the "motion" service "forensic_thumbnail" endpoint
+func (c *Client) BuildForensicThumbnailRequest(ctx context.Context, v any) (*http.Request, error) {
+	var (
+		id    string
+		index int
+	)
+	{
+		p, ok := v.(*motion.ForensicThumbnailPayload)
+		if !ok {
+			return nil, goahttp.ErrInvalidType("motion", "forensic_thumbnail", "*motion.ForensicThumbnailPayload", v)
+		}
+		id = p.ID
+		index = p.Index
+	}
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: ForensicThumbnailMotionPath(id, index)}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("motion", "forensic_thumbnail", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeForensicThumbnailResponse returns a decoder for responses returned by
+// the motion forensic_thumbnail endpoint. restoreBody controls whether the
+// response body should be restored after having been read.
+// DecodeForensicThumbnailResponse may return the following errors:
+//   - "not_found" (type *motion.NotFoundError): http.StatusNotFound
+//   - error: internal error
+func DecodeForensicThumbnailResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body ForensicThumbnailResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("motion", "forensic_thumbnail", err)
+			}
+			err = ValidateForensicThumbnailResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("motion", "forensic_thumbnail", err)
+			}
+			res := NewForensicThumbnailFrameResponseOK(&body)
+			return res, nil
+		case http.StatusNotFound:
+			var (
+				body ForensicThumbnailNotFoundResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("motion", "forensic_thumbnail", err)
+			}
+			err = ValidateForensicThumbnailNotFoundResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("motion", "forensic_thumbnail", err)
+			}
+			return nil, NewForensicThumbnailNotFound(&body)
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("motion", "forensic_thumbnail", resp.StatusCode, string(body))
+		}
+	}
+}
+
 // unmarshalMotionEventResponseToMotionMotionEvent builds a value of type
 // *motion.MotionEvent from a value of type *MotionEventResponse.
 func unmarshalMotionEventResponseToMotionMotionEvent(v *MotionEventResponse) *motion.MotionEvent {
 	res := &motion.MotionEvent{
-		ID:               *v.ID,
-		CameraID:         *v.CameraID,
-		Timestamp:        *v.Timestamp,
-		Confidence:       *v.Confidence,
-		FramePath:        v.FramePath,
-		NotificationSent: v.NotificationSent,
-		ObjectClass:      v.ObjectClass,
-		ObjectConfidence: v.ObjectConfidence,
-		ThreatLevel:      v.ThreatLevel,
-		InferenceTimeMs:  v.InferenceTimeMs,
-		DetectionDevice:  v.DetectionDevice,
+		ID:                *v.ID,
+		CameraID:          *v.CameraID,
+		Timestamp:         *v.Timestamp,
+		Confidence:        *v.Confidence,
+		FramePath:         v.FramePath,
+		NotificationSent:  v.NotificationSent,
+		ObjectClass:       v.ObjectClass,
+		ObjectConfidence:  v.ObjectConfidence,
+		ThreatLevel:       v.ThreatLevel,
+		InferenceTimeMs:   v.InferenceTimeMs,
+		DetectionDevice:   v.DetectionDevice,
+		FacesDetected:     v.FacesDetected,
+		UnknownFacesCount: v.UnknownFacesCount,
 	}
 	if v.BoundingBoxes != nil {
 		res.BoundingBoxes = make([]*motion.BoundingBox, len(v.BoundingBoxes))
 		for i, val := range v.BoundingBoxes {
 			res.BoundingBoxes[i] = unmarshalBoundingBoxResponseToMotionBoundingBox(val)
+		}
+	}
+	if v.KnownIdentities != nil {
+		res.KnownIdentities = make([]string, len(v.KnownIdentities))
+		for i, val := range v.KnownIdentities {
+			res.KnownIdentities[i] = val
+		}
+	}
+	if v.ForensicThumbnails != nil {
+		res.ForensicThumbnails = make([]string, len(v.ForensicThumbnails))
+		for i, val := range v.ForensicThumbnails {
+			res.ForensicThumbnails[i] = val
 		}
 	}
 

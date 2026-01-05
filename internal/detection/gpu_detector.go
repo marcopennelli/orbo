@@ -305,11 +305,53 @@ func (gd *GPUDetector) DetectSecurityObjectsAnnotated(imageData []byte, confThre
 
 	device := resp.Header.Get("X-Device")
 
+	// Parse priority counts from headers
+	highPriorityCount := 0
+	if countStr := resp.Header.Get("X-High-Priority-Count"); countStr != "" {
+		fmt.Sscanf(countStr, "%d", &highPriorityCount)
+	}
+	mediumPriorityCount := 0
+	if countStr := resp.Header.Get("X-Medium-Priority-Count"); countStr != "" {
+		fmt.Sscanf(countStr, "%d", &mediumPriorityCount)
+	}
+	lowPriorityCount := 0
+	if countStr := resp.Header.Get("X-Low-Priority-Count"); countStr != "" {
+		fmt.Sscanf(countStr, "%d", &lowPriorityCount)
+	}
+
+	// Build detections list from priority counts
+	// We don't have bounding box info, but we know what classes were detected
+	var detections []Detection
+	for i := 0; i < highPriorityCount; i++ {
+		detections = append(detections, Detection{Class: "person"})
+	}
+	for i := 0; i < mediumPriorityCount; i++ {
+		detections = append(detections, Detection{Class: "car"}) // Could be car/truck/bus
+	}
+	for i := 0; i < lowPriorityCount; i++ {
+		detections = append(detections, Detection{Class: "bicycle"}) // Could be bicycle/motorcycle
+	}
+
+	// Build threat analysis from counts
+	var threatAnalysis *ThreatAnalysis
+	if highPriorityCount > 0 || mediumPriorityCount > 0 || lowPriorityCount > 0 {
+		threatAnalysis = &ThreatAnalysis{
+			HighPriority:   make([]Detection, highPriorityCount),
+			MediumPriority: make([]Detection, mediumPriorityCount),
+			LowPriority:    make([]Detection, lowPriorityCount),
+		}
+		for i := 0; i < highPriorityCount; i++ {
+			threatAnalysis.HighPriority[i] = Detection{Class: "person"}
+		}
+	}
+
 	result := &AnnotatedSecurityResult{
 		ImageData:       annotatedImage,
+		Detections:      detections,
 		Count:           count,
 		InferenceTimeMs: inferenceTime,
 		Device:          device,
+		ThreatAnalysis:  threatAnalysis,
 	}
 
 	return result, nil

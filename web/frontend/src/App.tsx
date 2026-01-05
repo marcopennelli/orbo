@@ -313,7 +313,7 @@ function AppContent() {
         telegramConfig={defaultTelegramConfig}
         yoloConfig={defaultYoloConfig}
         detectionConfig={defaultDetectionConfig}
-        onUpdateTelegram={(config) => updateTelegram.mutate(config)}
+        onUpdateTelegram={(config) => updateTelegram.mutate({ ...defaultTelegramConfig, ...config })}
         onUpdateYolo={(config) => updateYolo.mutate(config)}
         onUpdateDetection={(config) => updateDetection.mutate(config)}
         onTestTelegram={() => testTelegram.mutateAsync()}
@@ -323,6 +323,7 @@ function AppContent() {
 
       <EventModal
         event={selectedEvent}
+        cameras={cameras}
         isOpen={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
       />

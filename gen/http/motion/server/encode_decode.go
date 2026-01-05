@@ -202,26 +202,111 @@ func EncodeFrameError(encoder func(context.Context, http.ResponseWriter) goahttp
 	}
 }
 
+// EncodeForensicThumbnailResponse returns an encoder for responses returned by
+// the motion forensic_thumbnail endpoint.
+func EncodeForensicThumbnailResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*motion.FrameResponse)
+		enc := encoder(ctx, w)
+		body := NewForensicThumbnailResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// DecodeForensicThumbnailRequest returns a decoder for requests sent to the
+// motion forensic_thumbnail endpoint.
+func DecodeForensicThumbnailRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
+	return func(r *http.Request) (any, error) {
+		var (
+			id    string
+			index int
+			err   error
+
+			params = mux.Vars(r)
+		)
+		id = params["id"]
+		err = goa.MergeErrors(err, goa.ValidateFormat("id", id, goa.FormatUUID))
+		{
+			indexRaw := params["index"]
+			v, err2 := strconv.ParseInt(indexRaw, 10, strconv.IntSize)
+			if err2 != nil {
+				err = goa.MergeErrors(err, goa.InvalidFieldTypeError("index", indexRaw, "integer"))
+			}
+			index = int(v)
+		}
+		if err != nil {
+			return nil, err
+		}
+		payload := NewForensicThumbnailPayload(id, index)
+
+		return payload, nil
+	}
+}
+
+// EncodeForensicThumbnailError returns an encoder for errors returned by the
+// forensic_thumbnail motion endpoint.
+func EncodeForensicThumbnailError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+	encodeError := goahttp.ErrorEncoder(encoder, formatter)
+	return func(ctx context.Context, w http.ResponseWriter, v error) error {
+		var en goa.GoaErrorNamer
+		if !errors.As(v, &en) {
+			return encodeError(ctx, w, v)
+		}
+		switch en.GoaErrorName() {
+		case "not_found":
+			var res *motion.NotFoundError
+			errors.As(v, &res)
+			enc := encoder(ctx, w)
+			var body any
+			if formatter != nil {
+				body = formatter(ctx, res)
+			} else {
+				body = NewForensicThumbnailNotFoundResponseBody(res)
+			}
+			w.Header().Set("goa-error", res.GoaErrorName())
+			w.WriteHeader(http.StatusNotFound)
+			return enc.Encode(body)
+		default:
+			return encodeError(ctx, w, v)
+		}
+	}
+}
+
 // marshalMotionMotionEventToMotionEventResponse builds a value of type
 // *MotionEventResponse from a value of type *motion.MotionEvent.
 func marshalMotionMotionEventToMotionEventResponse(v *motion.MotionEvent) *MotionEventResponse {
 	res := &MotionEventResponse{
-		ID:               v.ID,
-		CameraID:         v.CameraID,
-		Timestamp:        v.Timestamp,
-		Confidence:       v.Confidence,
-		FramePath:        v.FramePath,
-		NotificationSent: v.NotificationSent,
-		ObjectClass:      v.ObjectClass,
-		ObjectConfidence: v.ObjectConfidence,
-		ThreatLevel:      v.ThreatLevel,
-		InferenceTimeMs:  v.InferenceTimeMs,
-		DetectionDevice:  v.DetectionDevice,
+		ID:                v.ID,
+		CameraID:          v.CameraID,
+		Timestamp:         v.Timestamp,
+		Confidence:        v.Confidence,
+		FramePath:         v.FramePath,
+		NotificationSent:  v.NotificationSent,
+		ObjectClass:       v.ObjectClass,
+		ObjectConfidence:  v.ObjectConfidence,
+		ThreatLevel:       v.ThreatLevel,
+		InferenceTimeMs:   v.InferenceTimeMs,
+		DetectionDevice:   v.DetectionDevice,
+		FacesDetected:     v.FacesDetected,
+		UnknownFacesCount: v.UnknownFacesCount,
 	}
 	if v.BoundingBoxes != nil {
 		res.BoundingBoxes = make([]*BoundingBoxResponse, len(v.BoundingBoxes))
 		for i, val := range v.BoundingBoxes {
 			res.BoundingBoxes[i] = marshalMotionBoundingBoxToBoundingBoxResponse(val)
+		}
+	}
+	if v.KnownIdentities != nil {
+		res.KnownIdentities = make([]string, len(v.KnownIdentities))
+		for i, val := range v.KnownIdentities {
+			res.KnownIdentities[i] = val
+		}
+	}
+	if v.ForensicThumbnails != nil {
+		res.ForensicThumbnails = make([]string, len(v.ForensicThumbnails))
+		for i, val := range v.ForensicThumbnails {
+			res.ForensicThumbnails[i] = val
 		}
 	}
 

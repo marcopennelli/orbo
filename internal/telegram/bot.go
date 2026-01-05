@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -154,7 +155,7 @@ func (tb *TelegramBot) SendMotionAlert(ctx context.Context, cameraName string, c
 	// Format time with timezone to match UI display
 	now := time.Now()
 	zoneName, _ := now.Zone()
-	timestamp := fmt.Sprintf("%s %s", now.Format("Jan 2, 2006, 03:04:05 PM"), zoneName)
+	timestamp := fmt.Sprintf("%s %s", now.Format("2 Jan 2006, 15:04:05"), zoneName)
 
 	message := fmt.Sprintf(
 		"🚨 <b>Motion Detected!</b>\n\n"+
@@ -171,12 +172,97 @@ func (tb *TelegramBot) SendMotionAlert(ctx context.Context, cameraName string, c
 	return tb.SendMessage(ctx, message)
 }
 
+// FaceRecognitionInfo contains face recognition results for notifications
+type FaceRecognitionInfo struct {
+	FacesDetected       int
+	KnownIdentities     []string
+	UnknownFacesCount   int
+	ForensicThumbnails  [][]byte // Forensic face analysis thumbnails
+}
+
+// SendMotionAlertWithFaces sends a motion detection alert with face recognition info
+func (tb *TelegramBot) SendMotionAlertWithFaces(ctx context.Context, cameraName string, objectClass string, threatLevel string, faceInfo *FaceRecognitionInfo, frameData []byte) error {
+	// Format time with timezone to match UI display
+	now := time.Now()
+	zoneName, _ := now.Zone()
+	timestamp := fmt.Sprintf("%s %s", now.Format("2 Jan 2006, 15:04:05"), zoneName)
+
+	// Build message with detection info
+	var threatEmoji string
+	switch threatLevel {
+	case "high":
+		threatEmoji = "🔴"
+	case "medium":
+		threatEmoji = "🟡"
+	case "low":
+		threatEmoji = "🟢"
+	default:
+		threatEmoji = "⚪"
+	}
+
+	message := fmt.Sprintf(
+		"🚨 <b>Motion Detected!</b>\n\n"+
+			"📹 Camera: %s\n"+
+			"🎯 Detected: %s\n"+
+			"%s Threat: %s\n"+
+			"🕐 Time: %s",
+		cameraName,
+		objectClass,
+		threatEmoji,
+		threatLevel,
+		timestamp,
+	)
+
+	// Add face recognition info if available
+	if faceInfo != nil && faceInfo.FacesDetected > 0 {
+		message += fmt.Sprintf("\n\n👤 <b>Face Recognition:</b>")
+
+		if len(faceInfo.KnownIdentities) > 0 {
+			message += fmt.Sprintf("\n✅ Identified: %s", strings.Join(faceInfo.KnownIdentities, ", "))
+		}
+
+		if faceInfo.UnknownFacesCount > 0 {
+			message += fmt.Sprintf("\n❓ Unknown faces: %d", faceInfo.UnknownFacesCount)
+		}
+	}
+
+	// Send main frame with caption first
+	if frameData != nil && len(frameData) > 0 {
+		err := tb.SendPhoto(ctx, frameData, message)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := tb.SendMessage(ctx, message)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Send forensic thumbnails as separate photos if available
+	if faceInfo != nil && len(faceInfo.ForensicThumbnails) > 0 {
+		for i, thumbnailData := range faceInfo.ForensicThumbnails {
+			if len(thumbnailData) > 0 {
+				caption := fmt.Sprintf("🔬 Face Analysis #%d", i+1)
+				// Skip cooldown check for follow-up forensic photos
+				err := tb.sendPhoto(ctx, thumbnailData, caption)
+				if err != nil {
+					fmt.Printf("Warning: failed to send forensic thumbnail %d: %v\n", i+1, err)
+					// Continue with other thumbnails even if one fails
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // SendTestMessage sends a test message to verify the bot configuration
 func (tb *TelegramBot) SendTestMessage(ctx context.Context) error {
 	// Format time with timezone to match UI display
 	now := time.Now()
 	zoneName, _ := now.Zone()
-	timestamp := fmt.Sprintf("%s %s", now.Format("Jan 2, 2006, 03:04:05 PM"), zoneName)
+	timestamp := fmt.Sprintf("%s %s", now.Format("2 Jan 2006, 15:04:05"), zoneName)
 
 	message := fmt.Sprintf(
 		"🤖 <b>Orbo Test Message</b>\n\n"+

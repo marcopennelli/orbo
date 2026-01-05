@@ -63,6 +63,7 @@ export default function EventList({
               <EventCard
                 key={event.id}
                 event={event}
+                cameras={cameras}
                 onView={() => setSelectedEvent(event)}
               />
             ))}
@@ -72,6 +73,7 @@ export default function EventList({
 
       <EventModal
         event={selectedEvent}
+        cameras={cameras}
         isOpen={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
       />

@@ -52,6 +52,11 @@ export interface MotionEvent {
   threat_level?: 'none' | 'low' | 'medium' | 'high';
   inference_time_ms?: number;
   detection_device?: 'cpu' | 'cuda' | 'dinov3';
+  // Face recognition fields
+  faces_detected?: number;
+  known_identities?: string[];
+  unknown_faces_count?: number;
+  forensic_thumbnails?: string[];  // Paths to forensic face analysis images with landmarks
 }
 
 // System status types - matches SystemStatus from design.go

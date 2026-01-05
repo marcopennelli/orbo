@@ -25,3 +25,8 @@ func EventMotionPath(id string) string {
 func FrameMotionPath(id string) string {
 	return fmt.Sprintf("/api/v1/motion/events/%v/frame", id)
 }
+
+// ForensicThumbnailMotionPath returns the URL path to the motion service forensic_thumbnail HTTP endpoint.
+func ForensicThumbnailMotionPath(id string, index int) string {
+	return fmt.Sprintf("/api/v1/motion/events/%v/forensic/%v", id, index)
+}

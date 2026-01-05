@@ -27,8 +27,16 @@ RUN python3 -c "from insightface.app import FaceAnalysis; app = FaceAnalysis(nam
 # Copy application code
 COPY main.py .
 
-# Create data directory for face database
-RUN mkdir -p /app/data/faces
+# Create data directory for face database and set permissions
+RUN mkdir -p /app/data/faces && \
+    chmod -R 755 /app && \
+    chmod 644 /app/main.py
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
 
 # Expose port
 EXPOSE 8082

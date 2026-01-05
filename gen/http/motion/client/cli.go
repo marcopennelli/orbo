@@ -99,3 +99,31 @@ func BuildFramePayload(motionFrameID string) (*motion.FramePayload, error) {
 
 	return v, nil
 }
+
+// BuildForensicThumbnailPayload builds the payload for the motion
+// forensic_thumbnail endpoint from CLI flags.
+func BuildForensicThumbnailPayload(motionForensicThumbnailID string, motionForensicThumbnailIndex string) (*motion.ForensicThumbnailPayload, error) {
+	var err error
+	var id string
+	{
+		id = motionForensicThumbnailID
+		err = goa.MergeErrors(err, goa.ValidateFormat("id", id, goa.FormatUUID))
+		if err != nil {
+			return nil, err
+		}
+	}
+	var index int
+	{
+		var v int64
+		v, err = strconv.ParseInt(motionForensicThumbnailIndex, 10, strconv.IntSize)
+		index = int(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid value for index, must be INT")
+		}
+	}
+	v := &motion.ForensicThumbnailPayload{}
+	v.ID = id
+	v.Index = index
+
+	return v, nil
+}

@@ -265,6 +265,191 @@ class FaceRecognitionService:
         similarity = np.dot(embedding1, embedding2) / (norm1 * norm2)
         return float(similarity)
 
+    def analyze_faces_forensic(self, image_data: bytes) -> Dict[str, Any]:
+        """
+        Forensic face analysis - returns cropped faces with landmarks overlay
+        NSA-style biometric analysis view
+        """
+        if not self.model_loaded:
+            raise HTTPException(status_code=503, detail="Model not loaded")
+
+        start_time = time.time()
+
+        try:
+            image = self.preprocess_image(image_data)
+            faces = self.face_app.get(image)
+
+            face_analyses = []
+
+            for idx, face in enumerate(faces):
+                bbox = face.bbox.astype(int)
+
+                # Expand crop area for better context
+                padding = 40
+                h, w = image.shape[:2]
+                x1 = max(0, bbox[0] - padding)
+                y1 = max(0, bbox[1] - padding)
+                x2 = min(w, bbox[2] + padding)
+                y2 = min(h, bbox[3] + padding)
+
+                # Crop face region
+                face_crop = image[y1:y2, x1:x2].copy()
+
+                # Offset for landmarks (since we cropped)
+                offset_x = x1
+                offset_y = y1
+
+                # Draw landmarks if available
+                if face.landmark_2d_106 is not None:
+                    landmarks = face.landmark_2d_106
+
+                    # InsightFace 106-point landmark indices:
+                    # 0-32: face contour
+                    # 33-37: right eyebrow
+                    # 38-42: left eyebrow
+                    # 43-47: nose bridge
+                    # 48-51: nose bottom
+                    # 52-71: right eye
+                    # 72-91: left eye
+                    # 92-95: upper lip top
+                    # 96-100: lower lip bottom
+                    # 101-103: upper lip bottom
+                    # 104-105: lower lip top
+
+                    # Draw all landmarks as small dots
+                    for i, (lx, ly) in enumerate(landmarks):
+                        px = int(lx - offset_x)
+                        py = int(ly - offset_y)
+                        if 0 <= px < face_crop.shape[1] and 0 <= py < face_crop.shape[0]:
+                            # Color code by region
+                            if i <= 32:  # Face contour - cyan
+                                color = (0, 255, 255)
+                            elif i <= 42:  # Eyebrows - yellow
+                                color = (255, 255, 0)
+                            elif i <= 51:  # Nose - magenta
+                                color = (255, 0, 255)
+                            elif i <= 91:  # Eyes - green
+                                color = (0, 255, 0)
+                            else:  # Mouth - red
+                                color = (255, 100, 100)
+                            cv2.circle(face_crop, (px, py), 2, color, -1)
+
+                    # Draw connecting lines for face contour
+                    contour_pts = [(int(landmarks[i][0] - offset_x), int(landmarks[i][1] - offset_y))
+                                   for i in range(33) if 0 <= int(landmarks[i][0] - offset_x) < face_crop.shape[1]]
+                    for i in range(len(contour_pts) - 1):
+                        cv2.line(face_crop, contour_pts[i], contour_pts[i+1], (0, 255, 255), 1)
+
+                    # Draw eye outlines
+                    # Right eye: 52-71
+                    right_eye_pts = [(int(landmarks[i][0] - offset_x), int(landmarks[i][1] - offset_y))
+                                     for i in range(52, 72)]
+                    if len(right_eye_pts) > 2:
+                        cv2.polylines(face_crop, [np.array(right_eye_pts)], True, (0, 255, 0), 1)
+
+                    # Left eye: 72-91
+                    left_eye_pts = [(int(landmarks[i][0] - offset_x), int(landmarks[i][1] - offset_y))
+                                    for i in range(72, 92)]
+                    if len(left_eye_pts) > 2:
+                        cv2.polylines(face_crop, [np.array(left_eye_pts)], True, (0, 255, 0), 1)
+
+                # Add forensic overlay info
+                overlay_height = 60
+                forensic_view = np.zeros((face_crop.shape[0] + overlay_height, face_crop.shape[1], 3), dtype=np.uint8)
+                forensic_view[overlay_height:, :] = face_crop
+
+                # Dark header bar
+                forensic_view[:overlay_height, :] = (20, 20, 30)
+
+                # Add text info
+                cv2.putText(forensic_view, f"SUBJECT #{idx+1}", (5, 15),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
+                cv2.putText(forensic_view, f"CONF: {face.det_score:.1%}", (5, 30),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.35, (200, 200, 200), 1)
+
+                # Age/Gender if available
+                info_y = 45
+                if hasattr(face, 'age') and face.age is not None:
+                    cv2.putText(forensic_view, f"AGE: {int(face.age)}", (5, info_y),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.35, (200, 200, 200), 1)
+                    info_y += 12
+                if hasattr(face, 'gender') and face.gender is not None:
+                    gender_str = "M" if face.gender == 1 else "F"
+                    cv2.putText(forensic_view, f"SEX: {gender_str}", (60, 45),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.35, (200, 200, 200), 1)
+
+                # Recognition status
+                identity = None
+                similarity = 0.0
+                is_known = False
+
+                if face.embedding is not None and len(self.known_faces) > 0:
+                    best_match = None
+                    best_similarity = 0.0
+
+                    for name, data in self.known_faces.items():
+                        sim = self._compute_similarity(face.embedding, data['embedding'])
+                        if sim > best_similarity:
+                            best_similarity = sim
+                            best_match = name
+
+                    if best_similarity >= self.similarity_threshold:
+                        identity = best_match
+                        similarity = best_similarity
+                        is_known = True
+                        # Green border for known
+                        cv2.rectangle(forensic_view, (0, overlay_height),
+                                     (forensic_view.shape[1]-1, forensic_view.shape[0]-1), (0, 255, 0), 2)
+                        cv2.putText(forensic_view, f"ID: {identity}", (5, 57),
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 255, 0), 1)
+                    else:
+                        # Red border for unknown
+                        cv2.rectangle(forensic_view, (0, overlay_height),
+                                     (forensic_view.shape[1]-1, forensic_view.shape[0]-1), (0, 0, 255), 2)
+                        cv2.putText(forensic_view, "ID: UNKNOWN", (5, 57),
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+                else:
+                    # Yellow border for no database
+                    cv2.rectangle(forensic_view, (0, overlay_height),
+                                 (forensic_view.shape[1]-1, forensic_view.shape[0]-1), (0, 255, 255), 2)
+
+                # Convert to JPEG
+                forensic_bgr = cv2.cvtColor(forensic_view, cv2.COLOR_RGB2BGR)
+                _, jpeg_data = cv2.imencode('.jpg', forensic_bgr, [cv2.IMWRITE_JPEG_QUALITY, 95])
+
+                face_analysis = {
+                    "index": idx,
+                    "bbox": bbox.tolist(),
+                    "confidence": float(face.det_score),
+                    "identity": identity,
+                    "similarity": round(similarity, 3) if is_known else None,
+                    "is_known": is_known,
+                    "image_base64": base64.b64encode(jpeg_data.tobytes()).decode('utf-8'),
+                    "has_landmarks": face.landmark_2d_106 is not None
+                }
+
+                if hasattr(face, 'age') and face.age is not None:
+                    face_analysis["age"] = int(face.age)
+                if hasattr(face, 'gender') and face.gender is not None:
+                    face_analysis["gender"] = "male" if face.gender == 1 else "female"
+
+                face_analyses.append(face_analysis)
+
+            inference_time = time.time() - start_time
+
+            return {
+                "faces": face_analyses,
+                "count": len(face_analyses),
+                "known_count": sum(1 for f in face_analyses if f["is_known"]),
+                "unknown_count": sum(1 for f in face_analyses if not f["is_known"]),
+                "inference_time_ms": round(inference_time * 1000, 2),
+                "device": self.device
+            }
+
+        except Exception as e:
+            logger.error(f"Forensic analysis failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Forensic analysis failed: {str(e)}")
+
     def register_face(self, name: str, image_data: bytes) -> Dict[str, Any]:
         """Register a new face identity"""
         if not self.model_loaded:
@@ -587,6 +772,30 @@ async def recognize_annotated(
                     "X-Inference-Time-Ms": str(result_info["inference_time_ms"])
                 }
             )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.post("/analyze/forensic")
+async def analyze_forensic(file: UploadFile = File(...)):
+    """
+    NSA-style forensic face analysis with landmarks overlay
+
+    Returns cropped face images with:
+    - 106-point facial landmarks color-coded by region
+    - Dark header with forensic info (SUBJECT #, CONF, AGE, SEX)
+    - Color-coded borders: green=known, red=unknown, yellow=no database
+    - Recognition status and identity if matched
+    """
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    try:
+        image_data = await file.read()
+        return recognition_service.analyze_faces_forensic(image_data)
     except HTTPException:
         raise
     except Exception as e:

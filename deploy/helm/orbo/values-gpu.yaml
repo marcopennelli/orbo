@@ -99,14 +99,12 @@ yolo:
     type: ClusterIP
     port: 8081
 
-  # GPU-accelerated resources
+  # Resources (GPU removed for minikube compatibility)
   resources:
     limits:
-      nvidia.com/gpu: 1
       cpu: 2000m
       memory: 4Gi
     requests:
-      nvidia.com/gpu: 1
       cpu: 1000m
       memory: 2Gi
 
@@ -125,12 +123,58 @@ yolo:
   gpu:
     enabled: true
     cudaDevices: "0"
-    nodeSelector:
-      nvidia.com/gpu.present: "true"
+    nodeSelector: {}
 
-  # Scheduling
-  nodeSelector:
-    nvidia.com/gpu.present: "true"
+  # Scheduling - remove GPU node selector for minikube compatibility
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# Face Recognition Service
+# -----------------------------------------------------------------------------
+recognition:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: orbo-recognition
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  config:
+    similarityThreshold: 0.5
+    model: buffalo_l
+
+  service:
+    type: ClusterIP
+    port: 8082
+
+  persistence:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    storageClass: ""
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop: [ALL]
+
+  nodeSelector: {}
   tolerations: []
   affinity: {}
 

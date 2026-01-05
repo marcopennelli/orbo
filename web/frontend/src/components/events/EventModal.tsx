@@ -1,16 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Activity, Clock, Camera, AlertTriangle, X, Maximize2 } from 'lucide-react';
-import type { MotionEvent } from '../../types';
+import { Activity, Clock, Camera, AlertTriangle, X, Maximize2, User, UserCheck, UserX } from 'lucide-react';
+import type { MotionEvent, Camera as CameraType } from '../../types';
 import { getEventFrame, frameResponseToDataUrl } from '../../api/events';
 import { Modal, Badge, Spinner } from '../ui';
+import ForensicThumbnails from './ForensicThumbnails';
+import { formatDateTime } from '../../utils/date';
 
 interface EventModalProps {
   event: MotionEvent | null;
+  cameras: CameraType[];
   isOpen: boolean;
   onClose: () => void;
 }
 
-export default function EventModal({ event, isOpen, onClose }: EventModalProps) {
+export default function EventModal({ event, cameras, isOpen, onClose }: EventModalProps) {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -68,19 +71,12 @@ export default function EventModal({ event, isOpen, onClose }: EventModalProps) 
 
   if (!event) return null;
 
-  const formatTimeWithTimezone = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const options: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      timeZoneName: 'short',
-    };
-    return date.toLocaleString(undefined, options);
+  // Get camera name from cameras list, fallback to truncated ID
+  const getCameraName = () => {
+    const camera = cameras.find(c => c.id === event.camera_id);
+    return camera?.name || `Camera ${event.camera_id.slice(0, 8)}...`;
   };
+
 
   const getDetectionType = () => {
     if (event.detection_device === 'dinov3') return 'DINOv3';
@@ -160,7 +156,7 @@ export default function EventModal({ event, isOpen, onClose }: EventModalProps) 
             <Camera className="w-5 h-5 text-accent" />
             <div>
               <p className="text-xs text-text-muted">Camera</p>
-              <p className="text-sm text-text-primary">{event.camera_id.slice(0, 8)}...</p>
+              <p className="text-sm text-text-primary">{getCameraName()}</p>
             </div>
           </div>
 
@@ -168,7 +164,7 @@ export default function EventModal({ event, isOpen, onClose }: EventModalProps) 
             <Clock className="w-5 h-5 text-accent" />
             <div>
               <p className="text-xs text-text-muted">Timestamp</p>
-              <p className="text-sm text-text-primary">{formatTimeWithTimezone(event.timestamp)}</p>
+              <p className="text-sm text-text-primary">{formatDateTime(event.timestamp)}</p>
             </div>
           </div>
 
@@ -203,6 +199,50 @@ export default function EventModal({ event, isOpen, onClose }: EventModalProps) 
               {event.object_confidence && ` (${(event.object_confidence * 100).toFixed(1)}%)`}
             </Badge>
           </div>
+        )}
+
+        {/* Face Recognition Results */}
+        {event.faces_detected !== undefined && event.faces_detected > 0 && (
+          <div className="p-3 bg-bg-card rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <User className="w-5 h-5 text-accent" />
+              <p className="text-sm font-medium text-text-primary">
+                Face Recognition
+              </p>
+              <span className="text-xs text-text-muted">
+                ({event.faces_detected} {event.faces_detected === 1 ? 'face' : 'faces'} detected)
+              </span>
+            </div>
+
+            {/* Recognition summary - horizontal layout */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Known identities */}
+              {event.known_identities && event.known_identities.length > 0 && (
+                event.known_identities.map((name, index) => (
+                  <Badge key={index} variant="success">
+                    <UserCheck className="w-3 h-3 mr-1" />
+                    {name}
+                  </Badge>
+                ))
+              )}
+
+              {/* Unknown faces */}
+              {event.unknown_faces_count !== undefined && event.unknown_faces_count > 0 && (
+                <Badge variant="warning">
+                  <UserX className="w-3 h-3 mr-1" />
+                  {event.unknown_faces_count} unknown
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Forensic Face Analysis Thumbnails */}
+        {event.forensic_thumbnails && event.forensic_thumbnails.length > 0 && (
+          <ForensicThumbnails
+            eventId={event.id}
+            thumbnailCount={event.forensic_thumbnails.length}
+          />
         )}
 
         {/* Inference time */}

@@ -56,9 +56,14 @@ make run       # Run with camera access
 
 ```bash
 cd deploy
-make minikube-build && make minikube-build-yolo
+make minikube-build && make minikube-build-yolo && make minikube-build-recognition
 make minikube-deploy          # CPU inference
 make minikube-deploy-gpu      # GPU inference
+```
+
+To enable face recognition:
+```bash
+helm upgrade orbo deploy/helm/orbo --set recognition.enabled=true
 ```
 
 ## Frontend
@@ -108,6 +113,9 @@ make -C deploy full-build     # Build frontend + backend
 | `YOLO_ENDPOINT` | YOLO service URL | `http://yolo-service:8081` |
 | `YOLO_DRAW_BOXES` | Draw bounding boxes | false |
 | `YOLO_CLASSES_FILTER` | Classes to detect (e.g., "person,car") | all |
+| `RECOGNITION_ENABLED` | Enable face recognition | false |
+| `RECOGNITION_SERVICE_ENDPOINT` | Face recognition service URL | `http://recognition:8082` |
+| `RECOGNITION_SIMILARITY_THRESHOLD` | Face match threshold (0.0-1.0) | 0.5 |
 | `PRIMARY_DETECTOR` | Detection method (basic, yolo, dinov3) | basic |
 | `DATABASE_PATH` | SQLite database path | `/app/frames/orbo.db` |
 | `FRAME_DIR` | Frame storage directory | `/app/frames` |
@@ -129,6 +137,7 @@ helm install orbo deploy/helm/orbo \
 | `orbo` | Main app: replicas, image, resources |
 | `detection` | Primary detector, motion settings |
 | `yolo` | YOLO config, GPU settings |
+| `recognition` | Face recognition config |
 | `notifications` | Telegram settings |
 | `storage` | Persistence, database path |
 
@@ -223,7 +232,7 @@ Once configured, control Orbo directly from Telegram:
     │  frame capture) │  │   AI integration)   │  │   images)     │
     └────────┬────────┘  └──────────┬──────────┘  └───────────────┘
              │                      │
-             │           ┌──────────┴──────────────────────┐
+             │           ┌──────────┴─────────────────────┐
              │           │      Detection Engines         │
              │           ├─────────┬──────────┬───────────┤
              │           │  YOLO   │  Face    │  DINOv3   │
@@ -316,11 +325,54 @@ sudo docker run --device=/dev/video0 ...
 podman run --device /dev/video0 ...
 ```
 
+## Face Recognition
+
+Orbo includes integrated face recognition powered by [InsightFace](https://github.com/deepinsight/insightface). When enabled, the system automatically:
+
+1. **Detects faces** when YOLO identifies a person in the frame
+2. **Matches faces** against registered identities in the database
+3. **Updates threat level** to "high" for unknown faces
+4. **Enhances notifications** with face recognition results
+
+### Setup
+
+1. **Register faces** via the web UI (Settings → Face Management) or API
+2. **Enable recognition** in Helm values or environment variables
+3. Face recognition runs automatically during person detection
+
+### UI Features
+
+- **Event Cards**: Show face badges (✅ known, ⚠️ unknown)
+- **Event Details**: Display identified names and unknown face count
+- **Face Management**: Register, view, and delete face identities
+
+### Recognition API
+
+```bash
+# Register a new face
+curl -X POST http://orbo/recognition/faces/register \
+  -F "name=John" -F "file=@photo.jpg"
+
+# List registered faces
+curl http://orbo/recognition/faces
+
+# Recognize faces in an image
+curl -X POST http://orbo/recognition/recognize \
+  -F "file=@frame.jpg"
+```
+
+### Telegram Notifications
+
+When face recognition is enabled, alerts include:
+- ✅ Identified person names
+- ❓ Count of unknown faces
+
 ## Roadmap
 
 Planned features and improvements:
 
 - [x] **Authentication** - JWT-based login with protected API endpoints
+- [x] **Face Recognition** - InsightFace-based face detection and identity matching
 - [ ] **Multi-user Support** - Multiple users with separate camera permissions
 - [ ] **Recording & Playback** - Continuous recording with timeline navigation
 - [ ] **Cloud Storage** - Optional backup to S3 for frames and recordings
