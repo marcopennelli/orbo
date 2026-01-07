@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"orbo/internal/database"
+	"orbo/internal/stream"
 	"orbo/internal/telegram"
+	"orbo/internal/ws"
 )
 
 // MotionEvent represents a detected motion event
@@ -114,4 +116,14 @@ func (md *MotionDetector) GetEventsForTelegram(cameraID string, since *time.Time
 		}
 	}
 	return result
+}
+
+// SetWebSocketHub sets the WebSocket hub for real-time detection broadcasting
+func (md *MotionDetector) SetWebSocketHub(hub *ws.DetectionHub) {
+	md.streamDetector.SetWebSocketHub(hub)
+}
+
+// SetStreamOverlay sets the stream overlay provider for drawing bounding boxes on MJPEG streams
+func (md *MotionDetector) SetStreamOverlay(overlay stream.StreamOverlayProvider) {
+	md.streamDetector.SetStreamOverlay(overlay)
 }

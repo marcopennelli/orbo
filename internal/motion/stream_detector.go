@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"image"
+	"image/color"
 	"image/jpeg"
 	"io"
 	"os"
@@ -19,7 +20,9 @@ import (
 	"github.com/google/uuid"
 	"orbo/internal/database"
 	"orbo/internal/detection"
+	"orbo/internal/stream"
 	"orbo/internal/telegram"
+	"orbo/internal/ws"
 )
 
 // StreamDetector handles streaming motion detection
@@ -36,11 +39,13 @@ type StreamDetector struct {
 	frameDir         string
 	backgroundFrames map[string]image.Image
 	frameBuffers     map[string]chan []byte
-	gpuDetector      *detection.GPUDetector     // GPU object detection
-	dinov3Detector   *detection.DINOv3Detector  // DINOv3 AI-powered detection
-	faceRecognizer   *detection.FaceRecognizer  // Face recognition
-	db               *database.Database         // Database for event persistence
-	telegramBot      *telegram.TelegramBot      // Telegram notifications
+	gpuDetector      *detection.GPUDetector        // GPU object detection
+	dinov3Detector   *detection.DINOv3Detector     // DINOv3 AI-powered detection
+	faceRecognizer   *detection.FaceRecognizer     // Face recognition
+	db               *database.Database            // Database for event persistence
+	telegramBot      *telegram.TelegramBot         // Telegram notifications
+	wsHub            *ws.DetectionHub              // WebSocket hub for real-time broadcasting
+	streamOverlay    stream.StreamOverlayProvider  // Stream overlay for drawing bounding boxes on MJPEG
 }
 
 // NewStreamDetector creates a new streaming motion detector
@@ -436,6 +441,22 @@ func (sd *StreamDetector) analyzeFrames(cameraID string, stopCh chan struct{}) {
 				fmt.Printf("analyzeFrames processed %d frames for camera %s\n", frameCount, cameraID)
 			}
 
+			// Broadcast frame via WebSocket for live streaming (if clients connected)
+			if sd.wsHub != nil {
+				hasClients := sd.wsHub.HasClients(cameraID)
+				if frameCount%100 == 1 { // Log periodically
+					registeredCameras := sd.wsHub.GetRegisteredCameras()
+					fmt.Printf("[WS-DEBUG] Camera %s: hasClients=%v, frameCount=%d, registeredCameras=%v\n", cameraID, hasClients, frameCount, registeredCameras)
+				}
+				if hasClients {
+					bounds := currentImg.Bounds()
+					frameMsg := ws.NewFrameMessage(cameraID, bounds.Dx(), bounds.Dy(), base64.StdEncoding.EncodeToString(frameData))
+					sd.wsHub.BroadcastFrame(cameraID, frameMsg)
+				}
+			} else if frameCount%100 == 1 {
+				fmt.Printf("[WS-DEBUG] Camera %s: wsHub is nil!\n", cameraID)
+			}
+
 			// Update background periodically (every 30 seconds)
 			if time.Since(lastBackgroundUpdate) > 30*time.Second {
 				backgroundImg = currentImg
@@ -485,6 +506,34 @@ func (sd *StreamDetector) runDirectYOLODetection(cameraID string, frameData []by
 	if len(securityResult.Detections) > 0 {
 		fmt.Printf("YOLO detected %d objects on camera %s (inference: %.1fms on %s)\n",
 			len(securityResult.Detections), cameraID, securityResult.InferenceTimeMs, securityResult.Device)
+
+		// Update stream overlay for MJPEG stream bounding boxes
+		sd.updateStreamOverlay(cameraID, securityResult.Detections, nil)
+
+		// Broadcast detections via WebSocket if hub is available
+		if sd.wsHub != nil && sd.wsHub.HasClients(cameraID) {
+			// Get frame dimensions
+			img, err := jpeg.Decode(bytes.NewReader(frameData))
+			frameWidth, frameHeight := 0, 0
+			if err == nil {
+				bounds := img.Bounds()
+				frameWidth = bounds.Dx()
+				frameHeight = bounds.Dy()
+			}
+
+			wsMsg := ws.NewDetectionMessage(cameraID, frameWidth, frameHeight)
+			for _, det := range securityResult.Detections {
+				// Convert bbox from [x1, y1, x2, y2] to [x, y, w, h] format for frontend
+				bbox := det.BBox
+				if len(bbox) == 4 {
+					bbox = []float32{bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]}
+				}
+				wsMsg.AddObject(det.Class, det.Confidence, bbox, sd.gpuDetector.GetThreatLevel(det))
+			}
+			// Include the frame for sync with bounding boxes
+			wsMsg.SetFrame(base64.StdEncoding.EncodeToString(frameData))
+			sd.wsHub.BroadcastDetection(cameraID, wsMsg)
+		}
 
 		// Create events for each security-relevant detection
 		for _, det := range securityResult.Detections {
@@ -542,9 +591,43 @@ func (sd *StreamDetector) runDirectYOLODetectionAnnotated(cameraID string, frame
 		return
 	}
 
+	// ALWAYS send annotated frame to stream (for real-time WebCodecs/MJPEG viewing)
+	// This ensures every frame processed by YOLO is displayed, even without detections
+	if len(annotatedResult.ImageData) > 0 {
+		sd.sendAnnotatedFrameToStream(cameraID, annotatedResult.ImageData)
+	}
+
 	if annotatedResult.Count > 0 {
 		fmt.Printf("YOLO detected %d objects on camera %s (inference: %.1fms on %s) - saving annotated image\n",
 			annotatedResult.Count, cameraID, annotatedResult.InferenceTimeMs, annotatedResult.Device)
+
+		// Also update stream overlay for metadata (fallback if annotated frame not used)
+		sd.updateStreamOverlay(cameraID, annotatedResult.Detections, nil)
+
+		// Broadcast detections via WebSocket if hub is available
+		if sd.wsHub != nil && sd.wsHub.HasClients(cameraID) {
+			// Get frame dimensions from original frame
+			img, err := jpeg.Decode(bytes.NewReader(frameData))
+			frameWidth, frameHeight := 0, 0
+			if err == nil {
+				bounds := img.Bounds()
+				frameWidth = bounds.Dx()
+				frameHeight = bounds.Dy()
+			}
+
+			wsMsg := ws.NewDetectionMessage(cameraID, frameWidth, frameHeight)
+			for _, det := range annotatedResult.Detections {
+				// Convert bbox from [x1, y1, x2, y2] to [x, y, w, h] format for frontend
+				bbox := det.BBox
+				if len(bbox) == 4 {
+					bbox = []float32{bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]}
+				}
+				wsMsg.AddObject(det.Class, det.Confidence, bbox, sd.gpuDetector.GetThreatLevel(det))
+			}
+			// Include the frame for sync with bounding boxes
+			wsMsg.SetFrame(base64.StdEncoding.EncodeToString(frameData))
+			sd.wsHub.BroadcastDetection(cameraID, wsMsg)
+		}
 
 		// Save the annotated frame (with bounding boxes already drawn)
 		framePath := fmt.Sprintf("%s/yolo_annotated_%s_%d.jpg",
@@ -607,7 +690,13 @@ func (sd *StreamDetector) runDirectYOLODetectionAnnotated(cameraID string, frame
 		}
 
 		if hasPersonDetection {
-			sd.performFaceRecognition(cameraID, frameData, event)
+			// Pass the YOLO-annotated frame to face recognition so face boxes
+			// are drawn ON TOP OF the YOLO boxes (combined visualization)
+			frameForFaceRecognition := frameData
+			if len(annotatedResult.ImageData) > 0 {
+				frameForFaceRecognition = annotatedResult.ImageData
+			}
+			sd.performFaceRecognition(cameraID, frameForFaceRecognition, event)
 		}
 
 		sd.addEvent(event)
@@ -730,6 +819,9 @@ func (sd *StreamDetector) processMotionWithGPU(cameraID string, frameData []byte
 
 // processGPUDetections creates motion events for each detected object
 func (sd *StreamDetector) processGPUDetections(cameraID string, frameData []byte, result *detection.SecurityDetectionResult, motionBBox BoundingBox) {
+	// Update stream overlay for MJPEG stream bounding boxes
+	sd.updateStreamOverlay(cameraID, result.Detections, nil)
+
 	for _, det := range result.Detections {
 		if sd.gpuDetector.ShouldAlert(det) {
 			// Save frame for this detection
@@ -812,28 +904,104 @@ func (sd *StreamDetector) performFaceRecognition(cameraID string, frameData []by
 		}
 	}
 
-	// Run face recognition
-	result, err := sd.faceRecognizer.RecognizeFaces(frameData)
+	// Use annotated recognition to get face boxes drawn on image
+	annotatedResult, err := sd.faceRecognizer.RecognizeFacesAnnotated(frameData)
 	if err != nil {
-		fmt.Printf("Face recognition failed for camera %s: %v\n", cameraID, err)
+		// Fall back to non-annotated if annotated endpoint fails
+		fmt.Printf("Annotated face recognition failed, trying fallback for camera %s: %v\n", cameraID, err)
+		sd.performFaceRecognitionFallback(cameraID, frameData, event)
 		return
 	}
 
 	// Update event with face recognition results
+	if annotatedResult.Count > 0 {
+		event.FacesDetected = annotatedResult.Count
+		event.UnknownFacesCount = annotatedResult.UnknownCount
+
+		// Extract known identities
+		for _, face := range annotatedResult.Recognitions {
+			if face.IsKnown && face.Identity != nil {
+				event.KnownIdentities = append(event.KnownIdentities, *face.Identity)
+			}
+		}
+
+		// Log the results
+		fmt.Printf("Face recognition for camera %s: total=%d, known=%d, unknown=%d (inference: %.1fms)\n",
+			cameraID, annotatedResult.Count, annotatedResult.KnownCount, annotatedResult.UnknownCount, annotatedResult.InferenceTimeMs)
+
+		// Update threat level if unknown faces detected
+		if annotatedResult.UnknownCount > 0 && event.ThreatLevel != "high" {
+			event.ThreatLevel = "high" // Unknown person = high threat
+		}
+
+		// Send annotated frame with face boxes to MJPEG stream
+		if len(annotatedResult.ImageData) > 0 {
+			sd.sendAnnotatedFrameToStream(cameraID, annotatedResult.ImageData)
+		}
+
+		// Broadcast face recognition results via WebSocket
+		if sd.wsHub != nil && sd.wsHub.HasClients(cameraID) {
+			wsMsg := ws.NewFaceMessage(cameraID)
+			for _, face := range annotatedResult.Recognitions {
+				var identity *string
+				var similarity *float32
+				var age *int
+				var gender *string
+
+				if face.Identity != nil {
+					identity = face.Identity
+				}
+				if face.Similarity > 0 {
+					sim := face.Similarity
+					similarity = &sim
+				}
+				if face.Age > 0 {
+					a := face.Age
+					age = &a
+				}
+				if face.Gender != "" {
+					g := face.Gender
+					gender = &g
+				}
+
+				// Convert bbox from [x1, y1, x2, y2] to [x, y, w, h] format for frontend
+				bbox := face.BBox
+				if len(bbox) == 4 {
+					bbox = []float32{bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]}
+				}
+				wsMsg.AddFace(bbox, face.Confidence, identity, face.IsKnown, similarity, age, gender)
+			}
+			sd.wsHub.BroadcastFaces(cameraID, wsMsg)
+		}
+
+		// Update stream overlay with face detection boxes (fallback for coordinate-based overlay)
+		sd.updateStreamOverlayFaces(cameraID, annotatedResult.Recognitions)
+
+		// Run forensic analysis to get face thumbnails with landmarks
+		sd.performForensicAnalysis(cameraID, frameData, event)
+	}
+}
+
+// performFaceRecognitionFallback is the original non-annotated face recognition
+func (sd *StreamDetector) performFaceRecognitionFallback(cameraID string, frameData []byte, event *MotionEvent) {
+	result, err := sd.faceRecognizer.RecognizeFaces(frameData)
+	if err != nil {
+		fmt.Printf("Face recognition fallback failed for camera %s: %v\n", cameraID, err)
+		return
+	}
+
 	if result.Count > 0 {
 		event.FacesDetected = result.Count
 		event.KnownIdentities = result.GetKnownIdentities()
 		event.UnknownFacesCount = result.UnknownCount
 
-		// Log the results
 		sd.faceRecognizer.LogRecognitionResult(result, cameraID)
 
-		// Update threat level if unknown faces detected
 		if result.UnknownCount > 0 && event.ThreatLevel != "high" {
-			event.ThreatLevel = "high" // Unknown person = high threat
+			event.ThreatLevel = "high"
 		}
 
-		// Run forensic analysis to get face thumbnails with landmarks
+		sd.updateStreamOverlayFaces(cameraID, result.Recognitions)
 		sd.performForensicAnalysis(cameraID, frameData, event)
 	}
 }
@@ -1257,6 +1425,139 @@ func (sd *StreamDetector) SetTelegramBot(bot *telegram.TelegramBot) {
 	sd.telegramBot = bot
 }
 
+// SetWebSocketHub sets the WebSocket hub for real-time detection broadcasting
+func (sd *StreamDetector) SetWebSocketHub(hub *ws.DetectionHub) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.wsHub = hub
+}
+
+// SetStreamOverlay sets the stream overlay provider for drawing bounding boxes on MJPEG streams
+func (sd *StreamDetector) SetStreamOverlay(overlay stream.StreamOverlayProvider) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.streamOverlay = overlay
+}
+
+// updateStreamOverlay sends detection data to the MJPEG stream for drawing bounding boxes
+func (sd *StreamDetector) updateStreamOverlay(cameraID string, objectDetections []detection.Detection, faceRecognitions []detection.FaceRecognition) {
+	sd.mu.RLock()
+	overlay := sd.streamOverlay
+	sd.mu.RUnlock()
+
+	if overlay == nil {
+		return
+	}
+
+	// Convert object detections to stream format
+	streamDetections := make([]stream.Detection, 0, len(objectDetections))
+	for _, det := range objectDetections {
+		// Skip detections with invalid bounding boxes
+		if len(det.BBox) < 4 {
+			continue
+		}
+
+		// Get threat-based color
+		threatLevel := sd.gpuDetector.GetThreatLevel(det)
+		var detColor color.RGBA
+		switch threatLevel {
+		case "high":
+			detColor = color.RGBA{R: 255, G: 0, B: 0, A: 255} // Red
+		case "medium":
+			detColor = color.RGBA{R: 255, G: 165, B: 0, A: 255} // Orange
+		default:
+			detColor = color.RGBA{R: 59, G: 130, B: 246, A: 255} // Blue
+		}
+
+		streamDetections = append(streamDetections, stream.Detection{
+			Class:      det.Class,
+			Confidence: det.Confidence,
+			X:          int(det.BBox[0]),
+			Y:          int(det.BBox[1]),
+			W:          int(det.BBox[2] - det.BBox[0]),
+			H:          int(det.BBox[3] - det.BBox[1]),
+			Color:      detColor,
+		})
+	}
+
+	// Convert face recognitions to stream format
+	streamFaces := make([]stream.FaceDetection, 0, len(faceRecognitions))
+	for _, face := range faceRecognitions {
+		// Skip faces with invalid bounding boxes
+		if len(face.BBox) < 4 {
+			continue
+		}
+
+		identity := ""
+		if face.IsKnown && face.Identity != nil && *face.Identity != "" {
+			identity = *face.Identity
+		}
+		streamFaces = append(streamFaces, stream.FaceDetection{
+			Identity:   identity,
+			IsKnown:    face.IsKnown,
+			Confidence: face.Similarity,
+			X:          int(face.BBox[0]),
+			Y:          int(face.BBox[1]),
+			W:          int(face.BBox[2] - face.BBox[0]),
+			H:          int(face.BBox[3] - face.BBox[1]),
+		})
+	}
+
+	overlay.UpdateDetections(cameraID, streamDetections, streamFaces)
+}
+
+// updateStreamOverlayFaces updates only the face detection overlay (called after face recognition)
+func (sd *StreamDetector) updateStreamOverlayFaces(cameraID string, faceRecognitions []detection.FaceRecognition) {
+	sd.mu.RLock()
+	overlay := sd.streamOverlay
+	sd.mu.RUnlock()
+
+	if overlay == nil || len(faceRecognitions) == 0 {
+		return
+	}
+
+	// Convert face recognitions to stream format
+	streamFaces := make([]stream.FaceDetection, 0, len(faceRecognitions))
+	for _, face := range faceRecognitions {
+		// Skip faces with invalid bounding boxes
+		if len(face.BBox) < 4 {
+			continue
+		}
+
+		identity := ""
+		if face.IsKnown && face.Identity != nil {
+			identity = *face.Identity
+		}
+		streamFaces = append(streamFaces, stream.FaceDetection{
+			Identity:   identity,
+			IsKnown:    face.IsKnown,
+			Confidence: face.Similarity,
+			X:          int(face.BBox[0]),
+			Y:          int(face.BBox[1]),
+			W:          int(face.BBox[2] - face.BBox[0]),
+			H:          int(face.BBox[3] - face.BBox[1]),
+		})
+	}
+
+	// Update overlay with empty detections but faces populated
+	// This won't clear object detections since we pass nil
+	overlay.UpdateDetections(cameraID, nil, streamFaces)
+}
+
+// sendAnnotatedFrameToStream sends a pre-annotated frame to the MJPEG streamer
+// This is the preferred method - YOLO has already drawn the bounding boxes
+func (sd *StreamDetector) sendAnnotatedFrameToStream(cameraID string, frameData []byte) {
+	sd.mu.RLock()
+	overlay := sd.streamOverlay
+	sd.mu.RUnlock()
+
+	if overlay == nil || len(frameData) == 0 {
+		return
+	}
+
+	overlay.SetAnnotatedFrame(cameraID, frameData)
+}
+
 // streamHTTPImages polls HTTP image endpoints for motion detection
 func (sd *StreamDetector) streamHTTPImages(cameraID, imageURL string, stopCh chan struct{}) {
 	fmt.Printf("Starting HTTP image polling for camera %s at %s\n", cameraID, imageURL)
@@ -1370,6 +1671,13 @@ func (sd *StreamDetector) processHTTPFrames(cameraID string, frameBuffer chan []
 			currentImg, err := jpeg.Decode(bytes.NewReader(frameData))
 			if err != nil {
 				continue
+			}
+
+			// Broadcast frame via WebSocket for live streaming (if clients connected)
+			if sd.wsHub != nil && sd.wsHub.HasClients(cameraID) {
+				bounds := currentImg.Bounds()
+				frameMsg := ws.NewFrameMessage(cameraID, bounds.Dx(), bounds.Dy(), base64.StdEncoding.EncodeToString(frameData))
+				sd.wsHub.BroadcastFrame(cameraID, frameMsg)
 			}
 
 			// Update background periodically

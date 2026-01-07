@@ -9,6 +9,7 @@ Orbo is a modern, open-source video alarm system built with Go and OpenCV. It fe
 ## Features
 
 - **React Web UI**: Modern dashboard with camera management, multi-camera grid layouts, and settings panel
+- **Dual Streaming Modes**: MJPEG (traditional) and WebCodecs (low-latency WebSocket) streaming
 - **Camera Support**: USB cameras (`/dev/video*`), HTTP endpoints, and RTSP streams
 - **Motion Detection**: OpenCV-based with configurable sensitivity
 - **AI Object Detection**: YOLO integration for persons, vehicles, and 80+ COCO classes
@@ -217,7 +218,7 @@ Once configured, control Orbo directly from Telegram:
 │                       React Frontend                            │
 │            (Camera UI, Grid View, Events, Settings)             │
 └───────────────────────────────┬─────────────────────────────────┘
-                                │ HTTP
+                                │ HTTP / WebSocket
 ┌───────────────────────────────▼─────────────────────────────────┐
 │                    Goa REST API Server                          │
 │  ┌─────────┬──────────┬─────────┬──────────┬─────────────────┐  │
@@ -231,6 +232,22 @@ Once configured, control Orbo directly from Telegram:
     │ (lifecycle,     │  │  (motion detection, │  │  (alerts with │
     │  frame capture) │  │   AI integration)   │  │   images)     │
     └────────┬────────┘  └──────────┬──────────┘  └───────────────┘
+             │                      │
+             │   ┌──────────────────┴──────────────────┐
+             │   │     Streaming Architecture          │
+             │   │  ┌────────────┐  ┌──────────────┐   │
+             │   │  │   MJPEG    │◄─┤  WebCodecs   │   │
+             │   │  │  Manager   │  │   Manager    │   │
+             │   │  │ (HTTP/1.1) │  │ (WebSocket)  │   │
+             │   │  └─────┬──────┘  └──────┬───────┘   │
+             │   │        └────────┬───────┘           │
+             │   │                 ▼                   │
+             │   │  ┌───────────────────────────┐      │
+             │   │  │   Composite Overlay       │      │
+             │   │  │  (broadcasts annotated    │      │
+             │   │  │   frames to both)         │      │
+             │   │  └───────────────────────────┘      │
+             │   └─────────────────────────────────────┘
              │                      │
              │           ┌──────────┴─────────────────────┐
              │           │      Detection Engines         │
@@ -253,6 +270,24 @@ Once configured, control Orbo directly from Telegram:
     └─────────────────────────────────────────┘
 ```
 
+### Streaming Modes
+
+Orbo supports two streaming modes, selectable in the frontend:
+
+| Mode | Protocol | Use Case |
+|------|----------|----------|
+| **MJPEG** | HTTP/1.1 multipart | Traditional, compatible with all browsers |
+| **WebCodecs** | WebSocket binary | Low-latency, real-time viewing |
+
+**WebCodecs Architecture:**
+- Uses WebSocket (`/ws/video/{camera_id}`) for direct binary frame delivery
+- Prioritizes annotated frames from YOLO/InsightFace detection pipeline
+- Falls back to raw MJPEG frames when detection is disabled
+- Binary message format: `[type:1byte][length:4bytes][jpeg_data]`
+  - Type `0` = raw frame (no bounding boxes)
+  - Type `1` = annotated frame (with detection bounding boxes)
+- Composite overlay broadcasts every processed frame to both MJPEG and WebCodecs simultaneously
+
 ## Project Structure
 
 ```
@@ -265,6 +300,7 @@ orbo/
 │   ├── database/      # SQLite layer
 │   ├── detection/     # YOLO/GPU clients
 │   ├── motion/        # Motion detection
+│   ├── stream/        # MJPEG/WebCodecs streaming
 │   ├── telegram/      # Notifications
 │   └── services/      # Service implementations
 ├── web/

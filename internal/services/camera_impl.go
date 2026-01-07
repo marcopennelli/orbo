@@ -10,17 +10,20 @@ import (
 
 	camera_service "orbo/gen/camera"
 	"orbo/internal/camera"
+	"orbo/internal/motion"
 )
 
 // CameraImplementation implements the camera service
 type CameraImplementation struct {
-	cameraManager *camera.CameraManager
+	cameraManager  *camera.CameraManager
+	motionDetector *motion.MotionDetector
 }
 
 // NewCameraService creates a new camera service implementation
-func NewCameraService(cameraManager *camera.CameraManager) camera_service.Service {
+func NewCameraService(cameraManager *camera.CameraManager, motionDetector *motion.MotionDetector) camera_service.Service {
 	return &CameraImplementation{
-		cameraManager: cameraManager,
+		cameraManager:  cameraManager,
+		motionDetector: motionDetector,
 	}
 }
 
@@ -197,6 +200,7 @@ func (c *CameraImplementation) Activate(ctx context.Context, p *camera_service.A
 		}
 	}
 
+	// Activate camera - this also creates the MJPEG stream
 	err = c.cameraManager.ActivateCamera(p.ID)
 	if err != nil {
 		return nil, &camera_service.InternalError{
@@ -229,6 +233,7 @@ func (c *CameraImplementation) Deactivate(ctx context.Context, p *camera_service
 		}
 	}
 
+	// Deactivate camera - this also deletes the MJPEG stream
 	err = c.cameraManager.DeactivateCamera(p.ID)
 	if err != nil {
 		return nil, &camera_service.NotFoundError{

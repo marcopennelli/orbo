@@ -2,6 +2,7 @@ package detection
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -241,6 +242,105 @@ func (fr *FaceRecognizer) AnalyzeForensic(imageData []byte) (*ForensicAnalysisRe
 	}
 
 	return &forensicResult, nil
+}
+
+// AnnotatedRecognitionResult contains both the annotated image and recognition data
+type AnnotatedRecognitionResult struct {
+	ImageData       []byte            // JPEG image with face boxes drawn
+	Recognitions    []FaceRecognition `json:"recognitions"`
+	Count           int               `json:"count"`
+	KnownCount      int               `json:"known_count"`
+	UnknownCount    int               `json:"unknown_count"`
+	InferenceTimeMs float32           `json:"inference_time_ms"`
+	Device          string            `json:"device"`
+}
+
+// RecognizeFacesAnnotated detects faces, recognizes them, and returns an annotated image
+// The returned image has green boxes around known faces and red boxes around unknown faces
+func (fr *FaceRecognizer) RecognizeFacesAnnotated(imageData []byte) (*AnnotatedRecognitionResult, error) {
+	if !fr.enabled {
+		return nil, fmt.Errorf("face recognition is disabled")
+	}
+
+	// Call the /recognize/annotated endpoint with format=base64
+	url := fmt.Sprintf("%s/recognize/annotated?format=base64", fr.endpoint)
+
+	// Create multipart form
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Add image file with proper Content-Type header
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="file"; filename="frame.jpg"`)
+	h.Set("Content-Type", "image/jpeg")
+	part, err := writer.CreatePart(h)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create form file: %w", err)
+	}
+
+	if _, err := part.Write(imageData); err != nil {
+		return nil, fmt.Errorf("failed to write image data: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// Send request
+	req, err := http.NewRequest("POST", url, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := fr.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse JSON response with embedded base64 image
+	var jsonResponse struct {
+		Image struct {
+			Data        string `json:"data"`
+			ContentType string `json:"content_type"`
+		} `json:"image"`
+		Recognitions    []FaceRecognition `json:"recognitions"`
+		Count           int               `json:"count"`
+		KnownCount      int               `json:"known_count"`
+		UnknownCount    int               `json:"unknown_count"`
+		InferenceTimeMs float32           `json:"inference_time_ms"`
+		Device          string            `json:"device"`
+	}
+
+	if err := json.Unmarshal(body, &jsonResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode annotated response: %w", err)
+	}
+
+	// Decode base64 image
+	annotatedImage, err := base64.StdEncoding.DecodeString(jsonResponse.Image.Data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode annotated image: %w", err)
+	}
+
+	return &AnnotatedRecognitionResult{
+		ImageData:       annotatedImage,
+		Recognitions:    jsonResponse.Recognitions,
+		Count:           jsonResponse.Count,
+		KnownCount:      jsonResponse.KnownCount,
+		UnknownCount:    jsonResponse.UnknownCount,
+		InferenceTimeMs: jsonResponse.InferenceTimeMs,
+		Device:          jsonResponse.Device,
+	}, nil
 }
 
 // sendImageRequest sends an image to a recognition endpoint

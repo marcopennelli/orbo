@@ -14,7 +14,7 @@ import (
 	"goa.design/goa/v3/middleware"
 
 	authgen "orbo/gen/auth"
-	camera "orbo/gen/camera"
+	cameragen "orbo/gen/camera"
 	config "orbo/gen/config"
 	health "orbo/gen/health"
 	authsvr "orbo/gen/http/auth/server"
@@ -26,12 +26,16 @@ import (
 	motion "orbo/gen/motion"
 	system "orbo/gen/system"
 	"orbo/internal/auth"
+	"orbo/internal/camera"
 	authmw "orbo/internal/middleware"
+	motionpkg "orbo/internal/motion"
+	"orbo/internal/stream"
+	"orbo/internal/ws"
 )
 
 // handleHTTPServer starts configures and starts a HTTP server on the given
 // URL. It shuts down the server if any error is received in the error channel.
-func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.Endpoints, authEndpoints *authgen.Endpoints, cameraEndpoints *camera.Endpoints, motionEndpoints *motion.Endpoints, configEndpoints *config.Endpoints, systemEndpoints *system.Endpoints, authenticator *auth.Authenticator, wg *sync.WaitGroup, errc chan error, logger *log.Logger, debug bool) {
+func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.Endpoints, authEndpoints *authgen.Endpoints, cameraEndpoints *cameragen.Endpoints, motionEndpoints *motion.Endpoints, configEndpoints *config.Endpoints, systemEndpoints *system.Endpoints, authenticator *auth.Authenticator, cameraManager *camera.CameraManager, motionDetector *motionpkg.MotionDetector, wsHub *ws.DetectionHub, wg *sync.WaitGroup, errc chan error, logger *log.Logger, debug bool) {
 
 	// Setup goa log adapter.
 	var (
@@ -166,6 +170,52 @@ func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.E
 			http.StripPrefix("/static/", fs).ServeHTTP(w, r)
 		})
 	}
+
+	// Mount WebSocket handler for real-time detections
+	if wsHub != nil {
+		wsHandler := ws.NewHandler(wsHub)
+		mux.Handle("GET", "/ws/detections/{camera_id}", func(w http.ResponseWriter, r *http.Request) {
+			wsHandler.ServeHTTP(w, r)
+		})
+		logger.Printf("WebSocket endpoint mounted at /ws/detections/{camera_id}")
+	}
+
+	// Mount native MJPEG streaming handlers (no video-pipeline dependency)
+	streamManager := stream.NewMJPEGStreamManager()
+	snapshotHandler := stream.NewSnapshotHandler(streamManager)
+
+	// Create WebCodecs stream manager for low-latency WebSocket streaming
+	webCodecsManager := stream.NewWebCodecsStreamManager()
+	// Connect WebCodecs to MJPEG for raw frame fallback (when detection is disabled)
+	webCodecsManager.SetMJPEGManager(streamManager)
+
+	// Register stream manager with camera manager for stream lifecycle
+	if cameraManager != nil {
+		cameraManager.SetStreamManager(streamManager)
+		cameraManager.SetWebCodecsStreamManager(webCodecsManager)
+	}
+
+	// Register stream manager with motion detector for detection overlays
+	// This allows detection bounding boxes to be drawn on both MJPEG and WebCodecs streams
+	if motionDetector != nil {
+		// Use composite provider to broadcast annotated frames to both MJPEG and WebCodecs
+		compositeOverlay := stream.NewCompositeStreamOverlayProvider(streamManager, webCodecsManager)
+		motionDetector.SetStreamOverlay(compositeOverlay)
+		logger.Printf("Stream overlay connected to motion detector for bounding box rendering (MJPEG + WebCodecs)")
+	}
+
+	mux.Handle("GET", "/video/stream/{camera_id}", func(w http.ResponseWriter, r *http.Request) {
+		streamManager.ServeHTTP(w, r)
+	})
+	mux.Handle("GET", "/video/snapshot/{camera_id}", func(w http.ResponseWriter, r *http.Request) {
+		snapshotHandler.ServeHTTP(w, r)
+	})
+	// WebSocket endpoint for low-latency WebCodecs streaming
+	mux.Handle("GET", "/ws/video/{camera_id}", func(w http.ResponseWriter, r *http.Request) {
+		webCodecsManager.ServeHTTP(w, r)
+	})
+	logger.Printf("Native MJPEG streaming endpoints mounted at /video/stream/{camera_id}, /video/snapshot/{camera_id}")
+	logger.Printf("WebCodecs WebSocket endpoint mounted at /ws/video/{camera_id}")
 
 	// Wrap the multiplexer with additional middlewares. Middlewares mounted
 	// here apply to all the service endpoints.

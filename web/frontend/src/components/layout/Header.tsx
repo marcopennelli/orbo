@@ -52,6 +52,8 @@ export default function Header({
             variant={detectionRunning ? 'danger' : 'primary'}
             onClick={onToggleDetection}
             loading={isLoading}
+            disabled={!detectionRunning && activeCameras === 0}
+            title={!detectionRunning && activeCameras === 0 ? 'Activate at least one camera first' : undefined}
           >
             {detectionRunning ? (
               <>

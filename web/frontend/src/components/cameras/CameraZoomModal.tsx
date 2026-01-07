@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from 'react';
-import { X, RefreshCw } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { Camera } from '../../types';
 import { Button } from '../ui';
 import CameraFeed from './CameraFeed';
@@ -52,7 +52,6 @@ export default function CameraZoomModal({ camera, onClose }: CameraZoomModalProp
           <div className="w-full h-full max-w-6xl">
             <CameraFeed
               camera={camera}
-              refreshInterval={500}
               className="h-full w-full !max-w-none"
             />
           </div>

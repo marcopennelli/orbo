@@ -26,6 +26,7 @@ import (
 	"orbo/internal/motion"
 	"orbo/internal/services"
 	"orbo/internal/telegram"
+	"orbo/internal/ws"
 )
 
 func main() {
@@ -122,6 +123,11 @@ func main() {
 	// Set Telegram bot on motion detector for notifications
 	motionDetector.SetTelegramBot(telegramBot)
 
+	// Initialize WebSocket hub for real-time detections
+	wsHub := ws.NewDetectionHub()
+	motionDetector.SetWebSocketHub(wsHub)
+	logger.Println("WebSocket hub initialized for real-time detections")
+
 	// Log detector configuration
 	logger.Printf("Detection configuration:")
 	logger.Printf("  Primary detector: %s", os.Getenv("PRIMARY_DETECTOR"))
@@ -148,7 +154,7 @@ func main() {
 	{
 		healthSvc = services.NewHealthService()
 		authSvc = services.NewAuthService(authenticator)
-		cameraSvc = services.NewCameraService(cameraManager)
+		cameraSvc = services.NewCameraService(cameraManager, motionDetector)
 		motionSvc = services.NewMotionService(motionDetector, cameraManager)
 		systemSvc = services.NewSystemService(cameraManager, motionDetector)
 		configSvc = services.NewConfigService(telegramBot, dinov3Detector, yoloDetector, motionDetector, db)
@@ -227,7 +233,7 @@ func main() {
 			} else if u.Port() == "" {
 				u.Host = net.JoinHostPort(u.Host, "80")
 			}
-			handleHTTPServer(ctx, u, healthEndpoints, authEndpoints, cameraEndpoints, motionEndpoints, configEndpoints, systemEndpoints, authenticator, &wg, errc, logger, *dbgF)
+			handleHTTPServer(ctx, u, healthEndpoints, authEndpoints, cameraEndpoints, motionEndpoints, configEndpoints, systemEndpoints, authenticator, cameraManager, motionDetector, wsHub, &wg, errc, logger, *dbgF)
 		}
 
 	case "production":
@@ -252,7 +258,7 @@ func main() {
 			} else if u.Port() == "" {
 				u.Host = net.JoinHostPort(u.Host, "443")
 			}
-			handleHTTPServer(ctx, u, healthEndpoints, authEndpoints, cameraEndpoints, motionEndpoints, configEndpoints, systemEndpoints, authenticator, &wg, errc, logger, *dbgF)
+			handleHTTPServer(ctx, u, healthEndpoints, authEndpoints, cameraEndpoints, motionEndpoints, configEndpoints, systemEndpoints, authenticator, cameraManager, motionDetector, wsHub, &wg, errc, logger, *dbgF)
 		}
 
 	default:

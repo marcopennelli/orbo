@@ -1,16 +1,23 @@
-import { useState, useEffect } from 'react';
-import { Grid2X2, Grid3X3, Square, LayoutGrid, Rows2, ZoomIn } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Grid2X2, Grid3X3, Square, LayoutGrid, Rows2 } from 'lucide-react';
 import type { Camera, LayoutMode, MotionEvent } from '../../types';
 import { Button } from '../ui';
 import CameraFeed from './CameraFeed';
 import CameraZoomModal from './CameraZoomModal';
 import RecentDetections from './RecentDetections';
 
+// Debug logging helper
+const DEBUG = true;
+const log = (...args: unknown[]) => {
+  if (DEBUG) {
+    console.log('[CameraGrid]', ...args);
+  }
+};
+
 interface CameraGridProps {
   cameras: Camera[];
   events?: MotionEvent[];
   eventsLoading?: boolean;
-  refreshInterval?: number;
   onViewEvent?: (event: MotionEvent) => void;
 }
 
@@ -28,7 +35,6 @@ export default function CameraGrid({
   cameras,
   events = [],
   eventsLoading = false,
-  refreshInterval = 1000,
   onViewEvent,
 }: CameraGridProps) {
   const [layout, setLayout] = useState<LayoutMode>(() => {
@@ -38,13 +44,24 @@ export default function CameraGrid({
 
   const [selectedCameras, setSelectedCameras] = useState<(string | null)[]>([]);
   const [zoomedCamera, setZoomedCamera] = useState<Camera | null>(null);
+  const mountCountRef = useRef(0);
 
   const currentLayout = layoutOptions.find((l) => l.mode === layout) || layoutOptions[2];
   const maxSlots = currentLayout.cols * currentLayout.rows;
 
+  // Log mount/unmount
+  useEffect(() => {
+    mountCountRef.current += 1;
+    log('Component mounted (mount #' + mountCountRef.current + '), cameras:', cameras.length);
+    return () => {
+      log('Component unmounting (was mount #' + mountCountRef.current + ')');
+    };
+  }, []);
+
   // Initialize selected cameras when cameras load or layout changes
   useEffect(() => {
     const activeCameras = cameras.filter((c) => c.status === 'active');
+    log('Updating selected cameras, active:', activeCameras.length, 'maxSlots:', maxSlots);
     const slots: (string | null)[] = [];
 
     for (let i = 0; i < maxSlots; i++) {
@@ -55,6 +72,7 @@ export default function CameraGrid({
       }
     }
 
+    log('Selected camera IDs:', slots);
     setSelectedCameras(slots);
   }, [cameras, maxSlots]);
 
@@ -127,22 +145,13 @@ export default function CameraGrid({
               return (
                 <div
                   key={camera.id}
-                  className="relative group cursor-pointer"
-                  onClick={() => setZoomedCamera(camera)}
+                  className="relative group"
                 >
                   <CameraFeed
                     camera={camera}
-                    refreshInterval={refreshInterval}
-                    className="h-full pointer-events-none"
+                    className="h-full"
+                    onFullscreen={() => setZoomedCamera(camera)}
                   />
-                  {/* Zoom overlay on hover */}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-black/60 rounded-full p-3">
-                        <ZoomIn className="w-6 h-6 text-white" />
-                      </div>
-                    </div>
-                  </div>
                 </div>
               );
             })}

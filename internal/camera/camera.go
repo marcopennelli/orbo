@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -28,11 +29,25 @@ type Camera struct {
 	stopCh     chan struct{}
 }
 
+// StreamManager interface for stream lifecycle management
+type StreamManager interface {
+	CreateStream(cameraID, device string, fps, width, height int) error
+	DeleteStream(cameraID string) error
+}
+
+// WebCodecsStreamManager interface for WebCodecs stream lifecycle management
+type WebCodecsStreamManager interface {
+	CreateStream(cameraID, device string, fps, width, height int) error
+	DeleteStream(cameraID string) error
+}
+
 // CameraManager manages multiple cameras
 type CameraManager struct {
-	cameras map[string]*Camera
-	mu      sync.RWMutex
-	db      *database.Database
+	cameras               map[string]*Camera
+	mu                    sync.RWMutex
+	db                    *database.Database
+	streamManager         StreamManager
+	webCodecsStreamManager WebCodecsStreamManager
 }
 
 // NewCameraManager creates a new camera manager
@@ -138,15 +153,21 @@ func (cm *CameraManager) GetCamera(id string) (*Camera, error) {
 	return camera, nil
 }
 
-// ListCameras returns all cameras
+// ListCameras returns all cameras sorted by creation time
 func (cm *CameraManager) ListCameras() []*Camera {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	
+
 	cameras := make([]*Camera, 0, len(cm.cameras))
 	for _, camera := range cm.cameras {
 		cameras = append(cameras, camera)
 	}
+
+	// Sort by CreatedAt to ensure stable ordering
+	sort.Slice(cameras, func(i, j int) bool {
+		return cameras[i].CreatedAt.Before(cameras[j].CreatedAt)
+	})
+
 	return cameras
 }
 
@@ -188,6 +209,38 @@ func (cm *CameraManager) ActivateCamera(id string) error {
 		return err
 	}
 
+	// Create MJPEG and WebCodecs streams for this camera
+	cm.mu.RLock()
+	sm := cm.streamManager
+	wcsm := cm.webCodecsStreamManager
+	cm.mu.RUnlock()
+
+	fps := camera.FPS
+	if fps <= 0 {
+		fps = 10
+	}
+	// Parse resolution for width/height
+	width, height := 640, 480
+	if camera.Resolution != "" {
+		fmt.Sscanf(camera.Resolution, "%dx%d", &width, &height)
+	}
+
+	if sm != nil {
+		if err := sm.CreateStream(id, camera.Device, fps, width, height); err != nil {
+			fmt.Printf("Warning: failed to create MJPEG stream for camera %s: %v\n", id, err)
+		} else {
+			fmt.Printf("Created MJPEG stream for camera %s\n", id)
+		}
+	}
+
+	if wcsm != nil {
+		if err := wcsm.CreateStream(id, camera.Device, fps, width, height); err != nil {
+			fmt.Printf("Warning: failed to create WebCodecs stream for camera %s: %v\n", id, err)
+		} else {
+			fmt.Printf("Created WebCodecs stream for camera %s\n", id)
+		}
+	}
+
 	// Update status in database
 	if cm.db != nil {
 		if err := cm.db.UpdateCameraStatus(id, "active"); err != nil {
@@ -203,6 +256,28 @@ func (cm *CameraManager) DeactivateCamera(id string) error {
 	camera, err := cm.GetCamera(id)
 	if err != nil {
 		return err
+	}
+
+	// Delete MJPEG and WebCodecs streams for this camera
+	cm.mu.RLock()
+	sm := cm.streamManager
+	wcsm := cm.webCodecsStreamManager
+	cm.mu.RUnlock()
+
+	if sm != nil {
+		if err := sm.DeleteStream(id); err != nil {
+			fmt.Printf("Warning: failed to delete MJPEG stream for camera %s: %v\n", id, err)
+		} else {
+			fmt.Printf("Deleted MJPEG stream for camera %s\n", id)
+		}
+	}
+
+	if wcsm != nil {
+		if err := wcsm.DeleteStream(id); err != nil {
+			fmt.Printf("Warning: failed to delete WebCodecs stream for camera %s: %v\n", id, err)
+		} else {
+			fmt.Printf("Deleted WebCodecs stream for camera %s\n", id)
+		}
 	}
 
 	camera.deactivate()
@@ -398,6 +473,48 @@ func (c *Camera) GetStatus() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.Status
+}
+
+// SetStreamManager sets the stream manager for video streaming lifecycle
+func (cm *CameraManager) SetStreamManager(sm StreamManager) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	cm.streamManager = sm
+}
+
+// SetWebCodecsStreamManager sets the WebCodecs stream manager for low-latency streaming
+func (cm *CameraManager) SetWebCodecsStreamManager(sm WebCodecsStreamManager) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	cm.webCodecsStreamManager = sm
+}
+
+// GetCameraSource returns camera source info for video pipeline creation
+// Implements stream.CameraInfoProvider interface
+func (cm *CameraManager) GetCameraSource(cameraID string) (device string, cameraType string, fps int, err error) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	cam, exists := cm.cameras[cameraID]
+	if !exists {
+		return "", "", 0, fmt.Errorf("camera %s not found", cameraID)
+	}
+
+	device = cam.Device
+	fps = cam.FPS
+	if fps <= 0 {
+		fps = 10 // Default FPS
+	}
+
+	// Determine camera type from device path
+	cameraType = "usb"
+	if strings.HasPrefix(device, "rtsp://") {
+		cameraType = "rtsp"
+	} else if strings.HasPrefix(device, "http://") || strings.HasPrefix(device, "https://") {
+		cameraType = "http"
+	}
+
+	return device, cameraType, fps, nil
 }
 
 // UpdateConfiguration updates camera settings

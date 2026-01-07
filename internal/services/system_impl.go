@@ -28,7 +28,7 @@ func NewSystemService(cameraManager *camera.CameraManager, motionDetector *motio
 // Status returns the overall system status
 func (s *SystemImplementation) Status(ctx context.Context) (*system_service.SystemStatus, error) {
 	cameras := s.cameraManager.ListCameras()
-	
+
 	// Convert cameras to service format
 	cameraInfos := make([]*system_service.CameraInfo, len(cameras))
 	for i, cam := range cameras {
@@ -67,9 +67,10 @@ func (s *SystemImplementation) Status(ctx context.Context) (*system_service.Syst
 // StartDetection starts motion detection on all active cameras
 func (s *SystemImplementation) StartDetection(ctx context.Context) (*system_service.SystemStatus, error) {
 	cameras := s.cameraManager.ListCameras()
-	
+
 	for _, cam := range cameras {
 		if cam.Status == "active" {
+			// Start motion detection for this camera
 			if !s.motionDetector.IsDetectionRunning(cam.ID) {
 				err := s.motionDetector.StartDetection(cam.ID, cam.Device)
 				if err != nil {
@@ -88,8 +89,9 @@ func (s *SystemImplementation) StartDetection(ctx context.Context) (*system_serv
 // StopDetection stops motion detection on all cameras
 func (s *SystemImplementation) StopDetection(ctx context.Context) (*system_service.SystemStatus, error) {
 	cameras := s.cameraManager.ListCameras()
-	
+
 	for _, cam := range cameras {
+		// Stop motion detection for this camera
 		if s.motionDetector.IsDetectionRunning(cam.ID) {
 			s.motionDetector.StopDetection(cam.ID)
 		}
