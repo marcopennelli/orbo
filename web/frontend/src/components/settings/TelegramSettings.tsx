@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Send, CheckCircle, XCircle } from 'lucide-react';
 import type { TelegramConfig } from '../../types';
 import { Button, Input, Switch } from '../ui';
@@ -13,6 +13,18 @@ interface TelegramSettingsProps {
 export default function TelegramSettings({ config, onUpdate, onTest, isLoading }: TelegramSettingsProps) {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
+
+  // Local state for text inputs to avoid API calls on every keystroke
+  const [botToken, setBotToken] = useState(config.telegram_bot_token || '');
+  const [chatId, setChatId] = useState(config.telegram_chat_id || '');
+  const [cooldown, setCooldown] = useState(String(config.cooldown_seconds || 30));
+
+  // Sync local state when config changes from server
+  useEffect(() => {
+    setBotToken(config.telegram_bot_token || '');
+    setChatId(config.telegram_chat_id || '');
+    setCooldown(String(config.cooldown_seconds || 30));
+  }, [config.telegram_bot_token, config.telegram_chat_id, config.cooldown_seconds]);
 
   const handleTest = async () => {
     setIsTesting(true);
@@ -46,16 +58,26 @@ export default function TelegramSettings({ config, onUpdate, onTest, isLoading }
           <Input
             label="Bot Token"
             type="password"
-            value={config.telegram_bot_token || ''}
-            onChange={(e) => onUpdate({ telegram_bot_token: e.target.value })}
+            value={botToken}
+            onChange={(e) => setBotToken(e.target.value)}
+            onBlur={() => {
+              if (botToken !== config.telegram_bot_token) {
+                onUpdate({ telegram_bot_token: botToken });
+              }
+            }}
             placeholder="123456:ABC-DEF1234..."
             disabled={isLoading}
           />
 
           <Input
             label="Chat ID"
-            value={config.telegram_chat_id || ''}
-            onChange={(e) => onUpdate({ telegram_chat_id: e.target.value })}
+            value={chatId}
+            onChange={(e) => setChatId(e.target.value)}
+            onBlur={() => {
+              if (chatId !== config.telegram_chat_id) {
+                onUpdate({ telegram_chat_id: chatId });
+              }
+            }}
             placeholder="-1001234567890"
             disabled={isLoading}
           />
@@ -63,8 +85,14 @@ export default function TelegramSettings({ config, onUpdate, onTest, isLoading }
           <Input
             label="Cooldown (seconds)"
             type="number"
-            value={config.cooldown_seconds || 30}
-            onChange={(e) => onUpdate({ cooldown_seconds: parseInt(e.target.value) || 30 })}
+            value={cooldown}
+            onChange={(e) => setCooldown(e.target.value)}
+            onBlur={() => {
+              const value = parseInt(cooldown) || 30;
+              if (value !== config.cooldown_seconds) {
+                onUpdate({ cooldown_seconds: value });
+              }
+            }}
             min={1}
             max={300}
             disabled={isLoading}

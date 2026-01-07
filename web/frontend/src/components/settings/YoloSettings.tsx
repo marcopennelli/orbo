@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Zap, CheckCircle, XCircle } from 'lucide-react';
 import type { YoloConfig } from '../../types';
 import { Button, Input, Switch } from '../ui';
@@ -26,7 +26,16 @@ const formatClasses = (classes: string[]): string => {
 export default function YoloSettings({ config, onUpdate, onTest, isLoading }: YoloSettingsProps) {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
+
+  // Local state for text inputs to avoid API calls on every keystroke
+  const [serviceEndpoint, setServiceEndpoint] = useState(config.service_endpoint || '');
   const [classInput, setClassInput] = useState(config.classes_filter || '');
+
+  // Sync local state when config changes from server
+  useEffect(() => {
+    setServiceEndpoint(config.service_endpoint || '');
+    setClassInput(config.classes_filter || '');
+  }, [config.service_endpoint, config.classes_filter]);
 
   const handleTest = async () => {
     setIsTesting(true);
@@ -43,7 +52,12 @@ export default function YoloSettings({ config, onUpdate, onTest, isLoading }: Yo
 
   const handleClassesChange = (value: string) => {
     setClassInput(value);
-    onUpdate({ classes_filter: value });
+  };
+
+  const handleClassesBlur = () => {
+    if (classInput !== config.classes_filter) {
+      onUpdate({ classes_filter: classInput });
+    }
   };
 
   const toggleClass = (className: string) => {
@@ -76,8 +90,13 @@ export default function YoloSettings({ config, onUpdate, onTest, isLoading }: Yo
         <>
           <Input
             label="Service Endpoint"
-            value={config.service_endpoint || ''}
-            onChange={(e) => onUpdate({ service_endpoint: e.target.value })}
+            value={serviceEndpoint}
+            onChange={(e) => setServiceEndpoint(e.target.value)}
+            onBlur={() => {
+              if (serviceEndpoint !== config.service_endpoint) {
+                onUpdate({ service_endpoint: serviceEndpoint });
+              }
+            }}
             placeholder="http://yolo-service:8081"
             disabled={isLoading}
           />
@@ -122,6 +141,7 @@ export default function YoloSettings({ config, onUpdate, onTest, isLoading }: Yo
             <Input
               value={classInput}
               onChange={(e) => handleClassesChange(e.target.value)}
+              onBlur={handleClassesBlur}
               placeholder="person, car, truck"
               disabled={isLoading}
             />
