@@ -29,19 +29,33 @@ RUN pip3 install torch==2.1.0+rocm5.6 torchvision==0.16.0+rocm5.6 \
 # Install other requirements
 RUN pip3 install -r requirements.txt
 
+# Copy proto file from parent context (must be passed via build arg or copied beforehand)
+# Proto generation happens at build time
+COPY detection.proto /app/proto/
+RUN python3 -m grpc_tools.protoc \
+    -I/app/proto \
+    --python_out=/app \
+    --grpc_python_out=/app \
+    /app/proto/detection.proto
+
 # Copy application code
 COPY main.py .
+COPY grpc_server.py .
 
-# Create directory for YOLOv8 models
-RUN mkdir -p /app/models
+# Create directories for YOLO models and runtime (runs, settings)
+RUN mkdir -p /app/models /app/runs /tmp/Ultralytics && chmod 777 /app/runs
 
-# Download YOLOv8 model weights
-RUN python3 -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
+# Set Ultralytics config and runs directory (writable at runtime)
+ENV YOLO_CONFIG_DIR=/tmp/Ultralytics
+ENV ULTRALYTICS_SETTINGS_JSON='{"runs_dir": "/app/runs"}'
 
-# Expose port
-EXPOSE 8081
+# Download YOLO11 model weights (nano for best speed, can be changed via YOLO_MODEL env)
+RUN python3 -c "from ultralytics import YOLO; YOLO('yolo11n.pt')"
 
-# Health check
+# Expose ports (HTTP and gRPC)
+EXPOSE 8081 50051
+
+# Health check (HTTP endpoint)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD python3 -c "import requests; requests.get('http://localhost:8081/health')" || exit 1
 

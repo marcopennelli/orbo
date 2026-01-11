@@ -30,8 +30,8 @@ import {
   useYoloConfig,
   useUpdateYoloConfig,
   useTestYolo,
-  useDetectionConfig,
-  useUpdateDetectionConfig,
+  usePipelineConfig,
+  useUpdatePipelineConfig,
 } from './hooks/useConfig';
 import { useAuth } from './hooks/useAuth';
 import type { Camera, CameraCreatePayload, CameraUpdatePayload } from './types';
@@ -70,7 +70,7 @@ function AppContent() {
   const { data: systemStatus } = useSystemStatus();
   const { data: telegramConfig } = useTelegramConfig();
   const { data: yoloConfig } = useYoloConfig();
-  const { data: detectionConfig } = useDetectionConfig();
+  const { data: pipelineConfig } = usePipelineConfig();
 
   // Mutations
   const createCamera = useCreateCamera();
@@ -84,7 +84,7 @@ function AppContent() {
   const testTelegram = useTestTelegram();
   const updateYolo = useUpdateYoloConfig();
   const testYolo = useTestYolo();
-  const updateDetection = useUpdateDetectionConfig();
+  const updatePipeline = useUpdatePipelineConfig();
 
   // Handlers
   const handleAddCamera = useCallback(() => {
@@ -189,9 +189,13 @@ function AppContent() {
     classes_filter: '',
   };
 
-  const defaultDetectionConfig = detectionConfig || {
-    primary_detector: 'basic' as const,
-    fallback_enabled: true,
+  const defaultPipelineConfig = pipelineConfig || {
+    mode: 'motion_triggered' as const,
+    execution_mode: 'sequential' as const,
+    detectors: [],
+    schedule_interval: '5s',
+    motion_sensitivity: 0.1,
+    motion_cooldown_seconds: 2,
   };
 
   // Compute camera counts from system status
@@ -230,9 +234,9 @@ function AppContent() {
       <div className="flex-1 flex overflow-hidden">
         <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
-        <main className="flex-1 overflow-hidden p-4">
+        <main className="flex-1 overflow-hidden p-6">
           {activeTab === 'cameras' && (
-            <div className="h-full flex gap-4">
+            <div className="h-full flex gap-6">
               <div className="w-80 flex-shrink-0">
                 <CameraList
                   cameras={cameras}
@@ -312,13 +316,15 @@ function AppContent() {
         onClose={() => setIsSettingsOpen(false)}
         telegramConfig={defaultTelegramConfig}
         yoloConfig={defaultYoloConfig}
-        detectionConfig={defaultDetectionConfig}
-        onUpdateTelegram={(config) => updateTelegram.mutate({ ...defaultTelegramConfig, ...config })}
-        onUpdateYolo={(config) => updateYolo.mutate(config)}
-        onUpdateDetection={(config) => updateDetection.mutate(config)}
+        pipelineConfig={defaultPipelineConfig}
+        onSaveTelegram={(config) => updateTelegram.mutate(config)}
+        onSaveYolo={(config) => updateYolo.mutate(config)}
+        onSavePipeline={(config) => updatePipeline.mutate(config)}
         onTestTelegram={() => testTelegram.mutateAsync()}
         onTestYolo={() => testYolo.mutateAsync()}
-        isLoading={updateTelegram.isPending || updateYolo.isPending || updateDetection.isPending}
+        isSavingTelegram={updateTelegram.isPending}
+        isSavingYolo={updateYolo.isPending}
+        isSavingPipeline={updatePipeline.isPending}
       />
 
       <EventModal

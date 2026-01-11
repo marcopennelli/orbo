@@ -1,5 +1,5 @@
 import { get, put, post } from './client';
-import type { TelegramConfig, YoloConfig, DetectionConfig, Dinov3Config } from '../types';
+import type { TelegramConfig, YoloConfig, DetectionConfig, Dinov3Config, PipelineConfig } from '../types';
 
 // Telegram configuration
 export async function getTelegramConfig(): Promise<TelegramConfig> {
@@ -43,4 +43,13 @@ export async function getDetectionConfig(): Promise<DetectionConfig> {
 
 export async function updateDetectionConfig(config: Partial<DetectionConfig>): Promise<DetectionConfig> {
   return put<DetectionConfig>('/config/detection', config);
+}
+
+// Pipeline configuration
+export async function getPipelineConfig(): Promise<PipelineConfig> {
+  return get<PipelineConfig>('/config/pipeline');
+}
+
+export async function updatePipelineConfig(config: Partial<PipelineConfig>): Promise<PipelineConfig> {
+  return put<PipelineConfig>('/config/pipeline', config);
 }

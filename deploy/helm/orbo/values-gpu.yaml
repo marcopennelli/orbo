@@ -59,20 +59,35 @@ auth:
   jwtExpiry: 24h
 
 # -----------------------------------------------------------------------------
-# Detection Configuration
+# Detection Pipeline Configuration (Global Defaults)
 # -----------------------------------------------------------------------------
 detection:
-  # Primary detector: basic, yolo, or dinov3
-  primaryDetector: yolo
-  fallbackEnabled: true
+  # Detection mode: disabled, continuous, motion_triggered, scheduled, hybrid
+  mode: motion_triggered
 
-  # Basic motion detection settings
+  # Execution mode: sequential (YOLO → Face → Plate chain) or parallel (all at once)
+  executionMode: sequential
+
+  # Enabled detectors (order matters for sequential mode)
+  detectors:
+    - yolo
+    - face
+
+  # Scheduled/hybrid mode interval (e.g., "5s", "10s")
+  scheduleInterval: 5s
+
+  # Motion detection settings (for motion_triggered and hybrid modes)
   motion:
     enabled: true
-    minConfidence: 0.5
+    sensitivity: 0.1
+    cooldownSeconds: 2
     minContourArea: 1000
     backgroundHistory: 500
     varThreshold: 16
+
+  # Legacy settings (kept for backwards compatibility)
+  primaryDetector: yolo
+  fallbackEnabled: true
 
 # -----------------------------------------------------------------------------
 # YOLO Service (GPU Enabled)
@@ -92,7 +107,7 @@ yolo:
     securityMode: true
     classesFilter: ""  # Empty = all classes
     drawBoxes: true
-    model: yolov8n.pt
+    model: yolo11n.pt  # YOLO11 nano (fastest) - alternatives: yolo11s.pt, yolo11m.pt
 
   # Service configuration
   service:

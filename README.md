@@ -4,16 +4,18 @@
   <img src="assets/cover.png" alt="Orbo Cover" width="400">
 </p>
 
-Orbo is a modern, open-source video alarm system built with Go and OpenCV. It features real-time motion detection, AI-powered object detection (YOLO), and Telegram notifications. Designed as a cloud-native microservice, it can be deployed on Kubernetes, Docker, or Podman (including embedded Linux systems via [meta-container-deploy](https://github.com/marcopennelli/meta-container-deploy)).
+Orbo is a modern, open-source video alarm system built with Go and OpenCV. It features real-time motion detection, AI-powered object detection (YOLO11), face recognition, and Telegram notifications. Designed as a cloud-native microservice, it can be deployed on Kubernetes, Docker, or Podman (including embedded Linux systems via [meta-container-deploy](https://github.com/marcopennelli/meta-container-deploy)).
 
 ## Features
 
-- **React Web UI**: Modern dashboard with camera management, multi-camera grid layouts, and settings panel
+- **React Web UI**: Modern dashboard with camera management, multi-camera grid layouts, and unified settings panel
+- **Real-Time Streaming**: Low-latency WebSocket streaming with gRPC-based detection pipeline
 - **Dual Streaming Modes**: MJPEG (traditional) and WebCodecs (low-latency WebSocket) streaming
 - **Camera Support**: USB cameras (`/dev/video*`), HTTP endpoints, and RTSP streams
 - **Motion Detection**: OpenCV-based with configurable sensitivity
-- **AI Object Detection**: YOLO integration for persons, vehicles, and 80+ COCO classes
-- **Face Recognition**: InsightFace-based face detection and identity matching
+- **AI Object Detection**: YOLO11 integration via gRPC for real-time detection of persons, vehicles, and 80+ COCO classes
+- **Face Recognition**: InsightFace-based gRPC face detection and identity matching
+- **Sequential Detection Pipeline**: Optimized detector chain (YOLO → Face) with proper annotation stacking
 - **Telegram Integration**: Instant alerts with captured frames + bot commands for remote control
 - **REST API**: Complete HTTP API for camera management and system control
 - **Database Persistence**: SQLite for cameras, events, and configuration
@@ -110,6 +112,14 @@ make -C deploy full-build     # Build frontend + backend
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token | - |
 | `TELEGRAM_CHAT_ID` | Telegram chat ID | - |
 | `TELEGRAM_COOLDOWN` | Notification cooldown (seconds) | 30 |
+| **Detection Pipeline** | | |
+| `DETECTION_MODE` | Detection mode: `disabled`, `continuous`, `motion_triggered`, `scheduled`, `hybrid` | motion_triggered |
+| `DETECTION_EXECUTION_MODE` | Execution mode: `sequential` (parallel removed for stability) | sequential |
+| `DETECTION_DETECTORS` | Comma-separated detector list (e.g., "yolo,face") | yolo |
+| `DETECTION_SCHEDULE_INTERVAL` | Interval for scheduled/hybrid modes | 5s |
+| `MOTION_SENSITIVITY` | Motion detection sensitivity (0.0-1.0) | 0.1 |
+| `MOTION_COOLDOWN_SECONDS` | Cooldown after motion stops | 2 |
+| **Detector Services** | | |
 | `YOLO_ENABLED` | Enable YOLO detection | false |
 | `YOLO_ENDPOINT` | YOLO service URL | `http://yolo-service:8081` |
 | `YOLO_DRAW_BOXES` | Draw bounding boxes | false |
@@ -117,7 +127,7 @@ make -C deploy full-build     # Build frontend + backend
 | `RECOGNITION_ENABLED` | Enable face recognition | false |
 | `RECOGNITION_SERVICE_ENDPOINT` | Face recognition service URL | `http://recognition:8082` |
 | `RECOGNITION_SIMILARITY_THRESHOLD` | Face match threshold (0.0-1.0) | 0.5 |
-| `PRIMARY_DETECTOR` | Detection method (basic, yolo, dinov3) | basic |
+| **Storage** | | |
 | `DATABASE_PATH` | SQLite database path | `/app/frames/orbo.db` |
 | `FRAME_DIR` | Frame storage directory | `/app/frames` |
 | `FRONTEND_DIR` | React frontend build path | `/app/web/frontend/dist` |
@@ -129,18 +139,49 @@ helm install orbo deploy/helm/orbo \
   --set notifications.telegram.enabled=true \
   --set notifications.telegram.botToken="your_token" \
   --set notifications.telegram.chatId="your_chat_id" \
-  --set yolo.config.classesFilter="person"
+  --set detection.mode=motion_triggered \
+  --set detection.executionMode=sequential \
+  --set "detection.detectors={yolo,face}"
 ```
 
 | Section | Description |
 |---------|-------------|
 | `global` | Environment, log level |
 | `orbo` | Main app: replicas, image, resources |
-| `detection` | Primary detector, motion settings |
+| `detection` | **Pipeline config**: mode, executionMode, detectors, motion settings |
 | `yolo` | YOLO config, GPU settings |
 | `recognition` | Face recognition config |
+| `dinov3` | DINOv3 config (optional) |
 | `notifications` | Telegram settings |
 | `storage` | Persistence, database path |
+
+### Detection Pipeline
+
+The modular detection pipeline supports:
+
+**Detection Modes:**
+| Mode | Description |
+|------|-------------|
+| `disabled` | Streaming only, no detection |
+| `continuous` | Run detection on every frame |
+| `motion_triggered` | Detect only when motion is detected (default) |
+| `scheduled` | Run detection at fixed intervals |
+| `hybrid` | Motion-triggered OR scheduled (guaranteed coverage) |
+
+**Execution Mode:**
+
+The pipeline uses **sequential execution**: YOLO runs first, then Face Recognition triggers if a person is detected. This ensures proper annotation stacking and eliminates timing issues.
+
+**Per-Camera Configuration:**
+Each camera can override global detection settings:
+```bash
+# Via API
+curl -X PUT http://orbo/api/v1/cameras/{id}/detection-config \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "continuous", "detectors": ["yolo", "face"]}'
+```
+
+Cameras inherit from global defaults and can override: `mode`, `executionMode`, `detectors`, `scheduleInterval`, `motionSensitivity`, `yoloConfidence`, `enableFaceRecog`.
 
 ### Telegram Setup
 
@@ -227,47 +268,60 @@ Once configured, control Orbo directly from Telegram:
 │  └─────────┴────┬─────┴────┬────┴─────┬────┴────────┬────────┘  │
 └─────────────────┼──────────┼──────────┼─────────────┼───────────┘
                   │          │          │             │
-    ┌─────────────▼───┐  ┌───▼─────────────────┐  ┌───▼───────────┐
-    │ Camera Manager  │  │  Stream Detector    │  │  Telegram Bot │
-    │ (lifecycle,     │  │  (motion detection, │  │  (alerts with │
-    │  frame capture) │  │   AI integration)   │  │   images)     │
-    └────────┬────────┘  └──────────┬──────────┘  └───────────────┘
-             │                      │
-             │   ┌──────────────────┴──────────────────┐
-             │   │     Streaming Architecture          │
-             │   │  ┌────────────┐  ┌──────────────┐   │
-             │   │  │   MJPEG    │◄─┤  WebCodecs   │   │
-             │   │  │  Manager   │  │   Manager    │   │
-             │   │  │ (HTTP/1.1) │  │ (WebSocket)  │   │
-             │   │  └─────┬──────┘  └──────┬───────┘   │
-             │   │        └────────┬───────┘           │
-             │   │                 ▼                   │
-             │   │  ┌───────────────────────────┐      │
-             │   │  │   Composite Overlay       │      │
-             │   │  │  (broadcasts annotated    │      │
-             │   │  │   frames to both)         │      │
-             │   │  └───────────────────────────┘      │
-             │   └─────────────────────────────────────┘
-             │                      │
-             │           ┌──────────┴─────────────────────┐
-             │           │      Detection Engines         │
-             │           ├─────────┬──────────┬───────────┤
-             │           │  YOLO   │  Face    │  DINOv3   │
-             │           │ Service │  Recog.  │  Service  │
-             │           └─────────┴──────────┴───────────┘
+    ┌─────────────▼───────────────────────────────────┴───────────┐
+    │                  DETECTION PIPELINE (Modular)               │
+    │  ┌─────────────────────────────────────────────────────────┐│
+    │  │                   Frame Provider                        ││
+    │  │           (Single FFmpeg per camera, pub/sub)           ││
+    │  └────────────────────────┬────────────────────────────────┘│
+    │                           │                                 │
+    │          ┌────────────────┼────────────────┐                │
+    │          ▼                ▼                ▼                │
+    │  ┌───────────────┐ ┌───────────────┐ ┌───────────────┐      │
+    │  │  Streaming    │ │  Detection    │ │  Recording    │      │
+    │  │  Pipeline     │ │  Pipeline     │ │  (future)     │      │
+    │  └───────────────┘ └───────┬───────┘ └───────────────┘      │
+    │                            │                                │
+    │  ┌─────────────────────────▼─────────────────────────────┐  │
+    │  │              Detection Strategy                       │  │
+    │  │  (disabled | continuous | motion | scheduled | hybrid)│  │
+    │  └─────────────────────────┬─────────────────────────────┘  │
+    │                            │                                │
+    │        ┌───────────────────┴───────────────────┐            │
+    │        ▼                                       ▼            │
+    │  ┌──────────┐                           ┌──────────┐        │
+    │  │   YOLO   │─────────────────────────▶│   Face   │        │
+    │  │ gRPC     │                           │   gRPC   │        │
+    │  │(primary) │                           │(person?) │        │
+    │  └────┬─────┘                           └────┬─────┘        │
+    │       │                                      │              │
+    │       └──────────────────┬───────────────────┘              │
+    │                          │                                  │
+    │  ┌───────────────────────▼──────────────────────────────┐   │
+    │  │                    Event Bus                         │   │
+    │  │          (pub/sub for detection results)             │   │
+    │  └─────────┬──────────────┬─────────────────┬───────────┘   │
+    └────────────┼──────────────┼─────────────────┼───────────────┘
+                 │              │                 │
+    ┌────────────▼───┐   ┌──────▼──────┐   ┌──────▼───────────┐
+    │  Streaming     │   │  Telegram   │   │    Database      │
+    │  Bridge        │   │  Notifier   │   │   Persistence    │
+    │ (MJPEG/WebWS)  │   │ (alerts)    │   │   (events)       │
+    └────────────────┘   └─────────────┘   └──────────────────┘
              │
-    ┌────────▼────────────────────────────────┐
-    │          Camera Sources                 │
-    │  ┌─────────┐  ┌────────┐  ┌──────────┐  │
-    │  │   USB   │  │  HTTP  │  │   RTSP   │  │
-    │  │ /dev/*  │  │  URLs  │  │  Streams │  │
-    │  └─────────┘  └────────┘  └──────────┘  │
-    └─────────────────────────────────────────┘
+    ┌────────▼────────────────────────────────────┐
+    │          Camera Sources                     │
+    │  ┌─────────┐  ┌────────┐  ┌──────────┐      │
+    │  │   USB   │  │  HTTP  │  │   RTSP   │      │
+    │  │ /dev/*  │  │  URLs  │  │  Streams │      │
+    │  └─────────┘  └────────┘  └──────────┘      │
+    └─────────────────────────────────────────────┘
              │
-    ┌────────▼────────────────────────────────┐
-    │            SQLite Database              │
-    │  (cameras, events, configuration)       │
-    └─────────────────────────────────────────┘
+    ┌────────▼────────────────────────────────────┐
+    │            SQLite Database                  │
+    │  (cameras, events, configuration,           │
+    │   per-camera detection settings)            │
+    └─────────────────────────────────────────────┘
 ```
 
 ### Streaming Modes
@@ -323,27 +377,39 @@ orbo/
 
 ### Podman with Quadlet (systemd)
 
-```ini
-# /etc/containers/systemd/orbo.container
-[Container]
-Image=orbo:latest
-PublishPort=8080:8080
-AddDevice=/dev/video0:/dev/video0
-Volume=/var/lib/orbo/frames:/app/frames:Z
-Environment=TELEGRAM_ENABLED=true
-Environment=TELEGRAM_BOT_TOKEN=your_token
-Environment=YOLO_ENABLED=true
+Ready-to-use Quadlet files are provided in `deploy/podman/quadlet/`:
 
-[Service]
-Restart=always
+```bash
+# Create storage directories
+sudo mkdir -p /var/lib/orbo/{frames,faces}
+sudo chown 1000:1000 /var/lib/orbo/{frames,faces}
 
-[Install]
-WantedBy=multi-user.target
+# Copy Quadlet files
+sudo cp deploy/podman/quadlet/*.container /etc/containers/systemd/
+
+# Reload and start
+sudo systemctl daemon-reload
+sudo systemctl start orbo.service
+
+# With AI detection
+sudo systemctl start yolo-service.service
+sudo systemctl start recognition.service
 ```
+
+See [`deploy/podman/README.md`](deploy/podman/README.md) for full documentation.
 
 ### Yocto/Embedded Linux
 
 Use [meta-container-deploy](https://github.com/marcopennelli/meta-container-deploy) for Yocto-based systems with automatic container management and systemd integration.
+
+```bitbake
+# In local.conf
+DISTRO_FEATURES:append = " systemd virtualization"
+CONTAINER_MANIFEST = "${THISDIR}/orbo-manifest.yaml"
+IMAGE_INSTALL:append = " container-orbo"
+```
+
+Container manifest and Quadlet files are provided in `deploy/podman/` for seamless integration.
 
 ## Troubleshooting
 

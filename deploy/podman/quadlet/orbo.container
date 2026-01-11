@@ -1,0 +1,84 @@
+# Orbo - Video Alarm System
+# Quadlet container file for systemd/Podman
+# Compatible with meta-container-deploy for Yocto-based systems
+#
+# Install to: /etc/containers/systemd/orbo.container
+# Podman will generate: orbo.service
+
+[Unit]
+Description=Orbo Video Alarm System
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=ghcr.io/marcopennelli/orbo:latest
+ContainerName=orbo
+
+# Port mapping
+PublishPort=8080:8080
+
+# Device access for USB cameras
+AddDevice=/dev/video0:/dev/video0
+
+# Persistent storage for frames and database
+Volume=/var/lib/orbo/frames:/app/frames:Z
+
+# Environment variables (configure as needed)
+# ==========================================================================
+# Detection Pipeline Configuration
+# ==========================================================================
+# Detection mode: disabled, continuous, motion_triggered, scheduled, hybrid
+Environment=DETECTION_MODE=motion_triggered
+# Execution mode: sequential (YOLO → Face → Plate chain) or parallel
+Environment=DETECTION_EXECUTION_MODE=sequential
+# Enabled detectors (comma-separated, order matters for sequential mode)
+Environment=DETECTION_DETECTORS=yolo
+# Schedule interval for scheduled/hybrid modes
+Environment=DETECTION_SCHEDULE_INTERVAL=5s
+
+# Motion detection settings
+Environment=MOTION_SENSITIVITY=0.1
+Environment=MOTION_COOLDOWN_SECONDS=2
+
+# ==========================================================================
+# Detector Services
+# ==========================================================================
+Environment=YOLO_ENABLED=false
+Environment=YOLO_ENDPOINT=http://yolo-service:8081
+Environment=RECOGNITION_ENABLED=false
+Environment=RECOGNITION_SERVICE_ENDPOINT=http://recognition:8082
+
+# ==========================================================================
+# Notifications
+# ==========================================================================
+Environment=TELEGRAM_ENABLED=false
+
+# ==========================================================================
+# Storage
+# ==========================================================================
+Environment=DATABASE_PATH=/app/frames/orbo.db
+Environment=FRAME_DIR=/app/frames
+
+# Legacy setting (backwards compatibility)
+Environment=PRIMARY_DETECTOR=basic
+
+# Security: run as non-root
+User=1000
+Group=1000
+
+# Read-only root filesystem (frames volume is writable)
+ReadOnly=true
+
+# Health check
+HealthCmd=wget --no-verbose --tries=1 --spider http://localhost:8080/healthz || exit 1
+HealthInterval=30s
+HealthTimeout=3s
+HealthStartPeriod=10s
+HealthRetries=3
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

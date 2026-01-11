@@ -59,6 +59,14 @@ type Client struct {
 	// update_detection endpoint.
 	UpdateDetectionDoer goahttp.Doer
 
+	// GetPipeline Doer is the HTTP client used to make requests to the
+	// get_pipeline endpoint.
+	GetPipelineDoer goahttp.Doer
+
+	// UpdatePipeline Doer is the HTTP client used to make requests to the
+	// update_pipeline endpoint.
+	UpdatePipelineDoer goahttp.Doer
+
 	// RestoreResponseBody controls whether the response bodies are reset after
 	// decoding so they can be read again.
 	RestoreResponseBody bool
@@ -90,6 +98,8 @@ func NewClient(
 		TestYoloDoer:         doer,
 		GetDetectionDoer:     doer,
 		UpdateDetectionDoer:  doer,
+		GetPipelineDoer:      doer,
+		UpdatePipelineDoer:   doer,
 		RestoreResponseBody:  restoreBody,
 		scheme:               scheme,
 		host:                 host,
@@ -322,6 +332,49 @@ func (c *Client) UpdateDetection() goa.Endpoint {
 		resp, err := c.UpdateDetectionDoer.Do(req)
 		if err != nil {
 			return nil, goahttp.ErrRequestError("config", "update_detection", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// GetPipeline returns an endpoint that makes HTTP requests to the config
+// service get_pipeline server.
+func (c *Client) GetPipeline() goa.Endpoint {
+	var (
+		decodeResponse = DecodeGetPipelineResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildGetPipelineRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.GetPipelineDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "get_pipeline", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// UpdatePipeline returns an endpoint that makes HTTP requests to the config
+// service update_pipeline server.
+func (c *Client) UpdatePipeline() goa.Endpoint {
+	var (
+		encodeRequest  = EncodeUpdatePipelineRequest(c.encoder)
+		decodeResponse = DecodeUpdatePipelineResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildUpdatePipelineRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		err = encodeRequest(req, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.UpdatePipelineDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "update_pipeline", err)
 		}
 		return decodeResponse(resp)
 	}

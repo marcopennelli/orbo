@@ -1,0 +1,229 @@
+syntax = "proto3";
+
+package orbo.recognition.v1;
+
+option go_package = "orbo/api/proto/recognition/v1;recognitionv1";
+
+// FaceRecognitionService provides real-time face detection and recognition using InsightFace
+service FaceRecognitionService {
+  // RecognizeStream is a bidirectional streaming RPC for real-time face recognition
+  // Client sends frames, server responds with face recognition results
+  rpc RecognizeStream(stream FaceRequest) returns (stream FaceResponse);
+
+  // RegisterFace adds a new face identity to the database
+  rpc RegisterFace(RegisterFaceRequest) returns (RegisterFaceResponse);
+
+  // DeleteFace removes a face identity from the database
+  rpc DeleteFace(DeleteFaceRequest) returns (DeleteFaceResponse);
+
+  // ListFaces returns all registered face identities
+  rpc ListFaces(ListFacesRequest) returns (ListFacesResponse);
+
+  // HealthCheck verifies the recognition service is operational
+  rpc HealthCheck(HealthRequest) returns (HealthResponse);
+
+  // Configure updates recognition parameters at runtime
+  rpc Configure(ConfigureRequest) returns (ConfigureResponse);
+}
+
+// FaceRequest contains a video frame or crop regions to be processed
+message FaceRequest {
+  // Camera identifier
+  string camera_id = 1;
+
+  // Frame sequence number for ordering validation
+  uint64 frame_seq = 2;
+
+  // Capture timestamp in nanoseconds since epoch
+  int64 timestamp_ns = 3;
+
+  // JPEG-encoded frame data
+  bytes jpeg_data = 4;
+
+  // Request annotated image with face boxes drawn
+  bool return_annotated = 5;
+
+  // Similarity threshold for face matching (0-1)
+  float similarity_threshold = 6;
+
+  // Optional: crop regions from YOLO (person bboxes)
+  // If provided, only search for faces within these regions
+  repeated BBox person_regions = 7;
+
+  // Track IDs from YOLO for face-track association
+  repeated int32 person_track_ids = 8;
+}
+
+// BBox represents a bounding box
+message BBox {
+  float x1 = 1;  // Left
+  float y1 = 2;  // Top
+  float x2 = 3;  // Right
+  float y2 = 4;  // Bottom
+}
+
+// FaceResponse contains face recognition results for a processed frame
+message FaceResponse {
+  // Camera identifier (echoed from request)
+  string camera_id = 1;
+
+  // Frame sequence number (echoed from request)
+  uint64 frame_seq = 2;
+
+  // Original capture timestamp
+  int64 capture_timestamp_ns = 3;
+
+  // When inference completed
+  int64 inference_timestamp_ns = 4;
+
+  // Recognized faces
+  repeated FaceRecognition faces = 5;
+
+  // Annotated JPEG image with face boxes (if requested)
+  bytes annotated_jpeg = 6;
+
+  // Inference time in milliseconds
+  float inference_ms = 7;
+
+  // Device used for inference (cuda, cpu, etc.)
+  string device = 8;
+
+  // Summary counts
+  int32 total_count = 9;
+  int32 known_count = 10;
+  int32 unknown_count = 11;
+}
+
+// FaceRecognition represents a single detected and/or recognized face
+message FaceRecognition {
+  // Bounding box in pixel coordinates
+  BBox bbox = 1;
+
+  // Face detection confidence (0-1)
+  float confidence = 2;
+
+  // Recognized identity (empty if unknown)
+  string identity = 3;
+
+  // Similarity score to matched face (0-1)
+  float similarity = 4;
+
+  // Whether this face matched a known identity
+  bool is_known = 5;
+
+  // Estimated age (0 if not available)
+  int32 age = 6;
+
+  // Estimated gender (empty if not available)
+  string gender = 7;
+
+  // Associated YOLO person track ID (0 if not associated)
+  int32 associated_track_id = 8;
+
+  // Face embedding vector (optional, for debugging/analysis)
+  repeated float embedding = 9;
+}
+
+// RegisterFaceRequest adds a new face identity
+message RegisterFaceRequest {
+  // Name/identity to associate with this face
+  string name = 1;
+
+  // JPEG image containing exactly one face
+  bytes image_data = 2;
+
+  // Optional metadata
+  map<string, string> metadata = 3;
+}
+
+// RegisterFaceResponse confirms face registration
+message RegisterFaceResponse {
+  bool success = 1;
+  string message = 2;
+
+  // Registered name
+  string name = 3;
+
+  // Total faces in database after registration
+  int32 face_count = 4;
+}
+
+// DeleteFaceRequest removes a face identity
+message DeleteFaceRequest {
+  // Name of the face to delete
+  string name = 1;
+}
+
+// DeleteFaceResponse confirms face deletion
+message DeleteFaceResponse {
+  bool success = 1;
+  string message = 2;
+
+  // Remaining faces in database
+  int32 face_count = 3;
+}
+
+// ListFacesRequest is empty - returns all registered faces
+message ListFacesRequest {}
+
+// ListFacesResponse contains all registered face identities
+message ListFacesResponse {
+  repeated FaceIdentity faces = 1;
+  int32 count = 2;
+}
+
+// FaceIdentity represents a registered face in the database
+message FaceIdentity {
+  // Identity name
+  string name = 1;
+
+  // When this face was registered
+  int64 created_at_ns = 2;
+
+  // Whether the face image is available
+  bool has_image = 3;
+
+  // Stored age/gender if captured during registration
+  int32 age = 4;
+  string gender = 5;
+}
+
+// HealthRequest is empty - just checks service availability
+message HealthRequest {}
+
+// HealthResponse contains service health status
+message HealthResponse {
+  // Service status: healthy, unhealthy, degraded
+  string status = 1;
+
+  // Device being used (cuda, cpu, rocm)
+  string device = 2;
+
+  // Whether the model is loaded and ready
+  bool model_loaded = 3;
+
+  // Number of registered face identities
+  int32 known_faces_count = 4;
+
+  // Model name being used
+  string model_name = 5;
+}
+
+// ConfigureRequest updates recognition parameters
+message ConfigureRequest {
+  // Similarity threshold for face matching (0-1)
+  optional float similarity_threshold = 1;
+
+  // Enable age/gender estimation
+  optional bool enable_age_gender = 2;
+}
+
+// ConfigureResponse confirms configuration update
+message ConfigureResponse {
+  bool success = 1;
+  string message = 2;
+
+  // Current configuration after update
+  float similarity_threshold = 3;
+  bool age_gender_enabled = 4;
+}

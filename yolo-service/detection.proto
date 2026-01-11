@@ -1,0 +1,177 @@
+syntax = "proto3";
+
+package orbo.detection.v1;
+
+option go_package = "orbo/api/proto/detection/v1;detectionv1";
+
+// DetectionService provides real-time object detection using YOLO
+service DetectionService {
+  // DetectStream is a bidirectional streaming RPC for real-time detection
+  // Client sends frames, server responds with detection results
+  rpc DetectStream(stream FrameRequest) returns (stream DetectionResponse);
+
+  // HealthCheck verifies the detection service is operational
+  rpc HealthCheck(HealthRequest) returns (HealthResponse);
+
+  // Configure updates detection parameters at runtime
+  rpc Configure(ConfigureRequest) returns (ConfigureResponse);
+}
+
+// FrameRequest contains a video frame to be processed
+message FrameRequest {
+  // Camera identifier
+  string camera_id = 1;
+
+  // Frame sequence number for ordering validation
+  uint64 frame_seq = 2;
+
+  // Capture timestamp in nanoseconds since epoch
+  int64 timestamp_ns = 3;
+
+  // JPEG-encoded frame data
+  bytes jpeg_data = 4;
+
+  // Request annotated image with bounding boxes drawn
+  bool return_annotated = 5;
+
+  // Minimum confidence threshold for detections (0-1)
+  float conf_threshold = 6;
+
+  // Enable object tracking (ByteTrack/BoT-SORT)
+  bool enable_tracking = 7;
+}
+
+// DetectionResponse contains detection results for a processed frame
+message DetectionResponse {
+  // Camera identifier (echoed from request)
+  string camera_id = 1;
+
+  // Frame sequence number (echoed from request)
+  uint64 frame_seq = 2;
+
+  // Original capture timestamp
+  int64 capture_timestamp_ns = 3;
+
+  // When inference completed
+  int64 inference_timestamp_ns = 4;
+
+  // Detected objects
+  repeated Detection detections = 5;
+
+  // Annotated JPEG image with bounding boxes (if requested)
+  bytes annotated_jpeg = 6;
+
+  // Inference time in milliseconds
+  float inference_ms = 7;
+
+  // Device used for inference (cuda, cpu, etc.)
+  string device = 8;
+
+  // Track updates from ByteTrack/BoT-SORT
+  repeated TrackUpdate tracks = 9;
+}
+
+// Detection represents a single detected object
+message Detection {
+  // Object class name (person, car, etc.)
+  string class_name = 1;
+
+  // Class ID from COCO/custom dataset
+  int32 class_id = 2;
+
+  // Detection confidence (0-1)
+  float confidence = 3;
+
+  // Bounding box coordinates
+  BBox bbox = 4;
+
+  // Track ID from object tracker (0 if not tracked)
+  int32 track_id = 5;
+
+  // Velocity in pixels per frame (for latency compensation)
+  float velocity_x = 6;
+  float velocity_y = 7;
+
+  // Threat level for security applications
+  string threat_level = 8;
+}
+
+// BBox represents a bounding box
+message BBox {
+  float x1 = 1;  // Left
+  float y1 = 2;  // Top
+  float x2 = 3;  // Right
+  float y2 = 4;  // Bottom
+}
+
+// TrackUpdate contains tracking information for an object
+message TrackUpdate {
+  // Unique track identifier
+  int32 track_id = 1;
+
+  // Track state: new, active, lost, removed
+  string state = 2;
+
+  // Associated detection (if any)
+  Detection detection = 3;
+
+  // Number of frames this track has been active
+  int32 age = 4;
+
+  // Number of frames since last detection
+  int32 time_since_update = 5;
+}
+
+// HealthRequest is empty - just checks service availability
+message HealthRequest {}
+
+// HealthResponse contains service health status
+message HealthResponse {
+  // Service status: healthy, unhealthy, degraded
+  string status = 1;
+
+  // Device being used (cuda, cpu, rocm)
+  string device = 2;
+
+  // Whether the model is loaded and ready
+  bool model_loaded = 3;
+
+  // Current tracker type in use
+  string tracker_type = 4;
+
+  // Model name being used
+  string model_name = 5;
+
+  // Number of active streams
+  int32 active_streams = 6;
+}
+
+// ConfigureRequest updates detection parameters
+message ConfigureRequest {
+  // Confidence threshold (0-1)
+  optional float conf_threshold = 1;
+
+  // IOU threshold for NMS (0-1)
+  optional float iou_threshold = 2;
+
+  // Enable/disable tracking
+  optional bool enable_tracking = 3;
+
+  // Tracker type: bytetrack, botsort, or empty to disable
+  optional string tracker_type = 4;
+
+  // Classes to detect (empty = all classes)
+  repeated string classes = 5;
+}
+
+// ConfigureResponse confirms configuration update
+message ConfigureResponse {
+  bool success = 1;
+  string message = 2;
+
+  // Current configuration after update
+  float conf_threshold = 3;
+  float iou_threshold = 4;
+  bool tracking_enabled = 5;
+  string tracker_type = 6;
+}

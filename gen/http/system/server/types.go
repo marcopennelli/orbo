@@ -22,6 +22,17 @@ type StatusResponseBody struct {
 	NotificationsActive bool `form:"notifications_active" json:"notifications_active" xml:"notifications_active"`
 	// System uptime in seconds
 	UptimeSeconds int `form:"uptime_seconds" json:"uptime_seconds" xml:"uptime_seconds"`
+	// Current pipeline detection mode (disabled, continuous, motion_triggered,
+	// scheduled, hybrid)
+	PipelineMode *string `form:"pipeline_mode,omitempty" json:"pipeline_mode,omitempty" xml:"pipeline_mode,omitempty"`
+	// Pipeline execution mode (always sequential)
+	PipelineExecutionMode *string `form:"pipeline_execution_mode,omitempty" json:"pipeline_execution_mode,omitempty" xml:"pipeline_execution_mode,omitempty"`
+	// Enabled detectors in the pipeline
+	PipelineDetectors []string `form:"pipeline_detectors,omitempty" json:"pipeline_detectors,omitempty" xml:"pipeline_detectors,omitempty"`
+	// Whether AI detection is enabled (false when mode=disabled)
+	PipelineDetectionEnabled *bool `form:"pipeline_detection_enabled,omitempty" json:"pipeline_detection_enabled,omitempty" xml:"pipeline_detection_enabled,omitempty"`
+	// Number of cameras currently running detection
+	DetectingCameras *int `form:"detecting_cameras,omitempty" json:"detecting_cameras,omitempty" xml:"detecting_cameras,omitempty"`
 }
 
 // StartDetectionResponseBody is the type of the "system" service
@@ -35,6 +46,17 @@ type StartDetectionResponseBody struct {
 	NotificationsActive bool `form:"notifications_active" json:"notifications_active" xml:"notifications_active"`
 	// System uptime in seconds
 	UptimeSeconds int `form:"uptime_seconds" json:"uptime_seconds" xml:"uptime_seconds"`
+	// Current pipeline detection mode (disabled, continuous, motion_triggered,
+	// scheduled, hybrid)
+	PipelineMode *string `form:"pipeline_mode,omitempty" json:"pipeline_mode,omitempty" xml:"pipeline_mode,omitempty"`
+	// Pipeline execution mode (always sequential)
+	PipelineExecutionMode *string `form:"pipeline_execution_mode,omitempty" json:"pipeline_execution_mode,omitempty" xml:"pipeline_execution_mode,omitempty"`
+	// Enabled detectors in the pipeline
+	PipelineDetectors []string `form:"pipeline_detectors,omitempty" json:"pipeline_detectors,omitempty" xml:"pipeline_detectors,omitempty"`
+	// Whether AI detection is enabled (false when mode=disabled)
+	PipelineDetectionEnabled *bool `form:"pipeline_detection_enabled,omitempty" json:"pipeline_detection_enabled,omitempty" xml:"pipeline_detection_enabled,omitempty"`
+	// Number of cameras currently running detection
+	DetectingCameras *int `form:"detecting_cameras,omitempty" json:"detecting_cameras,omitempty" xml:"detecting_cameras,omitempty"`
 }
 
 // StopDetectionResponseBody is the type of the "system" service
@@ -48,6 +70,17 @@ type StopDetectionResponseBody struct {
 	NotificationsActive bool `form:"notifications_active" json:"notifications_active" xml:"notifications_active"`
 	// System uptime in seconds
 	UptimeSeconds int `form:"uptime_seconds" json:"uptime_seconds" xml:"uptime_seconds"`
+	// Current pipeline detection mode (disabled, continuous, motion_triggered,
+	// scheduled, hybrid)
+	PipelineMode *string `form:"pipeline_mode,omitempty" json:"pipeline_mode,omitempty" xml:"pipeline_mode,omitempty"`
+	// Pipeline execution mode (always sequential)
+	PipelineExecutionMode *string `form:"pipeline_execution_mode,omitempty" json:"pipeline_execution_mode,omitempty" xml:"pipeline_execution_mode,omitempty"`
+	// Enabled detectors in the pipeline
+	PipelineDetectors []string `form:"pipeline_detectors,omitempty" json:"pipeline_detectors,omitempty" xml:"pipeline_detectors,omitempty"`
+	// Whether AI detection is enabled (false when mode=disabled)
+	PipelineDetectionEnabled *bool `form:"pipeline_detection_enabled,omitempty" json:"pipeline_detection_enabled,omitempty" xml:"pipeline_detection_enabled,omitempty"`
+	// Number of cameras currently running detection
+	DetectingCameras *int `form:"detecting_cameras,omitempty" json:"detecting_cameras,omitempty" xml:"detecting_cameras,omitempty"`
 }
 
 // StartDetectionInternalResponseBody is the type of the "system" service
@@ -79,9 +112,13 @@ type CameraInfoResponseBody struct {
 // "status" endpoint of the "system" service.
 func NewStatusResponseBody(res *system.SystemStatus) *StatusResponseBody {
 	body := &StatusResponseBody{
-		MotionDetectionActive: res.MotionDetectionActive,
-		NotificationsActive:   res.NotificationsActive,
-		UptimeSeconds:         res.UptimeSeconds,
+		MotionDetectionActive:    res.MotionDetectionActive,
+		NotificationsActive:      res.NotificationsActive,
+		UptimeSeconds:            res.UptimeSeconds,
+		PipelineMode:             res.PipelineMode,
+		PipelineExecutionMode:    res.PipelineExecutionMode,
+		PipelineDetectionEnabled: res.PipelineDetectionEnabled,
+		DetectingCameras:         res.DetectingCameras,
 	}
 	if res.Cameras != nil {
 		body.Cameras = make([]*CameraInfoResponseBody, len(res.Cameras))
@@ -90,6 +127,12 @@ func NewStatusResponseBody(res *system.SystemStatus) *StatusResponseBody {
 		}
 	} else {
 		body.Cameras = []*CameraInfoResponseBody{}
+	}
+	if res.PipelineDetectors != nil {
+		body.PipelineDetectors = make([]string, len(res.PipelineDetectors))
+		for i, val := range res.PipelineDetectors {
+			body.PipelineDetectors[i] = val
+		}
 	}
 	return body
 }
@@ -98,9 +141,13 @@ func NewStatusResponseBody(res *system.SystemStatus) *StatusResponseBody {
 // of the "start_detection" endpoint of the "system" service.
 func NewStartDetectionResponseBody(res *system.SystemStatus) *StartDetectionResponseBody {
 	body := &StartDetectionResponseBody{
-		MotionDetectionActive: res.MotionDetectionActive,
-		NotificationsActive:   res.NotificationsActive,
-		UptimeSeconds:         res.UptimeSeconds,
+		MotionDetectionActive:    res.MotionDetectionActive,
+		NotificationsActive:      res.NotificationsActive,
+		UptimeSeconds:            res.UptimeSeconds,
+		PipelineMode:             res.PipelineMode,
+		PipelineExecutionMode:    res.PipelineExecutionMode,
+		PipelineDetectionEnabled: res.PipelineDetectionEnabled,
+		DetectingCameras:         res.DetectingCameras,
 	}
 	if res.Cameras != nil {
 		body.Cameras = make([]*CameraInfoResponseBody, len(res.Cameras))
@@ -109,6 +156,12 @@ func NewStartDetectionResponseBody(res *system.SystemStatus) *StartDetectionResp
 		}
 	} else {
 		body.Cameras = []*CameraInfoResponseBody{}
+	}
+	if res.PipelineDetectors != nil {
+		body.PipelineDetectors = make([]string, len(res.PipelineDetectors))
+		for i, val := range res.PipelineDetectors {
+			body.PipelineDetectors[i] = val
+		}
 	}
 	return body
 }
@@ -117,9 +170,13 @@ func NewStartDetectionResponseBody(res *system.SystemStatus) *StartDetectionResp
 // of the "stop_detection" endpoint of the "system" service.
 func NewStopDetectionResponseBody(res *system.SystemStatus) *StopDetectionResponseBody {
 	body := &StopDetectionResponseBody{
-		MotionDetectionActive: res.MotionDetectionActive,
-		NotificationsActive:   res.NotificationsActive,
-		UptimeSeconds:         res.UptimeSeconds,
+		MotionDetectionActive:    res.MotionDetectionActive,
+		NotificationsActive:      res.NotificationsActive,
+		UptimeSeconds:            res.UptimeSeconds,
+		PipelineMode:             res.PipelineMode,
+		PipelineExecutionMode:    res.PipelineExecutionMode,
+		PipelineDetectionEnabled: res.PipelineDetectionEnabled,
+		DetectingCameras:         res.DetectingCameras,
 	}
 	if res.Cameras != nil {
 		body.Cameras = make([]*CameraInfoResponseBody, len(res.Cameras))
@@ -128,6 +185,12 @@ func NewStopDetectionResponseBody(res *system.SystemStatus) *StopDetectionRespon
 		}
 	} else {
 		body.Cameras = []*CameraInfoResponseBody{}
+	}
+	if res.PipelineDetectors != nil {
+		body.PipelineDetectors = make([]string, len(res.PipelineDetectors))
+		for i, val := range res.PipelineDetectors {
+			body.PipelineDetectors[i] = val
+		}
 	}
 	return body
 }

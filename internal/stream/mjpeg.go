@@ -42,8 +42,9 @@ type FaceDetection struct {
 type StreamOverlayProvider interface {
 	UpdateDetections(cameraID string, detections []Detection, faces []FaceDetection)
 	// SetAnnotatedFrame injects a pre-annotated frame (with bounding boxes already drawn)
+	// seq is the frame sequence number for ordering validation - frames with seq <= last received are dropped
 	// This frame will be used for streaming until a newer annotated frame arrives or it expires
-	SetAnnotatedFrame(cameraID string, frameData []byte)
+	SetAnnotatedFrame(cameraID string, seq uint64, frameData []byte)
 	// GetCurrentFrameSeq returns the current frame sequence number for a camera
 	GetCurrentFrameSeq(cameraID string) uint64
 }
@@ -77,9 +78,16 @@ type MJPEGStream struct {
 	frameSeq   uint64 // Current frame sequence number (incremented on each new frame)
 	frameSeqMu sync.RWMutex
 
+	// Annotated frame sequence tracking (for dropping out-of-order frames)
+	lastAnnotatedSeq   uint64
+	lastAnnotatedSeqMu sync.RWMutex
+
 	// Frame listener for WebCodecs (raw frame passthrough)
 	frameListener   FrameListener
 	frameListenerMu sync.RWMutex
+
+	// External frame provider mode (unified frame capture)
+	useExternalProvider bool // When true, don't run internal FFmpeg - receive frames via InjectFrame
 }
 
 // MJPEGStreamManager manages MJPEG streams for all cameras
@@ -97,6 +105,12 @@ func NewMJPEGStreamManager() *MJPEGStreamManager {
 
 // CreateStream creates a new MJPEG stream for a camera
 func (m *MJPEGStreamManager) CreateStream(cameraID, device string, fps, width, height int) error {
+	return m.CreateStreamWithOptions(cameraID, device, fps, width, height, false)
+}
+
+// CreateStreamWithOptions creates a new MJPEG stream with configurable options
+// useExternalProvider: when true, the stream will receive frames via InjectFrame instead of internal FFmpeg
+func (m *MJPEGStreamManager) CreateStreamWithOptions(cameraID, device string, fps, width, height int, useExternalProvider bool) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -105,22 +119,27 @@ func (m *MJPEGStreamManager) CreateStream(cameraID, device string, fps, width, h
 	}
 
 	stream := &MJPEGStream{
-		cameraID:       cameraID,
-		device:         device,
-		fps:            fps,
-		width:          width,
-		height:         height,
-		clients:        make(map[chan []byte]bool),
-		stopCh:         make(chan struct{}),
-		overlayEnabled: true,
+		cameraID:            cameraID,
+		device:              device,
+		fps:                 fps,
+		width:               width,
+		height:              height,
+		clients:             make(map[chan []byte]bool),
+		stopCh:              make(chan struct{}),
+		overlayEnabled:      true,
+		useExternalProvider: useExternalProvider,
 	}
 
 	m.streams[cameraID] = stream
 
-	// Start frame capture
+	// Start frame capture (or just mark as running if using external provider)
 	go stream.captureFrames()
 
-	log.Printf("[MJPEGStream] Created stream for camera %s (device: %s, fps: %d)", cameraID, device, fps)
+	if useExternalProvider {
+		log.Printf("[MJPEGStream] Created stream for camera %s (external provider mode, fps: %d)", cameraID, fps)
+	} else {
+		log.Printf("[MJPEGStream] Created stream for camera %s (device: %s, fps: %d)", cameraID, device, fps)
+	}
 	return nil
 }
 
@@ -159,14 +178,14 @@ func (m *MJPEGStreamManager) UpdateDetections(cameraID string, detections []Dete
 	}
 }
 
-// SetAnnotatedFrame sets a pre-annotated frame for a camera
-func (m *MJPEGStreamManager) SetAnnotatedFrame(cameraID string, frameData []byte) {
+// SetAnnotatedFrame sets a pre-annotated frame for a camera with sequence validation
+func (m *MJPEGStreamManager) SetAnnotatedFrame(cameraID string, seq uint64, frameData []byte) {
 	m.mu.RLock()
 	stream := m.streams[cameraID]
 	m.mu.RUnlock()
 
 	if stream != nil {
-		stream.SetAnnotatedFrame(frameData)
+		stream.SetAnnotatedFrame(seq, frameData)
 	}
 }
 
@@ -190,6 +209,18 @@ func (m *MJPEGStreamManager) SetFrameListener(cameraID string, listener FrameLis
 
 	if stream != nil {
 		stream.SetFrameListener(listener)
+	}
+}
+
+// InjectFrame allows external providers to push frames to a stream
+// This is used when the stream was created with useExternalProvider=true
+func (m *MJPEGStreamManager) InjectFrame(cameraID string, frame []byte) {
+	m.mu.RLock()
+	stream := m.streams[cameraID]
+	m.mu.RUnlock()
+
+	if stream != nil {
+		stream.InjectFrame(frame)
 	}
 }
 
@@ -270,10 +301,20 @@ func (s *MJPEGStream) UpdateDetections(detections []Detection, faces []FaceDetec
 // SetAnnotatedFrame broadcasts a pre-annotated frame (with bounding boxes) directly to all clients
 // This is called from the detection pipeline after YOLO/InsightFace processing
 // The frame is sent immediately - no storage, no staleness checks
-func (s *MJPEGStream) SetAnnotatedFrame(frameData []byte) {
+// Frames with seq <= last received are dropped to prevent out-of-order display
+func (s *MJPEGStream) SetAnnotatedFrame(seq uint64, frameData []byte) {
 	if len(frameData) == 0 {
 		return
 	}
+
+	// Validate frame sequence - drop out-of-order frames
+	s.lastAnnotatedSeqMu.Lock()
+	if seq <= s.lastAnnotatedSeq {
+		s.lastAnnotatedSeqMu.Unlock()
+		return // Drop this frame - it's older than the last one we sent
+	}
+	s.lastAnnotatedSeq = seq
+	s.lastAnnotatedSeqMu.Unlock()
 
 	// Broadcast directly to all connected clients - this IS the real-time frame
 	s.clientsMu.RLock()
@@ -317,6 +358,13 @@ func (s *MJPEGStream) captureFrames() {
 	s.mu.Lock()
 	s.running = true
 	s.mu.Unlock()
+
+	// External provider mode - just wait for frames via InjectFrame
+	if s.useExternalProvider {
+		log.Printf("[MJPEGStream] Camera %s using external frame provider (waiting for frames)", s.cameraID)
+		<-s.stopCh // Block until stopped
+		return
+	}
 
 	log.Printf("[MJPEGStream] Starting frame capture for camera %s", s.cameraID)
 
@@ -509,6 +557,15 @@ func (s *MJPEGStream) GetCurrentFrameSeq() uint64 {
 	s.frameSeqMu.RLock()
 	defer s.frameSeqMu.RUnlock()
 	return s.frameSeq
+}
+
+// InjectFrame allows external providers to push frames to the stream
+// This is used when useExternalProvider is true
+func (s *MJPEGStream) InjectFrame(frame []byte) {
+	if len(frame) == 0 {
+		return
+	}
+	s.updateFrame(frame)
 }
 
 // extractJPEGFrame extracts a complete JPEG frame from buffer

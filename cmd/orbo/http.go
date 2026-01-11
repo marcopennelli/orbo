@@ -29,6 +29,7 @@ import (
 	"orbo/internal/camera"
 	authmw "orbo/internal/middleware"
 	motionpkg "orbo/internal/motion"
+	"orbo/internal/pipeline"
 	"orbo/internal/stream"
 	"orbo/internal/ws"
 )
@@ -180,42 +181,41 @@ func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.E
 		logger.Printf("WebSocket endpoint mounted at /ws/detections/{camera_id}")
 	}
 
-	// Mount native MJPEG streaming handlers (no video-pipeline dependency)
-	streamManager := stream.NewMJPEGStreamManager()
-	snapshotHandler := stream.NewSnapshotHandler(streamManager)
+	// Create unified frame provider - single source of frames for all consumers
+	frameProvider := pipeline.NewFFmpegFrameProvider()
+	logger.Printf("Frame provider initialized")
 
 	// Create WebCodecs stream manager for low-latency WebSocket streaming
 	webCodecsManager := stream.NewWebCodecsStreamManager()
-	// Connect WebCodecs to MJPEG for raw frame fallback (when detection is disabled)
-	webCodecsManager.SetMJPEGManager(streamManager)
 
-	// Register stream manager with camera manager for stream lifecycle
+	// Connect WebCodecs to frame provider for raw frame streaming
+	webCodecsManager.SetFrameProvider(frameProvider)
+
+	// Register both frame provider and stream manager with camera manager
 	if cameraManager != nil {
-		cameraManager.SetStreamManager(streamManager)
+		cameraManager.SetFrameProvider(frameProvider)
 		cameraManager.SetWebCodecsStreamManager(webCodecsManager)
 	}
 
-	// Register stream manager with motion detector for detection overlays
-	// This allows detection bounding boxes to be drawn on both MJPEG and WebCodecs streams
+	// Register WebCodecs with motion detector for detection overlays
 	if motionDetector != nil {
-		// Use composite provider to broadcast annotated frames to both MJPEG and WebCodecs
-		compositeOverlay := stream.NewCompositeStreamOverlayProvider(streamManager, webCodecsManager)
-		motionDetector.SetStreamOverlay(compositeOverlay)
-		logger.Printf("Stream overlay connected to motion detector for bounding box rendering (MJPEG + WebCodecs)")
+		motionDetector.SetStreamOverlay(webCodecsManager)
+		logger.Printf("Stream overlay connected to motion detector (WebCodecs)")
 	}
 
-	mux.Handle("GET", "/video/stream/{camera_id}", func(w http.ResponseWriter, r *http.Request) {
-		streamManager.ServeHTTP(w, r)
-	})
-	mux.Handle("GET", "/video/snapshot/{camera_id}", func(w http.ResponseWriter, r *http.Request) {
-		snapshotHandler.ServeHTTP(w, r)
-	})
-	// WebSocket endpoint for low-latency WebCodecs streaming
+	// WebSocket endpoint for low-latency WebCodecs streaming (auto mode)
+	// Auto mode: raw frames when detection is off, annotated frames when detection is on
 	mux.Handle("GET", "/ws/video/{camera_id}", func(w http.ResponseWriter, r *http.Request) {
 		webCodecsManager.ServeHTTP(w, r)
 	})
-	logger.Printf("Native MJPEG streaming endpoints mounted at /video/stream/{camera_id}, /video/snapshot/{camera_id}")
-	logger.Printf("WebCodecs WebSocket endpoint mounted at /ws/video/{camera_id}")
+	logger.Printf("WebCodecs WebSocket endpoint mounted at /ws/video/{camera_id} (auto mode)")
+
+	// WebSocket endpoint for raw-only streaming (Camera section)
+	// Always receives raw frames regardless of detection status
+	mux.Handle("GET", "/ws/video/raw/{camera_id}", func(w http.ResponseWriter, r *http.Request) {
+		webCodecsManager.ServeHTTPRaw(w, r)
+	})
+	logger.Printf("WebCodecs WebSocket endpoint mounted at /ws/video/raw/{camera_id} (raw mode)")
 
 	// Wrap the multiplexer with additional middlewares. Middlewares mounted
 	// here apply to all the service endpoints.

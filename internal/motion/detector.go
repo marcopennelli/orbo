@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"orbo/internal/database"
+	"orbo/internal/detection"
 	"orbo/internal/stream"
 	"orbo/internal/telegram"
 	"orbo/internal/ws"
@@ -126,4 +127,28 @@ func (md *MotionDetector) SetWebSocketHub(hub *ws.DetectionHub) {
 // SetStreamOverlay sets the stream overlay provider for drawing bounding boxes on MJPEG streams
 func (md *MotionDetector) SetStreamOverlay(overlay stream.StreamOverlayProvider) {
 	md.streamDetector.SetStreamOverlay(overlay)
+}
+
+// SetPipelineConfig sets the function that provides detection configuration for mode gating
+// When detection mode is "disabled", YOLO detection will be skipped (streaming only)
+func (md *MotionDetector) SetPipelineConfig(provider PipelineConfigProvider) {
+	md.streamDetector.SetPipelineConfig(provider)
+}
+
+// SetGRPCDetector sets the gRPC-based YOLO detector for low-latency streaming detection
+// If set, the StreamDetector will prefer gRPC over HTTP for object detection
+func (md *MotionDetector) SetGRPCDetector(grpcDet *detection.GRPCDetector) {
+	md.streamDetector.SetGRPCDetector(grpcDet)
+}
+
+// SetGRPCFaceRecognizer sets the gRPC-based face recognizer for low-latency streaming
+// If set, the StreamDetector will prefer gRPC over HTTP for face recognition
+func (md *MotionDetector) SetGRPCFaceRecognizer(grpcFace *detection.GRPCFaceRecognizer) {
+	md.streamDetector.SetGRPCFaceRecognizer(grpcFace)
+}
+
+// ConfigureGRPCYOLO sends configuration to the gRPC YOLO service
+// This is called when YOLO settings are changed via the config API
+func (md *MotionDetector) ConfigureGRPCYOLO(confThreshold float32, classes []string) error {
+	return md.streamDetector.ConfigureGRPCYOLO(confThreshold, classes)
 }

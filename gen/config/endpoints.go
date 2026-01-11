@@ -26,6 +26,8 @@ type Endpoints struct {
 	TestYolo         goa.Endpoint
 	GetDetection     goa.Endpoint
 	UpdateDetection  goa.Endpoint
+	GetPipeline      goa.Endpoint
+	UpdatePipeline   goa.Endpoint
 }
 
 // NewEndpoints wraps the methods of the "config" service with endpoints.
@@ -42,6 +44,8 @@ func NewEndpoints(s Service) *Endpoints {
 		TestYolo:         NewTestYoloEndpoint(s),
 		GetDetection:     NewGetDetectionEndpoint(s),
 		UpdateDetection:  NewUpdateDetectionEndpoint(s),
+		GetPipeline:      NewGetPipelineEndpoint(s),
+		UpdatePipeline:   NewUpdatePipelineEndpoint(s),
 	}
 }
 
@@ -58,6 +62,8 @@ func (e *Endpoints) Use(m func(goa.Endpoint) goa.Endpoint) {
 	e.TestYolo = m(e.TestYolo)
 	e.GetDetection = m(e.GetDetection)
 	e.UpdateDetection = m(e.UpdateDetection)
+	e.GetPipeline = m(e.GetPipeline)
+	e.UpdatePipeline = m(e.UpdatePipeline)
 }
 
 // NewGetEndpoint returns an endpoint function that calls the method "get" of
@@ -149,5 +155,22 @@ func NewUpdateDetectionEndpoint(s Service) goa.Endpoint {
 	return func(ctx context.Context, req any) (any, error) {
 		p := req.(*DetectionConfig)
 		return s.UpdateDetection(ctx, p)
+	}
+}
+
+// NewGetPipelineEndpoint returns an endpoint function that calls the method
+// "get_pipeline" of service "config".
+func NewGetPipelineEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		return s.GetPipeline(ctx)
+	}
+}
+
+// NewUpdatePipelineEndpoint returns an endpoint function that calls the method
+// "update_pipeline" of service "config".
+func NewUpdatePipelineEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		p := req.(*PipelineConfig)
+		return s.UpdatePipeline(ctx, p)
 	}
 }

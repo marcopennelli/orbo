@@ -806,6 +806,149 @@ func DecodeUpdateDetectionResponse(decoder func(*http.Response) goahttp.Decoder,
 	}
 }
 
+// BuildGetPipelineRequest instantiates a HTTP request object with method and
+// path set to call the "config" service "get_pipeline" endpoint
+func (c *Client) BuildGetPipelineRequest(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: GetPipelineConfigPath()}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "get_pipeline", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeGetPipelineResponse returns a decoder for responses returned by the
+// config get_pipeline endpoint. restoreBody controls whether the response body
+// should be restored after having been read.
+func DecodeGetPipelineResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body GetPipelineResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "get_pipeline", err)
+			}
+			err = ValidateGetPipelineResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "get_pipeline", err)
+			}
+			res := NewGetPipelinePipelineConfigOK(&body)
+			return res, nil
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "get_pipeline", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildUpdatePipelineRequest instantiates a HTTP request object with method
+// and path set to call the "config" service "update_pipeline" endpoint
+func (c *Client) BuildUpdatePipelineRequest(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: UpdatePipelineConfigPath()}
+	req, err := http.NewRequest("PUT", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "update_pipeline", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// EncodeUpdatePipelineRequest returns an encoder for requests sent to the
+// config update_pipeline server.
+func EncodeUpdatePipelineRequest(encoder func(*http.Request) goahttp.Encoder) func(*http.Request, any) error {
+	return func(req *http.Request, v any) error {
+		p, ok := v.(*config.PipelineConfig)
+		if !ok {
+			return goahttp.ErrInvalidType("config", "update_pipeline", "*config.PipelineConfig", v)
+		}
+		body := NewUpdatePipelineRequestBody(p)
+		if err := encoder(req).Encode(&body); err != nil {
+			return goahttp.ErrEncodingError("config", "update_pipeline", err)
+		}
+		return nil
+	}
+}
+
+// DecodeUpdatePipelineResponse returns a decoder for responses returned by the
+// config update_pipeline endpoint. restoreBody controls whether the response
+// body should be restored after having been read.
+// DecodeUpdatePipelineResponse may return the following errors:
+//   - "bad_request" (type *config.BadRequestError): http.StatusBadRequest
+//   - error: internal error
+func DecodeUpdatePipelineResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body UpdatePipelineResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "update_pipeline", err)
+			}
+			err = ValidateUpdatePipelineResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "update_pipeline", err)
+			}
+			res := NewUpdatePipelinePipelineConfigOK(&body)
+			return res, nil
+		case http.StatusBadRequest:
+			var (
+				body UpdatePipelineBadRequestResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "update_pipeline", err)
+			}
+			err = ValidateUpdatePipelineBadRequestResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "update_pipeline", err)
+			}
+			return nil, NewUpdatePipelineBadRequest(&body)
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "update_pipeline", resp.StatusCode, string(body))
+		}
+	}
+}
+
 // unmarshalYOLOConfigResponseBodyToConfigYOLOConfig builds a value of type
 // *config.YOLOConfig from a value of type *YOLOConfigResponseBody.
 func unmarshalYOLOConfigResponseBodyToConfigYOLOConfig(v *YOLOConfigResponseBody) *config.YOLOConfig {

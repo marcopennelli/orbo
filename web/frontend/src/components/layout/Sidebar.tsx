@@ -17,15 +17,14 @@ const tabs = [
 
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   return (
-    <aside className="w-16 bg-bg-panel border-r border-border flex flex-col items-center py-4 gap-2">
+    <aside className="w-44 bg-bg-panel border-r border-border flex flex-col py-4 px-3 gap-1">
       {tabs.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
           onClick={() => onTabChange(id)}
-          title={label}
           className={`
-            w-12 h-12 rounded-lg flex items-center justify-center
-            transition-colors
+            w-full px-3 py-2.5 rounded-lg flex items-center gap-3
+            text-sm font-medium transition-colors
             ${
               activeTab === id
                 ? 'bg-accent text-bg-dark'
@@ -33,7 +32,8 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
             }
           `}
         >
-          <Icon className="w-5 h-5" />
+          <Icon className="w-5 h-5 flex-shrink-0" />
+          <span>{label}</span>
         </button>
       ))}
     </aside>

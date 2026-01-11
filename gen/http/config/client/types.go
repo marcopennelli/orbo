@@ -75,6 +75,24 @@ type UpdateDetectionRequestBody struct {
 	FallbackEnabled bool `form:"fallback_enabled" json:"fallback_enabled" xml:"fallback_enabled"`
 }
 
+// UpdatePipelineRequestBody is the type of the "config" service
+// "update_pipeline" endpoint HTTP request body.
+type UpdatePipelineRequestBody struct {
+	// Controls when detection runs
+	Mode string `form:"mode" json:"mode" xml:"mode"`
+	// How detectors are run. Only 'sequential' is supported (chains YOLO → Face →
+	// Plate).
+	ExecutionMode string `form:"execution_mode" json:"execution_mode" xml:"execution_mode"`
+	// List of detector names: yolo, face, plate. Order matters for sequential mode.
+	Detectors []string `form:"detectors,omitempty" json:"detectors,omitempty" xml:"detectors,omitempty"`
+	// Go duration string, e.g., '5s', '10s', '1m'
+	ScheduleInterval string `form:"schedule_interval" json:"schedule_interval" xml:"schedule_interval"`
+	// Lower values = more sensitive. Used in motion_triggered and hybrid modes.
+	MotionSensitivity float32 `form:"motion_sensitivity" json:"motion_sensitivity" xml:"motion_sensitivity"`
+	// Seconds to wait after motion ends before stopping detection
+	MotionCooldownSeconds int `form:"motion_cooldown_seconds" json:"motion_cooldown_seconds" xml:"motion_cooldown_seconds"`
+}
+
 // GetResponseBody is the type of the "config" service "get" endpoint HTTP
 // response body.
 type GetResponseBody struct {
@@ -240,6 +258,42 @@ type UpdateDetectionResponseBody struct {
 	FallbackEnabled *bool `form:"fallback_enabled,omitempty" json:"fallback_enabled,omitempty" xml:"fallback_enabled,omitempty"`
 }
 
+// GetPipelineResponseBody is the type of the "config" service "get_pipeline"
+// endpoint HTTP response body.
+type GetPipelineResponseBody struct {
+	// Controls when detection runs
+	Mode *string `form:"mode,omitempty" json:"mode,omitempty" xml:"mode,omitempty"`
+	// How detectors are run. Only 'sequential' is supported (chains YOLO → Face →
+	// Plate).
+	ExecutionMode *string `form:"execution_mode,omitempty" json:"execution_mode,omitempty" xml:"execution_mode,omitempty"`
+	// List of detector names: yolo, face, plate. Order matters for sequential mode.
+	Detectors []string `form:"detectors,omitempty" json:"detectors,omitempty" xml:"detectors,omitempty"`
+	// Go duration string, e.g., '5s', '10s', '1m'
+	ScheduleInterval *string `form:"schedule_interval,omitempty" json:"schedule_interval,omitempty" xml:"schedule_interval,omitempty"`
+	// Lower values = more sensitive. Used in motion_triggered and hybrid modes.
+	MotionSensitivity *float32 `form:"motion_sensitivity,omitempty" json:"motion_sensitivity,omitempty" xml:"motion_sensitivity,omitempty"`
+	// Seconds to wait after motion ends before stopping detection
+	MotionCooldownSeconds *int `form:"motion_cooldown_seconds,omitempty" json:"motion_cooldown_seconds,omitempty" xml:"motion_cooldown_seconds,omitempty"`
+}
+
+// UpdatePipelineResponseBody is the type of the "config" service
+// "update_pipeline" endpoint HTTP response body.
+type UpdatePipelineResponseBody struct {
+	// Controls when detection runs
+	Mode *string `form:"mode,omitempty" json:"mode,omitempty" xml:"mode,omitempty"`
+	// How detectors are run. Only 'sequential' is supported (chains YOLO → Face →
+	// Plate).
+	ExecutionMode *string `form:"execution_mode,omitempty" json:"execution_mode,omitempty" xml:"execution_mode,omitempty"`
+	// List of detector names: yolo, face, plate. Order matters for sequential mode.
+	Detectors []string `form:"detectors,omitempty" json:"detectors,omitempty" xml:"detectors,omitempty"`
+	// Go duration string, e.g., '5s', '10s', '1m'
+	ScheduleInterval *string `form:"schedule_interval,omitempty" json:"schedule_interval,omitempty" xml:"schedule_interval,omitempty"`
+	// Lower values = more sensitive. Used in motion_triggered and hybrid modes.
+	MotionSensitivity *float32 `form:"motion_sensitivity,omitempty" json:"motion_sensitivity,omitempty" xml:"motion_sensitivity,omitempty"`
+	// Seconds to wait after motion ends before stopping detection
+	MotionCooldownSeconds *int `form:"motion_cooldown_seconds,omitempty" json:"motion_cooldown_seconds,omitempty" xml:"motion_cooldown_seconds,omitempty"`
+}
+
 // UpdateBadRequestResponseBody is the type of the "config" service "update"
 // endpoint HTTP response body for the "bad_request" error.
 type UpdateBadRequestResponseBody struct {
@@ -291,6 +345,15 @@ type TestYoloInternalResponseBody struct {
 // UpdateDetectionBadRequestResponseBody is the type of the "config" service
 // "update_detection" endpoint HTTP response body for the "bad_request" error.
 type UpdateDetectionBadRequestResponseBody struct {
+	// Error message
+	Message *string `form:"message,omitempty" json:"message,omitempty" xml:"message,omitempty"`
+	// Error details
+	Details *string `form:"details,omitempty" json:"details,omitempty" xml:"details,omitempty"`
+}
+
+// UpdatePipelineBadRequestResponseBody is the type of the "config" service
+// "update_pipeline" endpoint HTTP response body for the "bad_request" error.
+type UpdatePipelineBadRequestResponseBody struct {
 	// Error message
 	Message *string `form:"message,omitempty" json:"message,omitempty" xml:"message,omitempty"`
 	// Error details
@@ -461,6 +524,43 @@ func NewUpdateDetectionRequestBody(p *config.DetectionConfig) *UpdateDetectionRe
 		var zero bool
 		if body.FallbackEnabled == zero {
 			body.FallbackEnabled = true
+		}
+	}
+	return body
+}
+
+// NewUpdatePipelineRequestBody builds the HTTP request body from the payload
+// of the "update_pipeline" endpoint of the "config" service.
+func NewUpdatePipelineRequestBody(p *config.PipelineConfig) *UpdatePipelineRequestBody {
+	body := &UpdatePipelineRequestBody{
+		Mode:                  p.Mode,
+		ExecutionMode:         p.ExecutionMode,
+		ScheduleInterval:      p.ScheduleInterval,
+		MotionSensitivity:     p.MotionSensitivity,
+		MotionCooldownSeconds: p.MotionCooldownSeconds,
+	}
+	if p.Detectors != nil {
+		body.Detectors = make([]string, len(p.Detectors))
+		for i, val := range p.Detectors {
+			body.Detectors[i] = val
+		}
+	}
+	{
+		var zero string
+		if body.ScheduleInterval == zero {
+			body.ScheduleInterval = "5s"
+		}
+	}
+	{
+		var zero float32
+		if body.MotionSensitivity == zero {
+			body.MotionSensitivity = 0.1
+		}
+	}
+	{
+		var zero int
+		if body.MotionCooldownSeconds == zero {
+			body.MotionCooldownSeconds = 2
 		}
 	}
 	return body
@@ -782,6 +882,87 @@ func NewUpdateDetectionBadRequest(body *UpdateDetectionBadRequestResponseBody) *
 	return v
 }
 
+// NewGetPipelinePipelineConfigOK builds a "config" service "get_pipeline"
+// endpoint result from a HTTP "OK" response.
+func NewGetPipelinePipelineConfigOK(body *GetPipelineResponseBody) *config.PipelineConfig {
+	v := &config.PipelineConfig{
+		Mode:          *body.Mode,
+		ExecutionMode: *body.ExecutionMode,
+	}
+	if body.ScheduleInterval != nil {
+		v.ScheduleInterval = *body.ScheduleInterval
+	}
+	if body.MotionSensitivity != nil {
+		v.MotionSensitivity = *body.MotionSensitivity
+	}
+	if body.MotionCooldownSeconds != nil {
+		v.MotionCooldownSeconds = *body.MotionCooldownSeconds
+	}
+	if body.Detectors != nil {
+		v.Detectors = make([]string, len(body.Detectors))
+		for i, val := range body.Detectors {
+			v.Detectors[i] = val
+		}
+	}
+	if body.ScheduleInterval == nil {
+		v.ScheduleInterval = "5s"
+	}
+	if body.MotionSensitivity == nil {
+		v.MotionSensitivity = 0.1
+	}
+	if body.MotionCooldownSeconds == nil {
+		v.MotionCooldownSeconds = 2
+	}
+
+	return v
+}
+
+// NewUpdatePipelinePipelineConfigOK builds a "config" service
+// "update_pipeline" endpoint result from a HTTP "OK" response.
+func NewUpdatePipelinePipelineConfigOK(body *UpdatePipelineResponseBody) *config.PipelineConfig {
+	v := &config.PipelineConfig{
+		Mode:          *body.Mode,
+		ExecutionMode: *body.ExecutionMode,
+	}
+	if body.ScheduleInterval != nil {
+		v.ScheduleInterval = *body.ScheduleInterval
+	}
+	if body.MotionSensitivity != nil {
+		v.MotionSensitivity = *body.MotionSensitivity
+	}
+	if body.MotionCooldownSeconds != nil {
+		v.MotionCooldownSeconds = *body.MotionCooldownSeconds
+	}
+	if body.Detectors != nil {
+		v.Detectors = make([]string, len(body.Detectors))
+		for i, val := range body.Detectors {
+			v.Detectors[i] = val
+		}
+	}
+	if body.ScheduleInterval == nil {
+		v.ScheduleInterval = "5s"
+	}
+	if body.MotionSensitivity == nil {
+		v.MotionSensitivity = 0.1
+	}
+	if body.MotionCooldownSeconds == nil {
+		v.MotionCooldownSeconds = 2
+	}
+
+	return v
+}
+
+// NewUpdatePipelineBadRequest builds a config service update_pipeline endpoint
+// bad_request error.
+func NewUpdatePipelineBadRequest(body *UpdatePipelineBadRequestResponseBody) *config.BadRequestError {
+	v := &config.BadRequestError{
+		Message: *body.Message,
+		Details: body.Details,
+	}
+
+	return v
+}
+
 // ValidateGetResponseBody runs the validations defined on GetResponseBody
 func ValidateGetResponseBody(body *GetResponseBody) (err error) {
 	if body.TelegramEnabled == nil {
@@ -918,6 +1099,80 @@ func ValidateUpdateDetectionResponseBody(body *UpdateDetectionResponseBody) (err
 	return
 }
 
+// ValidateGetPipelineResponseBody runs the validations defined on
+// get_pipeline_response_body
+func ValidateGetPipelineResponseBody(body *GetPipelineResponseBody) (err error) {
+	if body.Mode == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("mode", "body"))
+	}
+	if body.ExecutionMode == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("execution_mode", "body"))
+	}
+	if body.Mode != nil {
+		if !(*body.Mode == "disabled" || *body.Mode == "continuous" || *body.Mode == "motion_triggered" || *body.Mode == "scheduled" || *body.Mode == "hybrid") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.mode", *body.Mode, []any{"disabled", "continuous", "motion_triggered", "scheduled", "hybrid"}))
+		}
+	}
+	if body.ExecutionMode != nil {
+		if !(*body.ExecutionMode == "sequential") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.execution_mode", *body.ExecutionMode, []any{"sequential"}))
+		}
+	}
+	if body.MotionSensitivity != nil {
+		if *body.MotionSensitivity < 0 {
+			err = goa.MergeErrors(err, goa.InvalidRangeError("body.motion_sensitivity", *body.MotionSensitivity, 0, true))
+		}
+	}
+	if body.MotionSensitivity != nil {
+		if *body.MotionSensitivity > 1 {
+			err = goa.MergeErrors(err, goa.InvalidRangeError("body.motion_sensitivity", *body.MotionSensitivity, 1, false))
+		}
+	}
+	if body.MotionCooldownSeconds != nil {
+		if *body.MotionCooldownSeconds < 0 {
+			err = goa.MergeErrors(err, goa.InvalidRangeError("body.motion_cooldown_seconds", *body.MotionCooldownSeconds, 0, true))
+		}
+	}
+	return
+}
+
+// ValidateUpdatePipelineResponseBody runs the validations defined on
+// update_pipeline_response_body
+func ValidateUpdatePipelineResponseBody(body *UpdatePipelineResponseBody) (err error) {
+	if body.Mode == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("mode", "body"))
+	}
+	if body.ExecutionMode == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("execution_mode", "body"))
+	}
+	if body.Mode != nil {
+		if !(*body.Mode == "disabled" || *body.Mode == "continuous" || *body.Mode == "motion_triggered" || *body.Mode == "scheduled" || *body.Mode == "hybrid") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.mode", *body.Mode, []any{"disabled", "continuous", "motion_triggered", "scheduled", "hybrid"}))
+		}
+	}
+	if body.ExecutionMode != nil {
+		if !(*body.ExecutionMode == "sequential") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.execution_mode", *body.ExecutionMode, []any{"sequential"}))
+		}
+	}
+	if body.MotionSensitivity != nil {
+		if *body.MotionSensitivity < 0 {
+			err = goa.MergeErrors(err, goa.InvalidRangeError("body.motion_sensitivity", *body.MotionSensitivity, 0, true))
+		}
+	}
+	if body.MotionSensitivity != nil {
+		if *body.MotionSensitivity > 1 {
+			err = goa.MergeErrors(err, goa.InvalidRangeError("body.motion_sensitivity", *body.MotionSensitivity, 1, false))
+		}
+	}
+	if body.MotionCooldownSeconds != nil {
+		if *body.MotionCooldownSeconds < 0 {
+			err = goa.MergeErrors(err, goa.InvalidRangeError("body.motion_cooldown_seconds", *body.MotionCooldownSeconds, 0, true))
+		}
+	}
+	return
+}
+
 // ValidateUpdateBadRequestResponseBody runs the validations defined on
 // update_bad_request_response_body
 func ValidateUpdateBadRequestResponseBody(body *UpdateBadRequestResponseBody) (err error) {
@@ -975,6 +1230,15 @@ func ValidateTestYoloInternalResponseBody(body *TestYoloInternalResponseBody) (e
 // ValidateUpdateDetectionBadRequestResponseBody runs the validations defined
 // on update_detection_bad_request_response_body
 func ValidateUpdateDetectionBadRequestResponseBody(body *UpdateDetectionBadRequestResponseBody) (err error) {
+	if body.Message == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("message", "body"))
+	}
+	return
+}
+
+// ValidateUpdatePipelineBadRequestResponseBody runs the validations defined on
+// update_pipeline_bad_request_response_body
+func ValidateUpdatePipelineBadRequestResponseBody(body *UpdatePipelineBadRequestResponseBody) (err error) {
 	if body.Message == nil {
 		err = goa.MergeErrors(err, goa.MissingFieldError("message", "body"))
 	}

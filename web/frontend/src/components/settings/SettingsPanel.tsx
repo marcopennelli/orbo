@@ -1,31 +1,31 @@
 import { useState } from 'react';
-import { MessageSquare, Cpu, Activity, X } from 'lucide-react';
-import type { TelegramConfig, YoloConfig, DetectionConfig } from '../../types';
+import { MessageSquare, Sliders, X } from 'lucide-react';
+import type { TelegramConfig, YoloConfig, PipelineConfig } from '../../types';
 import { Button } from '../ui';
 import TelegramSettings from './TelegramSettings';
-import YoloSettings from './YoloSettings';
-import DetectionSettings from './DetectionSettings';
+import PipelineSettings from './PipelineSettings';
 
-type SettingsTab = 'telegram' | 'yolo' | 'detection';
+type SettingsTab = 'pipeline' | 'telegram';
 
 interface SettingsPanelProps {
   isOpen: boolean;
   onClose: () => void;
   telegramConfig: TelegramConfig;
   yoloConfig: YoloConfig;
-  detectionConfig: DetectionConfig;
-  onUpdateTelegram: (config: Partial<TelegramConfig>) => void;
-  onUpdateYolo: (config: Partial<YoloConfig>) => void;
-  onUpdateDetection: (config: Partial<DetectionConfig>) => void;
+  pipelineConfig: PipelineConfig;
+  onSaveTelegram: (config: TelegramConfig) => void;
+  onSaveYolo: (config: YoloConfig) => void;
+  onSavePipeline: (config: PipelineConfig) => void;
   onTestTelegram: () => Promise<{ success: boolean; message: string }>;
   onTestYolo: () => Promise<{ success: boolean; message: string }>;
-  isLoading?: boolean;
+  isSavingTelegram?: boolean;
+  isSavingYolo?: boolean;
+  isSavingPipeline?: boolean;
 }
 
 const tabs: { id: SettingsTab; label: string; icon: typeof MessageSquare }[] = [
+  { id: 'pipeline', label: 'Pipeline', icon: Sliders },
   { id: 'telegram', label: 'Telegram', icon: MessageSquare },
-  { id: 'yolo', label: 'YOLO', icon: Cpu },
-  { id: 'detection', label: 'Detection', icon: Activity },
 ];
 
 export default function SettingsPanel({
@@ -33,15 +33,17 @@ export default function SettingsPanel({
   onClose,
   telegramConfig,
   yoloConfig,
-  detectionConfig,
-  onUpdateTelegram,
-  onUpdateYolo,
-  onUpdateDetection,
+  pipelineConfig,
+  onSaveTelegram,
+  onSaveYolo,
+  onSavePipeline,
   onTestTelegram,
   onTestYolo,
-  isLoading,
+  isSavingTelegram,
+  isSavingYolo,
+  isSavingPipeline,
 }: SettingsPanelProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('telegram');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('pipeline');
 
   if (!isOpen) return null;
 
@@ -51,9 +53,9 @@ export default function SettingsPanel({
       <div className="fixed inset-0 bg-black/60" onClick={onClose} />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-bg-panel border-l border-border shadow-xl flex flex-col">
+      <div className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-bg-panel border-l border-border shadow-xl flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold text-text-primary">Settings</h2>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="w-5 h-5" />
@@ -83,28 +85,24 @@ export default function SettingsPanel({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-hidden p-6 flex flex-col">
+          {activeTab === 'pipeline' && (
+            <PipelineSettings
+              config={pipelineConfig}
+              onSave={onSavePipeline}
+              isSaving={isSavingPipeline}
+              yoloConfig={yoloConfig}
+              onSaveYolo={onSaveYolo}
+              onTestYolo={onTestYolo}
+              isSavingYolo={isSavingYolo}
+            />
+          )}
           {activeTab === 'telegram' && (
             <TelegramSettings
               config={telegramConfig}
-              onUpdate={onUpdateTelegram}
+              onSave={onSaveTelegram}
               onTest={onTestTelegram}
-              isLoading={isLoading}
-            />
-          )}
-          {activeTab === 'yolo' && (
-            <YoloSettings
-              config={yoloConfig}
-              onUpdate={onUpdateYolo}
-              onTest={onTestYolo}
-              isLoading={isLoading}
-            />
-          )}
-          {activeTab === 'detection' && (
-            <DetectionSettings
-              config={detectionConfig}
-              onUpdate={onUpdateDetection}
-              isLoading={isLoading}
+              isSaving={isSavingTelegram}
             />
           )}
         </div>

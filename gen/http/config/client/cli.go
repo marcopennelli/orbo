@@ -161,3 +161,67 @@ func BuildUpdateDetectionPayload(configUpdateDetectionBody string) (*config.Dete
 
 	return v, nil
 }
+
+// BuildUpdatePipelinePayload builds the payload for the config update_pipeline
+// endpoint from CLI flags.
+func BuildUpdatePipelinePayload(configUpdatePipelineBody string) (*config.PipelineConfig, error) {
+	var err error
+	var body UpdatePipelineRequestBody
+	{
+		err = json.Unmarshal([]byte(configUpdatePipelineBody), &body)
+		if err != nil {
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"detectors\": [\n         \"yolo\",\n         \"face\"\n      ],\n      \"execution_mode\": \"sequential\",\n      \"mode\": \"continuous\",\n      \"motion_cooldown_seconds\": 1316921468328879202,\n      \"motion_sensitivity\": 0.60657674,\n      \"schedule_interval\": \"Ipsa voluptate magnam et.\"\n   }'")
+		}
+		if !(body.Mode == "disabled" || body.Mode == "continuous" || body.Mode == "motion_triggered" || body.Mode == "scheduled" || body.Mode == "hybrid") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.mode", body.Mode, []any{"disabled", "continuous", "motion_triggered", "scheduled", "hybrid"}))
+		}
+		if !(body.ExecutionMode == "sequential") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.execution_mode", body.ExecutionMode, []any{"sequential"}))
+		}
+		if body.MotionSensitivity < 0 {
+			err = goa.MergeErrors(err, goa.InvalidRangeError("body.motion_sensitivity", body.MotionSensitivity, 0, true))
+		}
+		if body.MotionSensitivity > 1 {
+			err = goa.MergeErrors(err, goa.InvalidRangeError("body.motion_sensitivity", body.MotionSensitivity, 1, false))
+		}
+		if body.MotionCooldownSeconds < 0 {
+			err = goa.MergeErrors(err, goa.InvalidRangeError("body.motion_cooldown_seconds", body.MotionCooldownSeconds, 0, true))
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	v := &config.PipelineConfig{
+		Mode:                  body.Mode,
+		ExecutionMode:         body.ExecutionMode,
+		ScheduleInterval:      body.ScheduleInterval,
+		MotionSensitivity:     body.MotionSensitivity,
+		MotionCooldownSeconds: body.MotionCooldownSeconds,
+	}
+	if body.Detectors != nil {
+		v.Detectors = make([]string, len(body.Detectors))
+		for i, val := range body.Detectors {
+			v.Detectors[i] = val
+		}
+	}
+	{
+		var zero string
+		if v.ScheduleInterval == zero {
+			v.ScheduleInterval = "5s"
+		}
+	}
+	{
+		var zero float32
+		if v.MotionSensitivity == zero {
+			v.MotionSensitivity = 0.1
+		}
+	}
+	{
+		var zero int
+		if v.MotionCooldownSeconds == zero {
+			v.MotionCooldownSeconds = 2
+		}
+	}
+
+	return v, nil
+}

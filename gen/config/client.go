@@ -26,10 +26,12 @@ type Client struct {
 	TestYoloEndpoint         goa.Endpoint
 	GetDetectionEndpoint     goa.Endpoint
 	UpdateDetectionEndpoint  goa.Endpoint
+	GetPipelineEndpoint      goa.Endpoint
+	UpdatePipelineEndpoint   goa.Endpoint
 }
 
 // NewClient initializes a "config" service client given the endpoints.
-func NewClient(get, update, testNotification, getDinov3, updateDinov3, testDinov3, getYolo, updateYolo, testYolo, getDetection, updateDetection goa.Endpoint) *Client {
+func NewClient(get, update, testNotification, getDinov3, updateDinov3, testDinov3, getYolo, updateYolo, testYolo, getDetection, updateDetection, getPipeline, updatePipeline goa.Endpoint) *Client {
 	return &Client{
 		GetEndpoint:              get,
 		UpdateEndpoint:           update,
@@ -42,6 +44,8 @@ func NewClient(get, update, testNotification, getDinov3, updateDinov3, testDinov
 		TestYoloEndpoint:         testYolo,
 		GetDetectionEndpoint:     getDetection,
 		UpdateDetectionEndpoint:  updateDetection,
+		GetPipelineEndpoint:      getPipeline,
+		UpdatePipelineEndpoint:   updatePipeline,
 	}
 }
 
@@ -176,4 +180,27 @@ func (c *Client) UpdateDetection(ctx context.Context, p *DetectionConfig) (res *
 		return
 	}
 	return ires.(*DetectionConfig), nil
+}
+
+// GetPipeline calls the "get_pipeline" endpoint of the "config" service.
+func (c *Client) GetPipeline(ctx context.Context) (res *PipelineConfig, err error) {
+	var ires any
+	ires, err = c.GetPipelineEndpoint(ctx, nil)
+	if err != nil {
+		return
+	}
+	return ires.(*PipelineConfig), nil
+}
+
+// UpdatePipeline calls the "update_pipeline" endpoint of the "config" service.
+// UpdatePipeline may return the following errors:
+//   - "bad_request" (type *BadRequestError): Invalid pipeline configuration
+//   - error: internal error
+func (c *Client) UpdatePipeline(ctx context.Context, p *PipelineConfig) (res *PipelineConfig, err error) {
+	var ires any
+	ires, err = c.UpdatePipelineEndpoint(ctx, p)
+	if err != nil {
+		return
+	}
+	return ires.(*PipelineConfig), nil
 }

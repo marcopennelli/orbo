@@ -183,12 +183,52 @@ var DetectionConfig = Type("DetectionConfig", func() {
     Required("primary_detector")
 })
 
+var PipelineConfig = Type("PipelineConfig", func() {
+    Description("Detection pipeline configuration for modular video processing")
+    Field(1, "mode", String, "Detection mode", func() {
+        Description("Controls when detection runs")
+        Enum("disabled", "continuous", "motion_triggered", "scheduled", "hybrid")
+        Default("motion_triggered")
+    })
+    Field(2, "execution_mode", String, "Detector execution mode", func() {
+        Description("How detectors are run. Only 'sequential' is supported (chains YOLO → Face → Plate).")
+        Enum("sequential")
+        Default("sequential")
+    })
+    Field(3, "detectors", ArrayOf(String), "Enabled detectors in execution order", func() {
+        Description("List of detector names: yolo, face, plate. Order matters for sequential mode.")
+        Example([]string{"yolo", "face"})
+    })
+    Field(4, "schedule_interval", String, "Detection interval for scheduled/hybrid modes", func() {
+        Description("Go duration string, e.g., '5s', '10s', '1m'")
+        Default("5s")
+    })
+    Field(5, "motion_sensitivity", Float32, "Motion detection sensitivity (0.0-1.0)", func() {
+        Description("Lower values = more sensitive. Used in motion_triggered and hybrid modes.")
+        Minimum(0)
+        Maximum(1)
+        Default(0.1)
+    })
+    Field(6, "motion_cooldown_seconds", Int, "Cooldown after motion stops", func() {
+        Description("Seconds to wait after motion ends before stopping detection")
+        Minimum(0)
+        Default(2)
+    })
+    Required("mode", "execution_mode")
+})
+
 var SystemStatus = Type("SystemStatus", func() {
     Description("System status information")
     Field(1, "cameras", ArrayOf(CameraInfo), "Camera status list")
     Field(2, "motion_detection_active", Boolean, "Motion detection status")
     Field(3, "notifications_active", Boolean, "Notification status")
     Field(4, "uptime_seconds", Int, "System uptime in seconds")
+    // Extended pipeline status fields
+    Field(5, "pipeline_mode", String, "Current pipeline detection mode (disabled, continuous, motion_triggered, scheduled, hybrid)")
+    Field(6, "pipeline_execution_mode", String, "Pipeline execution mode (always sequential)")
+    Field(7, "pipeline_detectors", ArrayOf(String), "Enabled detectors in the pipeline")
+    Field(8, "pipeline_detection_enabled", Boolean, "Whether AI detection is enabled (false when mode=disabled)")
+    Field(9, "detecting_cameras", Int, "Number of cameras currently running detection")
     Required("cameras", "motion_detection_active", "notifications_active", "uptime_seconds")
 })
 
@@ -620,6 +660,27 @@ var _ = Service("config", func() {
         Error("bad_request", BadRequestError, "Invalid detection configuration")
         HTTP(func() {
             PUT("/api/v1/config/detection")
+            Response(StatusOK)
+            Response("bad_request", StatusBadRequest)
+        })
+    })
+
+    Method("get_pipeline", func() {
+        Description("Get detection pipeline configuration")
+        Result(PipelineConfig)
+        HTTP(func() {
+            GET("/api/v1/config/pipeline")
+            Response(StatusOK)
+        })
+    })
+
+    Method("update_pipeline", func() {
+        Description("Update detection pipeline configuration")
+        Payload(PipelineConfig)
+        Result(PipelineConfig)
+        Error("bad_request", BadRequestError, "Invalid pipeline configuration")
+        HTTP(func() {
+            PUT("/api/v1/config/pipeline")
             Response(StatusOK)
             Response("bad_request", StatusBadRequest)
         })

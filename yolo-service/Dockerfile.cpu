@@ -27,11 +27,11 @@ RUN pip3 install -r requirements.txt
 # Copy application code
 COPY main.py .
 
-# Create directory for YOLOv8 models
+# Create directory for YOLO models
 RUN mkdir -p /app/models
 
-# Download YOLOv8 model weights
-RUN python3 -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
+# Download YOLO11 model weights (nano for best speed)
+RUN python3 -c "from ultralytics import YOLO; YOLO('yolo11n.pt')"
 
 # Expose port
 EXPOSE 8081

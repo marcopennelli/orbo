@@ -40,6 +40,9 @@ spec:
             - name: http
               containerPort: {{ .Values.recognition.service.port }}
               protocol: TCP
+            - name: grpc
+              containerPort: {{ .Values.recognition.service.grpcPort | default 50052 }}
+              protocol: TCP
           livenessProbe:
             httpGet:
               path: /health

@@ -61,3 +61,13 @@ func GetDetectionConfigPath() string {
 func UpdateDetectionConfigPath() string {
 	return "/api/v1/config/detection"
 }
+
+// GetPipelineConfigPath returns the URL path to the config service get_pipeline HTTP endpoint.
+func GetPipelineConfigPath() string {
+	return "/api/v1/config/pipeline"
+}
+
+// UpdatePipelineConfigPath returns the URL path to the config service update_pipeline HTTP endpoint.
+func UpdatePipelineConfigPath() string {
+	return "/api/v1/config/pipeline"
+}

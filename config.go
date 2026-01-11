@@ -95,3 +95,17 @@ func (s *configsrvc) UpdateDetection(ctx context.Context, p *config.DetectionCon
 	s.logger.Print("config.update_detection")
 	return
 }
+
+// GetPipeline returns the detection pipeline configuration
+func (s *configsrvc) GetPipeline(ctx context.Context) (res *config.PipelineConfig, err error) {
+	res = &config.PipelineConfig{}
+	s.logger.Print("config.get_pipeline")
+	return
+}
+
+// UpdatePipeline updates the detection pipeline configuration
+func (s *configsrvc) UpdatePipeline(ctx context.Context, p *config.PipelineConfig) (res *config.PipelineConfig, err error) {
+	res = &config.PipelineConfig{}
+	s.logger.Print("config.update_pipeline")
+	return
+}

@@ -1,31 +1,40 @@
 #!/usr/bin/env python3
 """
-AMD GPU-accelerated YOLOv8 Object Detection Service
-Optimized for Orbo video alarm system
+GPU-accelerated YOLO11 Object Detection Service
+Optimized for Orbo video alarm system with real-time per-frame detection
 """
+
+import os
+import logging
+
+# Configure Ultralytics BEFORE importing - prevents permission errors
+os.environ['YOLO_CONFIG_DIR'] = '/tmp/Ultralytics'
+os.makedirs('/tmp/Ultralytics', exist_ok=True)
+os.makedirs('/tmp/yolo_runs', exist_ok=True)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Now import ultralytics and configure settings
+from ultralytics import YOLO, settings
+settings.update({'runs_dir': '/tmp/yolo_runs', 'datasets_dir': '/tmp/datasets'})
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query
 from fastapi.responses import JSONResponse, Response
-from ultralytics import YOLO
 import torch
 import cv2
 import numpy as np
 import io
 from PIL import Image
 import time
-import logging
 from typing import List, Dict, Any, Optional, Tuple
-import os
 import base64
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 app = FastAPI(
-    title="Orbo YOLOv8 Detection Service",
-    description="AMD GPU-accelerated object detection for video surveillance",
-    version="1.0.0"
+    title="Orbo YOLO11 Detection Service",
+    description="GPU-accelerated object detection for real-time video surveillance",
+    version="2.0.0"
 )
 
 class YOLODetectionService:
@@ -34,36 +43,51 @@ class YOLODetectionService:
         self.device = None
         self.model_loaded = False
         self.default_classes_filter = None  # Class names to filter at inference time
+
+        # Tracking configuration
+        self.tracker_type = os.getenv('TRACKER_TYPE', '')  # 'bytetrack', 'botsort', or '' to disable
+        self.tracking_enabled = self.tracker_type != ''
+
+        # Per-camera tracking state (for persist=True in model.track)
+        # Key: camera_id, Value: last tracking results
+        self.track_history: Dict[str, Dict] = {}
+
         self.initialize_model()
         self._load_default_classes_filter()
+
+        if self.tracking_enabled:
+            logger.info(f"Object tracking enabled with {self.tracker_type}")
     
     def initialize_model(self):
-        """Initialize YOLOv8 model with AMD GPU support"""
+        """Initialize YOLO11 model with GPU support"""
         try:
             # Check GPU availability
             if torch.cuda.is_available():
                 self.device = 'cuda'
                 gpu_name = torch.cuda.get_device_name(0)
-                logger.info(f"AMD GPU detected: {gpu_name}")
+                logger.info(f"GPU detected: {gpu_name}")
             else:
                 self.device = 'cpu'
                 logger.warning("No GPU detected, using CPU")
-            
-            # Load YOLOv8 model
-            model_path = os.getenv('YOLO_MODEL', 'yolov8n.pt')
-            logger.info(f"Loading YOLOv8 model: {model_path}")
-            
+
+            # Load YOLO11 model (defaults to yolo11n.pt for best speed)
+            # Available models: yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt
+            model_path = os.getenv('YOLO_MODEL', 'yolo11n.pt')
+            logger.info(f"Loading YOLO11 model: {model_path}")
+
             self.model = YOLO(model_path)
             self.model.to(self.device)
-            
-            # Warm up the model
+
+            # Store model name for reporting
+            self.model_name = model_path.replace('.pt', '').upper()
+
+            # Warm up the model (save=False to avoid creating runs directory)
             logger.info("Warming up model...")
-            dummy_image = torch.randn(1, 3, 640, 640).to(self.device)
-            with torch.no_grad():
-                _ = self.model(dummy_image, verbose=False)
-            
+            dummy_image = np.zeros((640, 640, 3), dtype=np.uint8)
+            _ = self.model(dummy_image, verbose=False, save=False)
+
             self.model_loaded = True
-            logger.info(f"YOLOv8 model loaded successfully on {self.device}")
+            logger.info(f"YOLO11 model loaded successfully on {self.device}")
 
         except Exception as e:
             logger.error(f"Failed to initialize model: {e}")
@@ -163,7 +187,7 @@ class YOLODetectionService:
                 "count": len(detections),
                 "inference_time_ms": round(inference_time * 1000, 2),
                 "device": str(self.device),
-                "model_size": "YOLOv8n",
+                "model_size": getattr(self, 'model_name', 'YOLO11N'),
                 "conf_threshold": conf_threshold
             }
 
@@ -176,6 +200,187 @@ class YOLODetectionService:
         except Exception as e:
             logger.error(f"Detection failed: {e}")
             raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
+
+    def detect_with_tracking(
+        self,
+        image_data: bytes,
+        camera_id: str = "default",
+        conf_threshold: float = 0.5,
+        classes_filter: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Run YOLOv8 inference with object tracking (ByteTrack/BoT-SORT)"""
+        if not self.model_loaded:
+            raise HTTPException(status_code=503, detail="Model not loaded")
+
+        if not self.tracking_enabled:
+            # Fall back to regular detection
+            return self.detect_objects(image_data, conf_threshold, classes_filter)
+
+        start_time = time.time()
+
+        try:
+            # Preprocess image
+            image = self.preprocess_image(image_data)
+
+            # Use provided filter or fall back to default
+            effective_filter = classes_filter if classes_filter else self.default_classes_filter
+            class_ids = self._get_class_ids(effective_filter)
+
+            # Run tracking with persist=True to maintain track IDs across frames
+            # This uses ByteTrack or BoT-SORT depending on tracker_type
+            results = self.model.track(
+                image,
+                device=self.device,
+                conf=conf_threshold,
+                classes=class_ids,
+                persist=True,
+                tracker=f"{self.tracker_type}.yaml",
+                verbose=False
+            )
+
+            # Parse results with track IDs
+            detections = []
+            tracks = []
+
+            for r in results:
+                boxes = r.boxes
+                if boxes is not None and len(boxes) > 0:
+                    for i in range(len(boxes)):
+                        cls_id = int(boxes.cls[i])
+                        confidence = float(boxes.conf[i])
+                        bbox = boxes.xyxy[i].tolist()
+
+                        # Get track ID (may be None if tracking failed for this detection)
+                        track_id = 0
+                        if boxes.id is not None and i < len(boxes.id):
+                            track_id = int(boxes.id[i])
+
+                        detection = {
+                            "class": r.names[cls_id],
+                            "class_id": cls_id,
+                            "confidence": confidence,
+                            "bbox": bbox,
+                            "center": [
+                                (bbox[0] + bbox[2]) / 2,
+                                (bbox[1] + bbox[3]) / 2
+                            ],
+                            "area": (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]),
+                            "track_id": track_id
+                        }
+                        detections.append(detection)
+
+                        # Compute velocity if we have history for this track
+                        velocity = self._compute_velocity(camera_id, track_id, detection["center"])
+                        detection["velocity_x"] = velocity[0]
+                        detection["velocity_y"] = velocity[1]
+
+                        # Add track update info
+                        track_state = self._get_track_state(camera_id, track_id)
+                        tracks.append({
+                            "track_id": track_id,
+                            "state": track_state,
+                            "detection": detection,
+                            "age": self._get_track_age(camera_id, track_id),
+                            "time_since_update": 0  # Just updated
+                        })
+
+            # Update track history for velocity computation
+            self._update_track_history(camera_id, detections)
+
+            inference_time = time.time() - start_time
+
+            result = {
+                "detections": detections,
+                "tracks": tracks,
+                "count": len(detections),
+                "inference_time_ms": round(inference_time * 1000, 2),
+                "device": str(self.device),
+                "model_size": getattr(self, 'model_name', 'YOLO11N'),
+                "conf_threshold": conf_threshold,
+                "tracker_type": self.tracker_type
+            }
+
+            if effective_filter:
+                result["classes_filter"] = effective_filter
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Detection with tracking failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
+
+    def _compute_velocity(self, camera_id: str, track_id: int, current_center: List[float]) -> Tuple[float, float]:
+        """Compute velocity in pixels per frame for a tracked object"""
+        if camera_id not in self.track_history:
+            return (0.0, 0.0)
+
+        history = self.track_history[camera_id]
+        if track_id not in history:
+            return (0.0, 0.0)
+
+        prev = history[track_id]
+        prev_center = prev.get("center", current_center)
+
+        # Simple velocity: pixels moved since last frame
+        vx = current_center[0] - prev_center[0]
+        vy = current_center[1] - prev_center[1]
+        return (vx, vy)
+
+    def _get_track_state(self, camera_id: str, track_id: int) -> str:
+        """Get state of a track: new, active, lost"""
+        if camera_id not in self.track_history:
+            return "new"
+
+        if track_id not in self.track_history[camera_id]:
+            return "new"
+
+        return "active"
+
+    def _get_track_age(self, camera_id: str, track_id: int) -> int:
+        """Get number of frames a track has been active"""
+        if camera_id not in self.track_history:
+            return 0
+
+        if track_id not in self.track_history[camera_id]:
+            return 0
+
+        return self.track_history[camera_id][track_id].get("age", 0) + 1
+
+    def _update_track_history(self, camera_id: str, detections: List[Dict]):
+        """Update track history for velocity computation"""
+        if camera_id not in self.track_history:
+            self.track_history[camera_id] = {}
+
+        # Get current track IDs
+        current_track_ids = set()
+        for det in detections:
+            track_id = det.get("track_id", 0)
+            if track_id > 0:
+                current_track_ids.add(track_id)
+                if track_id in self.track_history[camera_id]:
+                    # Update existing track
+                    self.track_history[camera_id][track_id]["center"] = det["center"]
+                    self.track_history[camera_id][track_id]["age"] += 1
+                    self.track_history[camera_id][track_id]["time_since_update"] = 0
+                else:
+                    # New track
+                    self.track_history[camera_id][track_id] = {
+                        "center": det["center"],
+                        "age": 0,
+                        "time_since_update": 0
+                    }
+
+        # Increment time_since_update for tracks not seen this frame
+        # and remove stale tracks
+        stale_tracks = []
+        for track_id in self.track_history[camera_id]:
+            if track_id not in current_track_ids:
+                self.track_history[camera_id][track_id]["time_since_update"] += 1
+                if self.track_history[camera_id][track_id]["time_since_update"] > 30:
+                    stale_tracks.append(track_id)
+
+        for track_id in stale_tracks:
+            del self.track_history[camera_id][track_id]
 
     def detect_and_annotate(
         self,
@@ -248,7 +453,7 @@ class YOLODetectionService:
                 "count": len(detections),
                 "inference_time_ms": round(inference_time * 1000, 2),
                 "device": str(self.device),
-                "model_size": "YOLOv8n",
+                "model_size": getattr(self, 'model_name', 'YOLO11N'),
                 "conf_threshold": conf_threshold
             }
 
@@ -262,6 +467,128 @@ class YOLODetectionService:
             logger.error(f"Detection with annotation failed: {e}")
             raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
 
+    def detect_and_annotate_with_tracking(
+        self,
+        image_data: bytes,
+        camera_id: str = "default",
+        conf_threshold: float = 0.5,
+        classes_filter: Optional[List[str]] = None,
+        box_thickness: int = 2,
+        show_labels: bool = True,
+        show_confidence: bool = True
+    ) -> Tuple[bytes, Dict[str, Any]]:
+        """Run YOLOv8 with tracking and return annotated image with track IDs"""
+        if not self.model_loaded:
+            raise HTTPException(status_code=503, detail="Model not loaded")
+
+        if not self.tracking_enabled:
+            # Fall back to regular annotated detection
+            return self.detect_and_annotate(
+                image_data, conf_threshold, classes_filter,
+                box_thickness=box_thickness, show_labels=show_labels,
+                show_confidence=show_confidence
+            )
+
+        start_time = time.time()
+
+        try:
+            # Preprocess image
+            image = self.preprocess_image(image_data)
+
+            # Use provided filter or fall back to default
+            effective_filter = classes_filter if classes_filter else self.default_classes_filter
+            class_ids = self._get_class_ids(effective_filter)
+
+            # Run tracking
+            results = self.model.track(
+                image,
+                device=self.device,
+                conf=conf_threshold,
+                classes=class_ids,
+                persist=True,
+                tracker=f"{self.tracker_type}.yaml",
+                verbose=False
+            )
+
+            # Parse results with track IDs
+            detections = []
+            tracks = []
+
+            for r in results:
+                boxes = r.boxes
+                if boxes is not None and len(boxes) > 0:
+                    for i in range(len(boxes)):
+                        cls_id = int(boxes.cls[i])
+                        confidence = float(boxes.conf[i])
+                        bbox = boxes.xyxy[i].tolist()
+
+                        track_id = 0
+                        if boxes.id is not None and i < len(boxes.id):
+                            track_id = int(boxes.id[i])
+
+                        detection = {
+                            "class": r.names[cls_id],
+                            "class_id": cls_id,
+                            "confidence": confidence,
+                            "bbox": bbox,
+                            "center": [
+                                (bbox[0] + bbox[2]) / 2,
+                                (bbox[1] + bbox[3]) / 2
+                            ],
+                            "area": (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]),
+                            "track_id": track_id
+                        }
+
+                        velocity = self._compute_velocity(camera_id, track_id, detection["center"])
+                        detection["velocity_x"] = velocity[0]
+                        detection["velocity_y"] = velocity[1]
+
+                        detections.append(detection)
+
+                        track_state = self._get_track_state(camera_id, track_id)
+                        tracks.append({
+                            "track_id": track_id,
+                            "state": track_state,
+                            "detection": detection,
+                            "age": self._get_track_age(camera_id, track_id),
+                            "time_since_update": 0
+                        })
+
+            # Update track history
+            self._update_track_history(camera_id, detections)
+
+            # Use YOLO's built-in plot() - it includes track IDs when available
+            annotated_frame = results[0].plot(
+                conf=show_confidence,
+                labels=show_labels,
+                line_width=box_thickness
+            )
+
+            inference_time = time.time() - start_time
+
+            _, jpeg_data = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
+
+            result_info = {
+                "detections": detections,
+                "tracks": tracks,
+                "count": len(detections),
+                "inference_time_ms": round(inference_time * 1000, 2),
+                "device": str(self.device),
+                "model_size": getattr(self, 'model_name', 'YOLO11N'),
+                "conf_threshold": conf_threshold,
+                "tracker_type": self.tracker_type
+            }
+
+            if effective_filter:
+                result_info["classes_filter"] = effective_filter
+
+            return jpeg_data.tobytes(), result_info
+
+        except Exception as e:
+            logger.error(f"Tracked detection with annotation failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
+
+
 # Global service instance
 detection_service = YOLODetectionService()
 
@@ -269,8 +596,9 @@ detection_service = YOLODetectionService()
 async def root():
     """Root endpoint with service info"""
     return {
-        "service": "Orbo YOLOv8 Detection Service",
-        "version": "1.0.0",
+        "service": "Orbo YOLO11 Detection Service",
+        "version": "2.0.0",
+        "model": getattr(detection_service, 'model_name', 'YOLO11N'),
         "device": detection_service.device,
         "model_loaded": detection_service.model_loaded,
         "gpu_available": torch.cuda.is_available(),
@@ -520,18 +848,47 @@ async def detect_security_annotated(
         raise HTTPException(status_code=500, detail="Security annotated detection failed")
 
 
+def start_grpc_server():
+    """Start gRPC server in a background thread"""
+    grpc_port = int(os.getenv('GRPC_PORT', '50051'))
+    if grpc_port <= 0:
+        logger.info("gRPC server disabled (GRPC_PORT not set or 0)")
+        return None
+
+    try:
+        from grpc_server import serve as grpc_serve
+        grpc_server = grpc_serve(detection_service, port=grpc_port)
+        return grpc_server
+    except ImportError as e:
+        logger.warning(f"gRPC server not available (missing proto files): {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to start gRPC server: {e}")
+        return None
+
+
 if __name__ == "__main__":
     import uvicorn
-    
-    # Start server
+    import threading
+
+    # Start gRPC server in background thread
+    grpc_server = start_grpc_server()
+
+    # Start HTTP server (main thread)
     port = int(os.getenv('PORT', 8081))
     host = os.getenv('HOST', '0.0.0.0')
-    
-    logger.info(f"Starting YOLOv8 service on {host}:{port}")
-    uvicorn.run(
-        "main:app",
-        host=host,
-        port=port,
-        reload=False,
-        workers=1  # Single worker for GPU efficiency
-    )
+
+    logger.info(f"Starting YOLO11 service - HTTP on {host}:{port}")
+
+    try:
+        uvicorn.run(
+            "main:app",
+            host=host,
+            port=port,
+            reload=False,
+            workers=1  # Single worker for GPU efficiency
+        )
+    finally:
+        if grpc_server:
+            logger.info("Stopping gRPC server...")
+            grpc_server.stop(grace=5)

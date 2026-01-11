@@ -142,6 +142,8 @@ spec:
               value: "true"
             - name: YOLO_ENDPOINT
               value: "http://{{ include "orbo.fullname" . }}-yolo:{{ .Values.yolo.service.port }}"
+            - name: YOLO_GRPC_ENDPOINT
+              value: "{{ include "orbo.fullname" . }}-yolo:{{ .Values.yolo.service.grpcPort | default 50051 }}"
             - name: YOLO_CONFIDENCE_THRESHOLD
               value: {{ .Values.yolo.config.confidenceThreshold | quote }}
             - name: YOLO_SECURITY_MODE
@@ -160,6 +162,8 @@ spec:
               value: "true"
             - name: RECOGNITION_SERVICE_ENDPOINT
               value: "http://{{ include "orbo.fullname" . }}-recognition:{{ .Values.recognition.service.port }}"
+            - name: RECOGNITION_GRPC_ENDPOINT
+              value: "{{ include "orbo.fullname" . }}-recognition:{{ .Values.recognition.service.grpcPort | default 50052 }}"
             - name: RECOGNITION_SIMILARITY_THRESHOLD
               value: {{ .Values.recognition.config.similarityThreshold | default 0.5 | quote }}
             {{- end }}

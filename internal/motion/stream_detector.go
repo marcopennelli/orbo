@@ -20,10 +20,15 @@ import (
 	"github.com/google/uuid"
 	"orbo/internal/database"
 	"orbo/internal/detection"
+	"orbo/internal/pipeline"
 	"orbo/internal/stream"
 	"orbo/internal/telegram"
 	"orbo/internal/ws"
 )
+
+// PipelineConfigProvider is a function that returns the effective detection config for a camera
+// Returns nil if the camera doesn't have a pipeline configuration (use defaults)
+type PipelineConfigProvider func(cameraID string) *pipeline.EffectiveConfig
 
 // StreamDetector handles streaming motion detection
 type StreamDetector struct {
@@ -39,13 +44,17 @@ type StreamDetector struct {
 	frameDir         string
 	backgroundFrames map[string]image.Image
 	frameBuffers     map[string]chan []byte
-	gpuDetector      *detection.GPUDetector        // GPU object detection
+	gpuDetector      *detection.GPUDetector        // GPU object detection (HTTP fallback)
+	grpcDetector     *detection.GRPCDetector       // gRPC-based YOLO detection (preferred)
 	dinov3Detector   *detection.DINOv3Detector     // DINOv3 AI-powered detection
-	faceRecognizer   *detection.FaceRecognizer     // Face recognition
+	faceRecognizer   *detection.FaceRecognizer     // Face recognition (HTTP fallback)
+	grpcFaceRecognizer *detection.GRPCFaceRecognizer // gRPC face recognition (preferred)
 	db               *database.Database            // Database for event persistence
 	telegramBot      *telegram.TelegramBot         // Telegram notifications
 	wsHub            *ws.DetectionHub              // WebSocket hub for real-time broadcasting
 	streamOverlay    stream.StreamOverlayProvider  // Stream overlay for drawing bounding boxes on MJPEG
+	frameSeqCounters map[string]*uint64            // Per-camera frame sequence counters
+	pipelineConfig   PipelineConfigProvider        // Function to get pipeline config for mode gating
 }
 
 // NewStreamDetector creates a new streaming motion detector
@@ -83,6 +92,7 @@ func NewStreamDetector(frameDir string, db *database.Database) *StreamDetector {
 		streamProcesses:  make(map[string]*exec.Cmd),
 		backgroundFrames: make(map[string]image.Image),
 		frameBuffers:     make(map[string]chan []byte),
+		frameSeqCounters: make(map[string]*uint64),
 		sensitivity:      0.15, // More sensitive for real-time detection
 		minMotionArea:    300,  // Smaller minimum area for faster detection
 		maxEvents:        1000,
@@ -387,7 +397,6 @@ func (sd *StreamDetector) extractJPEGFrame(buffer *[]byte) []byte {
 func (sd *StreamDetector) analyzeFrames(cameraID string, stopCh chan struct{}) {
 	var backgroundImg image.Image
 	var lastBackgroundUpdate time.Time
-	var lastYOLOCheck time.Time
 	frameCount := 0
 
 	sd.mu.RLock()
@@ -429,6 +438,10 @@ func (sd *StreamDetector) analyzeFrames(cameraID string, stopCh chan struct{}) {
 		case frameData := <-frameBuffer:
 			frameCount++
 
+			// Assign capture sequence number NOW (at capture time, not processing completion)
+			// This is critical for frame ordering - YOLO processing is async and variable latency
+			captureSeq := frameCount
+
 			// Decode current frame
 			currentImg, err := jpeg.Decode(bytes.NewReader(frameData))
 			if err != nil {
@@ -467,22 +480,50 @@ func (sd *StreamDetector) analyzeFrames(cameraID string, stopCh chan struct{}) {
 				fmt.Printf("Updated background frame for camera %s\n", cameraID)
 			}
 
-			// Periodically run YOLO detection directly (every 2 seconds) regardless of basic motion
-			// This allows detecting static objects like parked cars or standing persons
-			if time.Since(lastYOLOCheck) > 2*time.Second {
-				lastYOLOCheck = time.Now()
-				isHealthy := sd.gpuDetector.IsHealthy()
-				if isHealthy {
-					fmt.Printf("Running direct YOLO detection for camera %s (frame %d)\n", cameraID, frameCount)
-					sd.runDirectYOLODetection(cameraID, frameData)
-				} else if frameCount%20 == 0 {
-					// Log more frequently if YOLO is not healthy
-					fmt.Printf("YOLO detector not healthy for camera %s (frame %d)\n", cameraID, frameCount)
+			// YOLO11-style: Process EVERY frame through detection pipeline
+			// This creates a smooth annotated stream (uniformly delayed, no time-travel)
+			// The GPU will process frames at its own rate - we accept the latency
+			// IMPORTANT: Only run detection if pipeline mode is not "disabled"
+
+			// Check if detection is enabled for this camera
+			if !sd.isDetectionEnabled(cameraID) {
+				// Detection is disabled, skip all detectors - streaming only mode
+				if frameCount%100 == 0 {
+					fmt.Printf("[StreamDetector] Detection disabled for camera %s, streaming only\n", cameraID)
+				}
+			} else {
+				// Check which detectors are enabled
+				yoloEnabled := sd.isDetectorEnabled(cameraID, "yolo")
+				faceEnabled := sd.isDetectorEnabled(cameraID, "face") && sd.hasFaceRecognizer()
+
+				if yoloEnabled {
+					// YOLO is enabled - run YOLO detection on EVERY frame (YOLO11-style)
+					isHealthy := sd.gpuDetector.IsHealthy()
+					if isHealthy {
+						if frameCount%30 == 0 { // Log every 30 frames to reduce noise
+							fmt.Printf("Running YOLO detection for camera %s (frame %d, seq %d)\n", cameraID, frameCount, captureSeq)
+						}
+						// Pass captureSeq to preserve frame ordering through async YOLO pipeline
+						sd.runDirectYOLODetectionWithSeq(cameraID, frameData, uint64(captureSeq))
+					} else if frameCount%60 == 0 {
+						// Log if YOLO is not healthy
+						fmt.Printf("YOLO detector not healthy for camera %s (frame %d)\n", cameraID, frameCount)
+					}
+				} else if faceEnabled {
+					// Face-only mode: run face recognition on EVERY frame (YOLO11-style)
+					if frameCount%30 == 0 { // Log every 30 frames to reduce noise
+						fmt.Printf("Running Face detection for camera %s (frame %d, seq %d)\n", cameraID, frameCount, captureSeq)
+					}
+					sd.runDirectFaceDetection(cameraID, frameData, uint64(captureSeq))
+				} else if frameCount%100 == 0 {
+					// No detectors enabled
+					fmt.Printf("[StreamDetector] No detectors enabled for camera %s, skipping\n", cameraID)
 				}
 			}
 
 			// Also perform basic motion detection for detecting changes
-			if backgroundImg != nil {
+			// Only run if detection is enabled (not in "disabled" mode)
+			if backgroundImg != nil && sd.isDetectionEnabled(cameraID) {
 				sd.fallbackToBasicMotion(cameraID, frameData, backgroundImg, currentImg)
 			}
 		}
@@ -491,13 +532,32 @@ func (sd *StreamDetector) analyzeFrames(cameraID string, stopCh chan struct{}) {
 
 // runDirectYOLODetection runs YOLO detection directly on a frame without requiring motion first
 func (sd *StreamDetector) runDirectYOLODetection(cameraID string, frameData []byte) {
+	// Check which detector to use (prefer gRPC for low latency)
+	sd.mu.RLock()
+	grpcDet := sd.grpcDetector
+	drawBoxes := sd.gpuDetector.DrawBoxesEnabled()
+	sd.mu.RUnlock()
+
 	// If draw boxes is enabled, use annotated detection
-	if sd.gpuDetector.DrawBoxesEnabled() {
+	if drawBoxes || (grpcDet != nil && grpcDet.DrawBoxesEnabled()) {
 		sd.runDirectYOLODetectionAnnotated(cameraID, frameData)
 		return
 	}
 
-	securityResult, err := sd.gpuDetector.DetectSecurityObjects(frameData, 0.5)
+	// Prefer gRPC detector for low-latency streaming
+	var securityResult *detection.SecurityDetectionResult
+	var err error
+	if grpcDet != nil && grpcDet.IsHealthy() {
+		securityResult, err = grpcDet.DetectSecurityObjects(frameData, 0.5)
+		if err != nil {
+			fmt.Printf("gRPC YOLO detection failed for camera %s: %v, falling back to HTTP\n", cameraID, err)
+			// Fall back to HTTP
+			securityResult, err = sd.gpuDetector.DetectSecurityObjects(frameData, 0.5)
+		}
+	} else {
+		// Use HTTP detector
+		securityResult, err = sd.gpuDetector.DetectSecurityObjects(frameData, 0.5)
+	}
 	if err != nil {
 		fmt.Printf("Direct YOLO detection failed for camera %s: %v\n", cameraID, err)
 		return
@@ -585,16 +645,61 @@ func (sd *StreamDetector) runDirectYOLODetection(cameraID string, frameData []by
 
 // runDirectYOLODetectionAnnotated runs YOLO detection and saves annotated image with bounding boxes
 func (sd *StreamDetector) runDirectYOLODetectionAnnotated(cameraID string, frameData []byte) {
-	annotatedResult, err := sd.gpuDetector.DetectSecurityObjectsAnnotated(frameData, 0.5)
+	sd.runDirectYOLODetectionAnnotatedWithSeq(cameraID, frameData, 0)
+}
+
+// runDirectYOLODetectionAnnotatedWithSeq runs YOLO detection with capture sequence for frame ordering
+func (sd *StreamDetector) runDirectYOLODetectionAnnotatedWithSeq(cameraID string, frameData []byte, captureSeq uint64) {
+	// Prefer gRPC detector for low-latency streaming
+	sd.mu.RLock()
+	grpcDet := sd.grpcDetector
+	sd.mu.RUnlock()
+
+	var annotatedResult *detection.AnnotatedSecurityResult
+	var err error
+	if grpcDet != nil && grpcDet.IsHealthy() {
+		annotatedResult, err = grpcDet.DetectSecurityObjectsAnnotated(frameData, 0.5)
+		if err != nil {
+			fmt.Printf("gRPC YOLO annotated detection failed for camera %s: %v, falling back to HTTP\n", cameraID, err)
+			// Fall back to HTTP
+			annotatedResult, err = sd.gpuDetector.DetectSecurityObjectsAnnotated(frameData, 0.5)
+		}
+	} else {
+		// Use HTTP detector
+		annotatedResult, err = sd.gpuDetector.DetectSecurityObjectsAnnotated(frameData, 0.5)
+	}
 	if err != nil {
 		fmt.Printf("Direct YOLO annotated detection failed for camera %s: %v\n", cameraID, err)
 		return
 	}
 
-	// ALWAYS send annotated frame to stream (for real-time WebCodecs/MJPEG viewing)
-	// This ensures every frame processed by YOLO is displayed, even without detections
-	if len(annotatedResult.ImageData) > 0 {
-		sd.sendAnnotatedFrameToStream(cameraID, annotatedResult.ImageData)
+	// Check if Face detector is the NEXT stage in the pipeline
+	// This implements "single stream output" - only the final pipeline stage sends to UI
+	faceDetectorEnabled := sd.isDetectorEnabled(cameraID, "face") && sd.hasFaceRecognizer()
+
+	// Check if person was detected (needed for face recognition)
+	hasPersonDetection := false
+	for _, det := range annotatedResult.Detections {
+		if det.Class == "person" {
+			hasPersonDetection = true
+			break
+		}
+	}
+
+	// Determine if Face will actually process this frame
+	// Face only runs if: Face is enabled AND there's a person detection
+	faceWillProcess := faceDetectorEnabled && hasPersonDetection
+
+	// Send YOLO annotated frame to stream ONLY if this is the final stage
+	// YOLO is final stage if:
+	// 1. Face detector is not enabled, OR
+	// 2. Face is enabled but no person was detected (Face won't process)
+	if len(annotatedResult.ImageData) > 0 && !faceWillProcess {
+		if captureSeq > 0 {
+			sd.sendAnnotatedFrameToStreamWithSeq(cameraID, annotatedResult.ImageData, captureSeq)
+		} else {
+			sd.sendAnnotatedFrameToStream(cameraID, annotatedResult.ImageData)
+		}
 	}
 
 	if annotatedResult.Count > 0 {
@@ -680,16 +785,9 @@ func (sd *StreamDetector) runDirectYOLODetectionAnnotated(cameraID string, frame
 			DetectionDevice:  annotatedResult.Device,
 		}
 
-		// Check if person detected and face recognition is enabled
-		hasPersonDetection := false
-		for _, det := range annotatedResult.Detections {
-			if det.Class == "person" {
-				hasPersonDetection = true
-				break
-			}
-		}
-
-		if hasPersonDetection {
+		// If person detected and face recognition is enabled, run face recognition
+		// Face recognition will send the final annotated frame with both YOLO and Face boxes
+		if faceWillProcess {
 			// Pass the YOLO-annotated frame to face recognition so face boxes
 			// are drawn ON TOP OF the YOLO boxes (combined visualization)
 			frameForFaceRecognition := frameData
@@ -733,8 +831,10 @@ func (sd *StreamDetector) fallbackToBasicMotion(cameraID string, frameData []byt
 	if motionDetected, motionConfidence, motionBBox := sd.compareFrames(backgroundImg, currentImg); motionDetected {
 		fmt.Printf("Motion detected on camera %s! Confidence: %.3f, Area: %dx%d\n",
 			cameraID, motionConfidence, motionBBox.Width, motionBBox.Height)
-		// Motion detected! Now use GPU to identify what moved
-		sd.processMotionWithGPU(cameraID, frameData, motionConfidence, motionBBox)
+		// Motion detected! Only use GPU if YOLO detector is enabled
+		if sd.isDetectorEnabled(cameraID, "yolo") {
+			sd.processMotionWithGPU(cameraID, frameData, motionConfidence, motionBBox)
+		}
 	}
 }
 
@@ -890,26 +990,50 @@ func (sd *StreamDetector) createBasicMotionEvent(cameraID string, frameData []by
 
 // performFaceRecognition runs face recognition on a frame and updates the event with results
 func (sd *StreamDetector) performFaceRecognition(cameraID string, frameData []byte, event *MotionEvent) {
-	// Check if face recognition is enabled
-	if sd.faceRecognizer == nil || !sd.faceRecognizer.IsEnabled() {
+	// Prefer gRPC for low-latency streaming
+	sd.mu.RLock()
+	grpcFace := sd.grpcFaceRecognizer
+	httpFace := sd.faceRecognizer
+	sd.mu.RUnlock()
+
+	// Check if any face recognition is available
+	grpcAvailable := grpcFace != nil && grpcFace.IsEnabled() && grpcFace.IsHealthy()
+	httpAvailable := httpFace != nil && httpFace.IsEnabled()
+
+	if !grpcAvailable && !httpAvailable {
 		return
 	}
 
-	// Check if service is healthy (don't block on health check every time)
-	if !sd.faceRecognizer.IsHealthy() {
-		// Try a health check
-		if err := sd.faceRecognizer.CheckHealth(); err != nil {
-			fmt.Printf("Face recognition service unhealthy for camera %s: %v\n", cameraID, err)
+	// Try gRPC first for low latency
+	var annotatedResult *detection.AnnotatedRecognitionResult
+	var err error
+
+	if grpcAvailable {
+		annotatedResult, err = grpcFace.RecognizeFacesAnnotatedGRPC(frameData)
+		if err != nil {
+			fmt.Printf("gRPC face recognition failed for camera %s: %v, falling back to HTTP\n", cameraID, err)
+			grpcAvailable = false
+		}
+	}
+
+	// Fall back to HTTP if gRPC failed or unavailable
+	if !grpcAvailable && httpAvailable {
+		// Check if HTTP service is healthy
+		if !httpFace.IsHealthy() {
+			if err := httpFace.CheckHealth(); err != nil {
+				fmt.Printf("Face recognition service unhealthy for camera %s: %v\n", cameraID, err)
+				return
+			}
+		}
+		annotatedResult, err = httpFace.RecognizeFacesAnnotated(frameData)
+		if err != nil {
+			fmt.Printf("HTTP face recognition failed for camera %s: %v\n", cameraID, err)
+			sd.performFaceRecognitionFallback(cameraID, frameData, event)
 			return
 		}
 	}
 
-	// Use annotated recognition to get face boxes drawn on image
-	annotatedResult, err := sd.faceRecognizer.RecognizeFacesAnnotated(frameData)
-	if err != nil {
-		// Fall back to non-annotated if annotated endpoint fails
-		fmt.Printf("Annotated face recognition failed, trying fallback for camera %s: %v\n", cameraID, err)
-		sd.performFaceRecognitionFallback(cameraID, frameData, event)
+	if annotatedResult == nil {
 		return
 	}
 
@@ -1439,6 +1563,99 @@ func (sd *StreamDetector) SetStreamOverlay(overlay stream.StreamOverlayProvider)
 	sd.streamOverlay = overlay
 }
 
+// SetPipelineConfig sets the function that provides detection configuration for mode gating
+// When detection mode is "disabled", YOLO detection will be skipped (streaming only)
+func (sd *StreamDetector) SetPipelineConfig(provider PipelineConfigProvider) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.pipelineConfig = provider
+}
+
+// SetGRPCDetector sets the gRPC-based YOLO detector for low-latency streaming detection
+// If set, the StreamDetector will prefer gRPC over HTTP for object detection
+func (sd *StreamDetector) SetGRPCDetector(grpcDet *detection.GRPCDetector) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.grpcDetector = grpcDet
+}
+
+// SetGRPCFaceRecognizer sets the gRPC-based face recognizer for low-latency streaming
+// If set, the StreamDetector will prefer gRPC over HTTP for face recognition
+func (sd *StreamDetector) SetGRPCFaceRecognizer(grpcFace *detection.GRPCFaceRecognizer) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.grpcFaceRecognizer = grpcFace
+}
+
+// ConfigureGRPCYOLO sends configuration to the gRPC YOLO service
+// This is called when YOLO settings are changed via the config API
+func (sd *StreamDetector) ConfigureGRPCYOLO(confThreshold float32, classes []string) error {
+	sd.mu.RLock()
+	grpcDet := sd.grpcDetector
+	sd.mu.RUnlock()
+
+	if grpcDet == nil {
+		return nil // No gRPC detector configured, silently ignore
+	}
+
+	return grpcDet.ConfigureWithClasses(confThreshold, true, "bytetrack", classes)
+}
+
+// isDetectionEnabled checks if detection is enabled for a camera based on pipeline config
+// Returns true if:
+// - No pipeline config provider is set (default behavior: detection enabled)
+// - Pipeline config doesn't exist for camera (default behavior: detection enabled)
+// - Pipeline config mode is not "disabled"
+func (sd *StreamDetector) isDetectionEnabled(cameraID string) bool {
+	sd.mu.RLock()
+	provider := sd.pipelineConfig
+	sd.mu.RUnlock()
+
+	if provider == nil {
+		return true // No config provider, assume detection enabled
+	}
+
+	config := provider(cameraID)
+	if config == nil {
+		return true // No config for this camera, assume detection enabled
+	}
+
+	return config.Mode != pipeline.DetectionModeDisabled
+}
+
+// isDetectorEnabled checks if a specific detector type is enabled in the pipeline config
+// Returns true if:
+// - No pipeline config provider is set (default behavior: detector enabled)
+// - Pipeline config doesn't exist for camera (default behavior: detector enabled)
+// - The detector is in the configured detectors list
+func (sd *StreamDetector) isDetectorEnabled(cameraID string, detectorType string) bool {
+	sd.mu.RLock()
+	provider := sd.pipelineConfig
+	sd.mu.RUnlock()
+
+	if provider == nil {
+		return true // No config provider, assume detector enabled
+	}
+
+	config := provider(cameraID)
+	if config == nil {
+		return true // No config for this camera, assume detector enabled
+	}
+
+	// If no detectors specified, default to all enabled
+	if len(config.Detectors) == 0 {
+		return true
+	}
+
+	// Check if the detector is in the list
+	for _, d := range config.Detectors {
+		if d == detectorType {
+			return true
+		}
+	}
+	return false
+}
+
 // updateStreamOverlay sends detection data to the MJPEG stream for drawing bounding boxes
 func (sd *StreamDetector) updateStreamOverlay(cameraID string, objectDetections []detection.Detection, faceRecognitions []detection.FaceRecognition) {
 	sd.mu.RLock()
@@ -1547,6 +1764,30 @@ func (sd *StreamDetector) updateStreamOverlayFaces(cameraID string, faceRecognit
 // sendAnnotatedFrameToStream sends a pre-annotated frame to the MJPEG streamer
 // This is the preferred method - YOLO has already drawn the bounding boxes
 func (sd *StreamDetector) sendAnnotatedFrameToStream(cameraID string, frameData []byte) {
+	sd.mu.Lock()
+	overlay := sd.streamOverlay
+	// Get or create sequence counter for this camera
+	seqPtr := sd.frameSeqCounters[cameraID]
+	if seqPtr == nil {
+		var seq uint64
+		seqPtr = &seq
+		sd.frameSeqCounters[cameraID] = seqPtr
+	}
+	// Increment and get current sequence
+	*seqPtr++
+	seq := *seqPtr
+	sd.mu.Unlock()
+
+	if overlay == nil || len(frameData) == 0 {
+		return
+	}
+
+	overlay.SetAnnotatedFrame(cameraID, seq, frameData)
+}
+
+// sendAnnotatedFrameToStreamWithSeq sends a pre-annotated frame with a specific capture sequence
+// This preserves frame ordering when YOLO processing has variable latency
+func (sd *StreamDetector) sendAnnotatedFrameToStreamWithSeq(cameraID string, frameData []byte, captureSeq uint64) {
 	sd.mu.RLock()
 	overlay := sd.streamOverlay
 	sd.mu.RUnlock()
@@ -1555,7 +1796,194 @@ func (sd *StreamDetector) sendAnnotatedFrameToStream(cameraID string, frameData 
 		return
 	}
 
-	overlay.SetAnnotatedFrame(cameraID, frameData)
+	// Use the capture sequence directly (assigned at frame capture time)
+	overlay.SetAnnotatedFrame(cameraID, captureSeq, frameData)
+}
+
+// hasFaceRecognizer returns true if any face recognizer (gRPC or HTTP) is available
+func (sd *StreamDetector) hasFaceRecognizer() bool {
+	sd.mu.RLock()
+	grpcFace := sd.grpcFaceRecognizer
+	httpFace := sd.faceRecognizer
+	sd.mu.RUnlock()
+
+	grpcAvailable := grpcFace != nil && grpcFace.IsEnabled() && grpcFace.IsHealthy()
+	httpAvailable := httpFace != nil && httpFace.IsEnabled()
+
+	return grpcAvailable || httpAvailable
+}
+
+// runDirectFaceDetection runs face recognition directly on a frame (Face-only mode)
+// This is used when Face detector is enabled but YOLO is NOT enabled
+// InsightFace has its own built-in face detector, so it doesn't need YOLO
+func (sd *StreamDetector) runDirectFaceDetection(cameraID string, frameData []byte, captureSeq uint64) {
+	// Get face recognizers
+	sd.mu.RLock()
+	grpcFace := sd.grpcFaceRecognizer
+	httpFace := sd.faceRecognizer
+	sd.mu.RUnlock()
+
+	// Check if any face recognition is available
+	grpcAvailable := grpcFace != nil && grpcFace.IsEnabled() && grpcFace.IsHealthy()
+	httpAvailable := httpFace != nil && httpFace.IsEnabled()
+
+	if !grpcAvailable && !httpAvailable {
+		return
+	}
+
+	// Try gRPC first for low latency
+	var annotatedResult *detection.AnnotatedRecognitionResult
+	var err error
+
+	if grpcAvailable {
+		annotatedResult, err = grpcFace.RecognizeFacesAnnotatedGRPC(frameData)
+		if err != nil {
+			fmt.Printf("gRPC face detection failed for camera %s: %v, falling back to HTTP\n", cameraID, err)
+			grpcAvailable = false
+		}
+	}
+
+	// Fall back to HTTP if gRPC failed or unavailable
+	if !grpcAvailable && httpAvailable {
+		// Check if HTTP service is healthy
+		if !httpFace.IsHealthy() {
+			if err := httpFace.CheckHealth(); err != nil {
+				fmt.Printf("Face recognition service unhealthy for camera %s: %v\n", cameraID, err)
+				return
+			}
+		}
+		annotatedResult, err = httpFace.RecognizeFacesAnnotated(frameData)
+		if err != nil {
+			fmt.Printf("HTTP face detection failed for camera %s: %v\n", cameraID, err)
+			return
+		}
+	}
+
+	// In Face-only mode, ALWAYS send a frame to maintain smooth stream (no time-travel)
+	// If face detection returned annotated data, use that; otherwise use original frame
+	var frameToSend []byte
+	if annotatedResult != nil && len(annotatedResult.ImageData) > 0 {
+		frameToSend = annotatedResult.ImageData
+	} else {
+		// Face detection failed or returned no data - send original frame
+		// This prevents raw frames from being shown (time-travel effect)
+		frameToSend = frameData
+	}
+
+	// Send frame to stream (this is the final output in Face-only mode)
+	if captureSeq > 0 {
+		sd.sendAnnotatedFrameToStreamWithSeq(cameraID, frameToSend, captureSeq)
+	} else {
+		sd.sendAnnotatedFrameToStream(cameraID, frameToSend)
+	}
+
+	// Only process events if faces were detected
+	if annotatedResult == nil {
+		return
+	}
+
+	// Only process if faces were detected
+	if annotatedResult.Count > 0 {
+		fmt.Printf("Face detection for camera %s: total=%d, known=%d, unknown=%d (inference: %.1fms)\n",
+			cameraID, annotatedResult.Count, annotatedResult.KnownCount, annotatedResult.UnknownCount, annotatedResult.InferenceTimeMs)
+
+		// Determine threat level based on face recognition
+		threatLevel := "low"
+		if annotatedResult.UnknownCount > 0 {
+			threatLevel = "high" // Unknown person = high threat
+		} else if annotatedResult.KnownCount > 0 {
+			threatLevel = "medium" // Known person = medium (someone is there)
+		}
+
+		// Create motion event for the face detection
+		framePath := fmt.Sprintf("%s/face_%s_%d.jpg", sd.frameDir, cameraID, time.Now().UnixNano())
+		if err := os.WriteFile(framePath, frameData, 0644); err != nil {
+			fmt.Printf("Failed to save face detection frame for camera %s: %v\n", cameraID, err)
+		}
+
+		event := &MotionEvent{
+			ID:                fmt.Sprintf("face_%s_%d", cameraID, time.Now().UnixNano()),
+			CameraID:          cameraID,
+			Timestamp:         time.Now(),
+			FramePath:         framePath,
+			ObjectClass:       "face",
+			ObjectConfidence:  annotatedResult.Recognitions[0].Confidence,
+			ThreatLevel:       threatLevel,
+			InferenceTimeMs:   annotatedResult.InferenceTimeMs,
+			DetectionDevice:   "insightface",
+			FacesDetected:     annotatedResult.Count,
+			UnknownFacesCount: annotatedResult.UnknownCount,
+		}
+
+		// Extract known identities
+		for _, face := range annotatedResult.Recognitions {
+			if face.IsKnown && face.Identity != nil {
+				event.KnownIdentities = append(event.KnownIdentities, *face.Identity)
+			}
+		}
+
+		// Broadcast face recognition results via WebSocket
+		if sd.wsHub != nil && sd.wsHub.HasClients(cameraID) {
+			wsMsg := ws.NewFaceMessage(cameraID)
+			for _, face := range annotatedResult.Recognitions {
+				var identity *string
+				var similarity *float32
+				var age *int
+				var gender *string
+
+				if face.Identity != nil {
+					identity = face.Identity
+				}
+				if face.Similarity > 0 {
+					sim := face.Similarity
+					similarity = &sim
+				}
+				if face.Age > 0 {
+					a := face.Age
+					age = &a
+				}
+				if face.Gender != "" {
+					g := face.Gender
+					gender = &g
+				}
+
+				// Convert bbox from [x1, y1, x2, y2] to [x, y, w, h] format for frontend
+				bbox := face.BBox
+				if len(bbox) == 4 {
+					bbox = []float32{bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]}
+				}
+				wsMsg.AddFace(bbox, face.Confidence, identity, face.IsKnown, similarity, age, gender)
+			}
+			sd.wsHub.BroadcastFaces(cameraID, wsMsg)
+		}
+
+		// Update stream overlay with face detection boxes
+		sd.updateStreamOverlayFaces(cameraID, annotatedResult.Recognitions)
+
+		// Run forensic analysis to get face thumbnails
+		sd.performForensicAnalysis(cameraID, frameData, event)
+
+		// Save event (handles database persistence and Telegram notifications)
+		sd.addEvent(event)
+	}
+}
+
+// runDirectYOLODetectionWithSeq runs YOLO detection with capture sequence for frame ordering
+func (sd *StreamDetector) runDirectYOLODetectionWithSeq(cameraID string, frameData []byte, captureSeq uint64) {
+	// Check which detector to use (prefer gRPC for low latency)
+	sd.mu.RLock()
+	grpcDet := sd.grpcDetector
+	drawBoxes := sd.gpuDetector.DrawBoxesEnabled()
+	sd.mu.RUnlock()
+
+	// If draw boxes is enabled, use annotated detection
+	if drawBoxes || (grpcDet != nil && grpcDet.DrawBoxesEnabled()) {
+		sd.runDirectYOLODetectionAnnotatedWithSeq(cameraID, frameData, captureSeq)
+		return
+	}
+
+	// For non-annotated detection, call the original function
+	sd.runDirectYOLODetection(cameraID, frameData)
 }
 
 // streamHTTPImages polls HTTP image endpoints for motion detection

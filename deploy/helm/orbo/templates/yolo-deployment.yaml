@@ -40,6 +40,9 @@ spec:
             - name: http
               containerPort: {{ .Values.yolo.service.port }}
               protocol: TCP
+            - name: grpc
+              containerPort: {{ .Values.yolo.service.grpcPort | default 50051 }}
+              protocol: TCP
           livenessProbe:
             httpGet:
               path: /health

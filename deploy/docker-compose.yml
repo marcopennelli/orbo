@@ -18,20 +18,28 @@ services:
       - /tmp/orbo-frames:/app/frames  # Host access to frames
     environment:
       - LOG_LEVEL=info
-      - YOLO_SERVICE_URL=http://yolo-service:8081
+      - YOLO_TRANSPORT=grpc                          # "grpc" for low-latency, "http" for legacy
+      - YOLO_GRPC_ENDPOINT=yolo-service:50051        # gRPC endpoint
+      - YOLO_SERVICE_URL=http://yolo-service:8081    # HTTP fallback
+      - FACE_TRANSPORT=grpc                          # "grpc" for low-latency, "http" for legacy
+      - FACE_GRPC_ENDPOINT=recognition-service:50052 # gRPC endpoint
+      - FACE_SERVICE_URL=http://recognition-service:8082  # HTTP fallback
+      - FACE_RECOGNITION_ENABLED=true
     depends_on:
       - yolo-service
+      - recognition-service
     restart: unless-stopped
     networks:
       - orbo-network
 
-  # AMD GPU-accelerated YOLOv8 service  
+  # AMD GPU-accelerated YOLO11 service
   yolo-service:
     build:
-      context: ../yolo-service
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: yolo-service/Dockerfile
     ports:
-      - "8081:8081"
+      - "8081:8081"   # HTTP (legacy/fallback)
+      - "50051:50051" # gRPC (low-latency)
     devices:
       - "/dev/kfd:/dev/kfd"        # AMD GPU kernel driver
       - "/dev/dri:/dev/dri"        # AMD GPU rendering devices
@@ -44,9 +52,11 @@ services:
     environment:
       - HSA_OVERRIDE_GFX_VERSION=10.3.0  # AMD GPU compatibility
       - PYTORCH_ROCM_ARCH=gfx1030;gfx1031;gfx1032;gfx1100;gfx1101;gfx1102
-      - YOLO_MODEL=yolov8n.pt       # Model size (n=nano, s=small, m=medium)
+      - YOLO_MODEL=yolo11n.pt       # YOLO11 nano (fastest) - alternatives: yolo11s.pt, yolo11m.pt
       - PORT=8081
       - HOST=0.0.0.0
+      - GRPC_PORT=50051             # gRPC port for real-time detection
+      - TRACKER_TYPE=bytetrack      # Object tracking: bytetrack, botsort, or empty
     restart: unless-stopped
     networks:
       - orbo-network
@@ -57,10 +67,38 @@ services:
       retries: 3
       start_period: 60s
 
+  # Face Recognition service using InsightFace
+  recognition-service:
+    build:
+      context: ..
+      dockerfile: recognition-service/Dockerfile
+    ports:
+      - "8082:8082"   # HTTP (legacy/fallback)
+      - "50052:50052" # gRPC (low-latency)
+    volumes:
+      - faces-data:/app/data  # Persistent face database
+    environment:
+      - INSIGHTFACE_MODEL=buffalo_l
+      - PORT=8082
+      - HOST=0.0.0.0
+      - GRPC_PORT=50052             # gRPC port for real-time recognition
+      - SIMILARITY_THRESHOLD=0.5    # Face matching threshold
+    restart: unless-stopped
+    networks:
+      - orbo-network
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import requests; r = requests.get('http://localhost:8082/health'); exit(0 if r.json()['status'] == 'healthy' else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
 volumes:
   orbo-frames:
     driver: local
   yolo-models:
+    driver: local
+  faces-data:
     driver: local
 
 networks:

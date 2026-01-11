@@ -21,16 +21,25 @@ COPY requirements.txt .
 # Install dependencies (onnxruntime needs specific version for compatibility)
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+# Copy proto file from build context
+COPY recognition.proto /app/proto/
+RUN python3 -m grpc_tools.protoc \
+    -I/app/proto \
+    --python_out=/app \
+    --grpc_python_out=/app \
+    /app/proto/recognition.proto
+
 # Pre-download InsightFace model
 RUN python3 -c "from insightface.app import FaceAnalysis; app = FaceAnalysis(name='buffalo_l'); app.prepare(ctx_id=-1, det_size=(640, 640))"
 
 # Copy application code
 COPY main.py .
+COPY grpc_server.py .
 
 # Create data directory for face database and set permissions
 RUN mkdir -p /app/data/faces && \
     chmod -R 755 /app && \
-    chmod 644 /app/main.py
+    chmod 644 /app/main.py /app/grpc_server.py
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \
@@ -38,8 +47,8 @@ RUN useradd -m -u 1000 appuser && \
 
 USER appuser
 
-# Expose port
-EXPOSE 8082
+# Expose ports (HTTP and gRPC)
+EXPOSE 8082 50052
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \

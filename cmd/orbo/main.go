@@ -103,22 +103,62 @@ func main() {
 	}
 	dinov3Detector := detection.NewDINOv3Detector(dinov3Endpoint)
 
-	// Initialize YOLO detector
-	yoloEndpoint := os.Getenv("YOLO_ENDPOINT")
-	if yoloEndpoint == "" {
-		yoloEndpoint = "http://yolo-service:8081"
+	// Initialize YOLO detector - prefer gRPC for low-latency streaming
+	yoloGRPCEndpoint := os.Getenv("YOLO_GRPC_ENDPOINT")
+	yoloHTTPEndpoint := os.Getenv("YOLO_ENDPOINT")
+	if yoloHTTPEndpoint == "" {
+		yoloHTTPEndpoint = "http://yolo-service:8081"
+	}
+	if yoloGRPCEndpoint == "" {
+		yoloGRPCEndpoint = "yolo-service:50051"
 	}
 	drawBoxes := os.Getenv("YOLO_DRAW_BOXES") == "true"
-	yoloDetector := detection.NewYOLODetectorWithConfig(detection.YOLOConfig{
-		Enabled:             os.Getenv("YOLO_ENABLED") == "true",
-		ServiceEndpoint:     yoloEndpoint,
-		ConfidenceThreshold: 0.5,
-		SecurityMode:        true,
-		DrawBoxes:           drawBoxes,
-	})
+	yoloEnabled := os.Getenv("YOLO_ENABLED") == "true"
+
+	// Use gRPC detector for real-time streaming performance
+	var grpcDetector *detection.GRPCDetector
+	var yoloDetector *detection.YOLODetector
+	if yoloEnabled {
+		var err error
+		grpcDetector, err = detection.NewGRPCDetector(detection.GRPCDetectorConfig{
+			Endpoint:      yoloGRPCEndpoint,
+			DrawBoxes:     drawBoxes,
+			ConfThreshold: 0.5,
+		})
+		if err != nil {
+			logger.Printf("Warning: Failed to connect to YOLO gRPC service: %v, falling back to HTTP", err)
+			// Fall back to HTTP client
+			yoloDetector = detection.NewYOLODetectorWithConfig(detection.YOLOConfig{
+				Enabled:             true,
+				ServiceEndpoint:     yoloHTTPEndpoint,
+				ConfidenceThreshold: 0.5,
+				SecurityMode:        true,
+				DrawBoxes:           drawBoxes,
+			})
+		} else {
+			logger.Printf("YOLO gRPC detector connected to %s", yoloGRPCEndpoint)
+		}
+	}
+
+	// Create HTTP fallback detector for config service compatibility
+	if yoloDetector == nil {
+		yoloDetector = detection.NewYOLODetectorWithConfig(detection.YOLOConfig{
+			Enabled:             yoloEnabled,
+			ServiceEndpoint:     yoloHTTPEndpoint,
+			ConfidenceThreshold: 0.5,
+			SecurityMode:        true,
+			DrawBoxes:           drawBoxes,
+		})
+	}
 
 	// Apply initial draw boxes setting to motion detector
 	motionDetector.SetDrawBoxes(drawBoxes)
+
+	// Set gRPC detector on motion detector for low-latency streaming
+	if grpcDetector != nil {
+		motionDetector.SetGRPCDetector(grpcDetector)
+		logger.Printf("Motion detector configured with gRPC YOLO")
+	}
 
 	// Set Telegram bot on motion detector for notifications
 	motionDetector.SetTelegramBot(telegramBot)
@@ -128,11 +168,48 @@ func main() {
 	motionDetector.SetWebSocketHub(wsHub)
 	logger.Println("WebSocket hub initialized for real-time detections")
 
+	// Initialize Face Recognition - prefer gRPC for low-latency streaming
+	recognitionGRPCEndpoint := os.Getenv("RECOGNITION_GRPC_ENDPOINT")
+	recognitionHTTPEndpoint := os.Getenv("RECOGNITION_SERVICE_ENDPOINT")
+	if recognitionHTTPEndpoint == "" {
+		recognitionHTTPEndpoint = "http://recognition-service:8082"
+	}
+	if recognitionGRPCEndpoint == "" {
+		recognitionGRPCEndpoint = "recognition-service:50052"
+	}
+	recognitionEnabled := os.Getenv("RECOGNITION_ENABLED") == "true"
+
+	var grpcFaceRecognizer *detection.GRPCFaceRecognizer
+	if recognitionEnabled {
+		var err error
+		grpcFaceRecognizer, err = detection.NewGRPCFaceRecognizer(detection.GRPCFaceRecognizerConfig{
+			Endpoint:            recognitionGRPCEndpoint,
+			SimilarityThreshold: 0.5,
+		})
+		if err != nil {
+			logger.Printf("Warning: Failed to connect to Face Recognition gRPC service: %v", err)
+		} else {
+			logger.Printf("Face Recognition gRPC connected to %s", recognitionGRPCEndpoint)
+			// Set gRPC face recognizer on motion detector
+			motionDetector.SetGRPCFaceRecognizer(grpcFaceRecognizer)
+			logger.Printf("Motion detector configured with gRPC Face Recognition")
+		}
+	}
+
 	// Log detector configuration
 	logger.Printf("Detection configuration:")
 	logger.Printf("  Primary detector: %s", os.Getenv("PRIMARY_DETECTOR"))
 	logger.Printf("  DINOv3 endpoint: %s (enabled: %v)", dinov3Endpoint, os.Getenv("DINOV3_ENABLED") == "true")
-	logger.Printf("  YOLO endpoint: %s (enabled: %v, draw_boxes: %v)", yoloEndpoint, os.Getenv("YOLO_ENABLED") == "true", drawBoxes)
+	if grpcDetector != nil {
+		logger.Printf("  YOLO gRPC endpoint: %s (enabled: %v, draw_boxes: %v)", yoloGRPCEndpoint, yoloEnabled, drawBoxes)
+	} else {
+		logger.Printf("  YOLO HTTP endpoint: %s (enabled: %v, draw_boxes: %v)", yoloHTTPEndpoint, yoloEnabled, drawBoxes)
+	}
+	if grpcFaceRecognizer != nil {
+		logger.Printf("  Face Recognition gRPC endpoint: %s (enabled: %v)", recognitionGRPCEndpoint, recognitionEnabled)
+	} else {
+		logger.Printf("  Face Recognition HTTP endpoint: %s (enabled: %v)", recognitionHTTPEndpoint, recognitionEnabled)
+	}
 
 	// Initialize authenticator
 	authenticator := auth.NewAuthenticator()
@@ -156,8 +233,18 @@ func main() {
 		authSvc = services.NewAuthService(authenticator)
 		cameraSvc = services.NewCameraService(cameraManager, motionDetector)
 		motionSvc = services.NewMotionService(motionDetector, cameraManager)
-		systemSvc = services.NewSystemService(cameraManager, motionDetector)
 		configSvc = services.NewConfigService(telegramBot, dinov3Detector, yoloDetector, motionDetector, db)
+		// Create system service and wire up pipeline config getter
+		systemImpl := services.NewSystemService(cameraManager, motionDetector)
+		// ConfigImplementation implements PipelineConfigGetter interface
+		if configImpl, ok := configSvc.(*services.ConfigImplementation); ok {
+			systemImpl.SetPipelineConfigGetter(configImpl)
+			// CRITICAL: Also wire up pipeline config to motion detector for mode gating
+			// This is what actually controls whether YOLO runs or not based on mode
+			motionDetector.SetPipelineConfig(services.CreatePipelineConfigProvider(configImpl))
+			logger.Println("Pipeline config provider wired to motion detector")
+		}
+		systemSvc = systemImpl
 	}
 
 	// Initialize Telegram command handler for bot commands

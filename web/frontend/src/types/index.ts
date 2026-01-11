@@ -104,6 +104,20 @@ export interface DetectionConfig {
   fallback_enabled?: boolean;
 }
 
+// Pipeline config - matches PipelineConfig from design.go
+export type DetectionMode = 'disabled' | 'continuous' | 'motion_triggered' | 'scheduled' | 'hybrid';
+export type ExecutionMode = 'sequential' | 'parallel';
+export type DetectorType = 'yolo' | 'face' | 'plate';
+
+export interface PipelineConfig {
+  mode: DetectionMode;
+  execution_mode: ExecutionMode;
+  detectors: DetectorType[];
+  schedule_interval: string;  // Go duration string, e.g., '5s', '10s', '1m'
+  motion_sensitivity: number;  // 0.0-1.0
+  motion_cooldown_seconds: number;
+}
+
 // Test notification response
 export interface TestNotificationResult {
   success: boolean;

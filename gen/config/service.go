@@ -35,6 +35,10 @@ type Service interface {
 	GetDetection(context.Context) (res *DetectionConfig, err error)
 	// Update combined detection configuration
 	UpdateDetection(context.Context, *DetectionConfig) (res *DetectionConfig, err error)
+	// Get detection pipeline configuration
+	GetPipeline(context.Context) (res *PipelineConfig, err error)
+	// Update detection pipeline configuration
+	UpdatePipeline(context.Context, *PipelineConfig) (res *PipelineConfig, err error)
 }
 
 // ServiceName is the name of the service as defined in the design. This is the
@@ -45,7 +49,7 @@ const ServiceName = "config"
 // MethodNames lists the service method names as defined in the design. These
 // are the same values that are set in the endpoint request contexts under the
 // MethodKey key.
-var MethodNames = [11]string{"get", "update", "test_notification", "get_dinov3", "update_dinov3", "test_dinov3", "get_yolo", "update_yolo", "test_yolo", "get_detection", "update_detection"}
+var MethodNames = [13]string{"get", "update", "test_notification", "get_dinov3", "update_dinov3", "test_dinov3", "get_yolo", "update_yolo", "test_yolo", "get_detection", "update_detection", "get_pipeline", "update_pipeline"}
 
 // Bad request error
 type BadRequestError struct {
@@ -102,6 +106,23 @@ type NotificationConfig struct {
 	MinConfidence *float32
 	// Cooldown period between notifications
 	CooldownSeconds *int
+}
+
+// PipelineConfig is the result type of the config service get_pipeline method.
+type PipelineConfig struct {
+	// Controls when detection runs
+	Mode string
+	// How detectors are run. Only 'sequential' is supported (chains YOLO → Face →
+	// Plate).
+	ExecutionMode string
+	// List of detector names: yolo, face, plate. Order matters for sequential mode.
+	Detectors []string
+	// Go duration string, e.g., '5s', '10s', '1m'
+	ScheduleInterval string
+	// Lower values = more sensitive. Used in motion_triggered and hybrid modes.
+	MotionSensitivity float32
+	// Seconds to wait after motion ends before stopping detection
+	MotionCooldownSeconds int
 }
 
 // TestDinov3Result is the result type of the config service test_dinov3 method.

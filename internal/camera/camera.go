@@ -35,19 +35,36 @@ type StreamManager interface {
 	DeleteStream(cameraID string) error
 }
 
+// StreamManagerWithOptions extends StreamManager with configurable options
+type StreamManagerWithOptions interface {
+	StreamManager
+	// CreateStreamWithOptions creates a stream with configurable options
+	// useExternalProvider: when true, the stream receives frames via InjectFrame instead of internal FFmpeg
+	CreateStreamWithOptions(cameraID, device string, fps, width, height int, useExternalProvider bool) error
+	// InjectFrame pushes a frame to the stream (only works when useExternalProvider is true)
+	InjectFrame(cameraID string, frame []byte)
+}
+
 // WebCodecsStreamManager interface for WebCodecs stream lifecycle management
 type WebCodecsStreamManager interface {
 	CreateStream(cameraID, device string, fps, width, height int) error
 	DeleteStream(cameraID string) error
 }
 
+// FrameProvider interface for unified frame capture
+type FrameProvider interface {
+	Start(cameraID string, device string, fps int, width int, height int) error
+	Stop(cameraID string) error
+	IsRunning(cameraID string) bool
+}
+
 // CameraManager manages multiple cameras
 type CameraManager struct {
-	cameras               map[string]*Camera
-	mu                    sync.RWMutex
-	db                    *database.Database
-	streamManager         StreamManager
+	cameras                map[string]*Camera
+	mu                     sync.RWMutex
+	db                     *database.Database
 	webCodecsStreamManager WebCodecsStreamManager
+	frameProvider          FrameProvider
 }
 
 // NewCameraManager creates a new camera manager
@@ -209,10 +226,9 @@ func (cm *CameraManager) ActivateCamera(id string) error {
 		return err
 	}
 
-	// Create MJPEG and WebCodecs streams for this camera
 	cm.mu.RLock()
-	sm := cm.streamManager
 	wcsm := cm.webCodecsStreamManager
+	fp := cm.frameProvider
 	cm.mu.RUnlock()
 
 	fps := camera.FPS
@@ -225,14 +241,17 @@ func (cm *CameraManager) ActivateCamera(id string) error {
 		fmt.Sscanf(camera.Resolution, "%dx%d", &width, &height)
 	}
 
-	if sm != nil {
-		if err := sm.CreateStream(id, camera.Device, fps, width, height); err != nil {
-			fmt.Printf("Warning: failed to create MJPEG stream for camera %s: %v\n", id, err)
+	// Start unified frame provider for this camera
+	// This is the single source of frames - WebCodecs and detection pipeline subscribe to it
+	if fp != nil {
+		if err := fp.Start(id, camera.Device, fps, width, height); err != nil {
+			fmt.Printf("Warning: failed to start frame provider for camera %s: %v\n", id, err)
 		} else {
-			fmt.Printf("Created MJPEG stream for camera %s\n", id)
+			fmt.Printf("Started frame provider for camera %s\n", id)
 		}
 	}
 
+	// Create WebCodecs stream for this camera (subscribes to frame provider)
 	if wcsm != nil {
 		if err := wcsm.CreateStream(id, camera.Device, fps, width, height); err != nil {
 			fmt.Printf("Warning: failed to create WebCodecs stream for camera %s: %v\n", id, err)
@@ -258,25 +277,26 @@ func (cm *CameraManager) DeactivateCamera(id string) error {
 		return err
 	}
 
-	// Delete MJPEG and WebCodecs streams for this camera
 	cm.mu.RLock()
-	sm := cm.streamManager
 	wcsm := cm.webCodecsStreamManager
+	fp := cm.frameProvider
 	cm.mu.RUnlock()
 
-	if sm != nil {
-		if err := sm.DeleteStream(id); err != nil {
-			fmt.Printf("Warning: failed to delete MJPEG stream for camera %s: %v\n", id, err)
-		} else {
-			fmt.Printf("Deleted MJPEG stream for camera %s\n", id)
-		}
-	}
-
+	// Delete WebCodecs stream for this camera
 	if wcsm != nil {
 		if err := wcsm.DeleteStream(id); err != nil {
 			fmt.Printf("Warning: failed to delete WebCodecs stream for camera %s: %v\n", id, err)
 		} else {
 			fmt.Printf("Deleted WebCodecs stream for camera %s\n", id)
+		}
+	}
+
+	// Stop frame provider for this camera
+	if fp != nil {
+		if err := fp.Stop(id); err != nil {
+			fmt.Printf("Warning: failed to stop frame provider for camera %s: %v\n", id, err)
+		} else {
+			fmt.Printf("Stopped frame provider for camera %s\n", id)
 		}
 	}
 
@@ -475,18 +495,18 @@ func (c *Camera) GetStatus() string {
 	return c.Status
 }
 
-// SetStreamManager sets the stream manager for video streaming lifecycle
-func (cm *CameraManager) SetStreamManager(sm StreamManager) {
-	cm.mu.Lock()
-	defer cm.mu.Unlock()
-	cm.streamManager = sm
-}
-
 // SetWebCodecsStreamManager sets the WebCodecs stream manager for low-latency streaming
 func (cm *CameraManager) SetWebCodecsStreamManager(sm WebCodecsStreamManager) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	cm.webCodecsStreamManager = sm
+}
+
+// SetFrameProvider sets the unified frame provider for frame capture
+func (cm *CameraManager) SetFrameProvider(fp FrameProvider) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	cm.frameProvider = fp
 }
 
 // GetCameraSource returns camera source info for video pipeline creation

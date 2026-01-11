@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as configApi from '../api/config';
-import type { TelegramConfig, YoloConfig, DetectionConfig } from '../types';
+import type { TelegramConfig, YoloConfig, DetectionConfig, PipelineConfig } from '../types';
 
 // Telegram config
 export function useTelegramConfig() {
@@ -69,6 +69,26 @@ export function useUpdateDetectionConfig() {
     mutationFn: (config: Partial<DetectionConfig>) => configApi.updateDetectionConfig(config),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['config', 'detection'] });
+    },
+  });
+}
+
+// Pipeline config
+export function usePipelineConfig() {
+  return useQuery({
+    queryKey: ['config', 'pipeline'],
+    queryFn: configApi.getPipelineConfig,
+  });
+}
+
+export function useUpdatePipelineConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (config: Partial<PipelineConfig>) => configApi.updatePipelineConfig(config),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['config', 'pipeline'] });
+      queryClient.invalidateQueries({ queryKey: ['system', 'status'] });
     },
   });
 }

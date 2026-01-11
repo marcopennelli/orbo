@@ -31,7 +31,7 @@ func UsageCommands() string {
 auth (login|status)
 camera (list|get|create|update|delete|activate|deactivate|capture)
 motion (events|event|frame|forensic-thumbnail)
-config (get|update|test-notification|get-dinov3|update-dinov3|test-dinov3|get-yolo|update-yolo|test-yolo|get-detection|update-detection)
+config (get|update|test-notification|get-dinov3|update-dinov3|test-dinov3|get-yolo|update-yolo|test-yolo|get-detection|update-detection|get-pipeline|update-pipeline)
 system (status|start-detection|stop-detection)
 `
 }
@@ -40,11 +40,11 @@ system (status|start-detection|stop-detection)
 func UsageExamples() string {
 	return os.Args[0] + ` health healthz` + "\n" +
 		os.Args[0] + ` auth login --body '{
-      "password": "Libero similique minima autem accusamus deleniti.",
-      "username": "Qui voluptatibus corrupti quia."
+      "password": "Quam nobis deserunt.",
+      "username": "Fugit aut enim."
    }'` + "\n" +
 		os.Args[0] + ` camera list` + "\n" +
-		os.Args[0] + ` motion events --camera-id "24f49399-ea47-11f0-ab56-5847ca7b8ce1" --since "1997-03-22T09:04:14Z" --limit -2503163051202457742` + "\n" +
+		os.Args[0] + ` motion events --camera-id "96e31e73-ef0d-11f0-9306-5847ca7b8ce1" --since "1997-03-22T09:04:14Z" --limit -2503163051202457742` + "\n" +
 		os.Args[0] + ` config get` + "\n" +
 		""
 }
@@ -143,6 +143,11 @@ func ParseEndpoint(
 		configUpdateDetectionFlags    = flag.NewFlagSet("update-detection", flag.ExitOnError)
 		configUpdateDetectionBodyFlag = configUpdateDetectionFlags.String("body", "REQUIRED", "")
 
+		configGetPipelineFlags = flag.NewFlagSet("get-pipeline", flag.ExitOnError)
+
+		configUpdatePipelineFlags    = flag.NewFlagSet("update-pipeline", flag.ExitOnError)
+		configUpdatePipelineBodyFlag = configUpdatePipelineFlags.String("body", "REQUIRED", "")
+
 		systemFlags = flag.NewFlagSet("system", flag.ContinueOnError)
 
 		systemStatusFlags = flag.NewFlagSet("status", flag.ExitOnError)
@@ -187,6 +192,8 @@ func ParseEndpoint(
 	configTestYoloFlags.Usage = configTestYoloUsage
 	configGetDetectionFlags.Usage = configGetDetectionUsage
 	configUpdateDetectionFlags.Usage = configUpdateDetectionUsage
+	configGetPipelineFlags.Usage = configGetPipelineUsage
+	configUpdatePipelineFlags.Usage = configUpdatePipelineUsage
 
 	systemFlags.Usage = systemUsage
 	systemStatusFlags.Usage = systemStatusUsage
@@ -334,6 +341,12 @@ func ParseEndpoint(
 			case "update-detection":
 				epf = configUpdateDetectionFlags
 
+			case "get-pipeline":
+				epf = configGetPipelineFlags
+
+			case "update-pipeline":
+				epf = configUpdatePipelineFlags
+
 			}
 
 		case "system":
@@ -469,6 +482,12 @@ func ParseEndpoint(
 			case "update-detection":
 				endpoint = c.UpdateDetection()
 				data, err = configc.BuildUpdateDetectionPayload(*configUpdateDetectionBodyFlag)
+			case "get-pipeline":
+				endpoint = c.GetPipeline()
+				data = nil
+			case "update-pipeline":
+				endpoint = c.UpdatePipeline()
+				data, err = configc.BuildUpdatePipelinePayload(*configUpdatePipelineBodyFlag)
 			}
 		case "system":
 			c := systemc.NewClient(scheme, host, doer, enc, dec, restore)
@@ -548,8 +567,8 @@ Authenticate with username and password to receive a JWT token
 
 Example:
     %[1]s auth login --body '{
-      "password": "Libero similique minima autem accusamus deleniti.",
-      "username": "Qui voluptatibus corrupti quia."
+      "password": "Quam nobis deserunt.",
+      "username": "Fugit aut enim."
    }'
 `, os.Args[0])
 }
@@ -601,7 +620,7 @@ Get camera information by ID
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera get --id "24f3b423-ea47-11f0-ab56-5847ca7b8ce1"
+    %[1]s camera get --id "96e26f6e-ef0d-11f0-9306-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -613,10 +632,10 @@ Add a new camera
 
 Example:
     %[1]s camera create --body '{
-      "device": "Magni maxime error necessitatibus.",
-      "fps": 4197915549386585666,
-      "name": "Perferendis possimus sit expedita qui.",
-      "resolution": "Autem quo et hic ad consequatur."
+      "device": "Ex voluptatibus excepturi quia.",
+      "fps": 5500566991913483179,
+      "name": "Ad consequatur omnis atque.",
+      "resolution": "Inventore excepturi numquam repellendus harum similique."
    }'
 `, os.Args[0])
 }
@@ -630,11 +649,11 @@ Update camera configuration. Device can only be changed when camera is inactive.
 
 Example:
     %[1]s camera update --body '{
-      "device": "Commodi provident incidunt et rerum quia aut.",
-      "fps": 142419975465936439,
-      "name": "Qui dolor non provident hic suscipit.",
-      "resolution": "Veniam iste consequatur id eum amet quis."
-   }' --id "24f42977-ea47-11f0-ab56-5847ca7b8ce1"
+      "device": "Iste consequatur id eum amet quis.",
+      "fps": 1552010394608734280,
+      "name": "Aut minus.",
+      "resolution": "Dolores et sequi necessitatibus."
+   }' --id "96e2c542-ef0d-11f0-9306-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -645,7 +664,7 @@ Remove a camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera delete --id "24f4449d-ea47-11f0-ab56-5847ca7b8ce1"
+    %[1]s camera delete --id "96e2dc98-ef0d-11f0-9306-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -656,7 +675,7 @@ Activate camera for motion detection
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera activate --id "24f44d3e-ea47-11f0-ab56-5847ca7b8ce1"
+    %[1]s camera activate --id "96e2e4cb-ef0d-11f0-9306-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -667,7 +686,7 @@ Deactivate camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera deactivate --id "24f46ef7-ea47-11f0-ab56-5847ca7b8ce1"
+    %[1]s camera deactivate --id "96e2fb16-ef0d-11f0-9306-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -678,7 +697,7 @@ Capture a single frame from camera as base64
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera capture --id "24f4876c-ea47-11f0-ab56-5847ca7b8ce1"
+    %[1]s camera capture --id "96e31055-ef0d-11f0-9306-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -707,7 +726,7 @@ List motion detection events
     -limit INT: 
 
 Example:
-    %[1]s motion events --camera-id "24f49399-ea47-11f0-ab56-5847ca7b8ce1" --since "1997-03-22T09:04:14Z" --limit -2503163051202457742
+    %[1]s motion events --camera-id "96e31e73-ef0d-11f0-9306-5847ca7b8ce1" --since "1997-03-22T09:04:14Z" --limit -2503163051202457742
 `, os.Args[0])
 }
 
@@ -718,7 +737,7 @@ Get motion event by ID
     -id STRING: Event ID
 
 Example:
-    %[1]s motion event --id "24f4cbd7-ea47-11f0-ab56-5847ca7b8ce1"
+    %[1]s motion event --id "96e34c0f-ef0d-11f0-9306-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -729,7 +748,7 @@ Get captured frame for motion event as base64
     -id STRING: Event ID
 
 Example:
-    %[1]s motion frame --id "24f4f801-ea47-11f0-ab56-5847ca7b8ce1"
+    %[1]s motion frame --id "96e378e0-ef0d-11f0-9306-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -741,7 +760,7 @@ Get forensic face analysis thumbnail (NSA-style with landmarks) for a motion eve
     -index INT: Face thumbnail index (0-based)
 
 Example:
-    %[1]s motion forensic-thumbnail --id "24f5017b-ea47-11f0-ab56-5847ca7b8ce1" --index 311134681063260563
+    %[1]s motion forensic-thumbnail --id "96e381ec-ef0d-11f0-9306-5847ca7b8ce1" --index 311134681063260563
 `, os.Args[0])
 }
 
@@ -763,6 +782,8 @@ COMMAND:
     test-yolo: Test YOLO service connectivity
     get-detection: Get combined detection configuration
     update-detection: Update combined detection configuration
+    get-pipeline: Get detection pipeline configuration
+    update-pipeline: Update detection pipeline configuration
 
 Additional help:
     %[1]s config COMMAND --help
@@ -917,6 +938,37 @@ Example:
          "security_mode": false,
          "service_endpoint": "Error deserunt aperiam qui illum perferendis."
       }
+   }'
+`, os.Args[0])
+}
+
+func configGetPipelineUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config get-pipeline
+
+Get detection pipeline configuration
+
+Example:
+    %[1]s config get-pipeline
+`, os.Args[0])
+}
+
+func configUpdatePipelineUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config update-pipeline -body JSON
+
+Update detection pipeline configuration
+    -body JSON: 
+
+Example:
+    %[1]s config update-pipeline --body '{
+      "detectors": [
+         "yolo",
+         "face"
+      ],
+      "execution_mode": "sequential",
+      "mode": "continuous",
+      "motion_cooldown_seconds": 1316921468328879202,
+      "motion_sensitivity": 0.60657674,
+      "schedule_interval": "Ipsa voluptate magnam et."
    }'
 `, os.Args[0])
 }

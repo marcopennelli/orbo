@@ -453,6 +453,84 @@ func EncodeUpdateDetectionError(encoder func(context.Context, http.ResponseWrite
 	}
 }
 
+// EncodeGetPipelineResponse returns an encoder for responses returned by the
+// config get_pipeline endpoint.
+func EncodeGetPipelineResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.PipelineConfig)
+		enc := encoder(ctx, w)
+		body := NewGetPipelineResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// EncodeUpdatePipelineResponse returns an encoder for responses returned by
+// the config update_pipeline endpoint.
+func EncodeUpdatePipelineResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.PipelineConfig)
+		enc := encoder(ctx, w)
+		body := NewUpdatePipelineResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// DecodeUpdatePipelineRequest returns a decoder for requests sent to the
+// config update_pipeline endpoint.
+func DecodeUpdatePipelineRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
+	return func(r *http.Request) (any, error) {
+		var (
+			body UpdatePipelineRequestBody
+			err  error
+		)
+		err = decoder(r).Decode(&body)
+		if err != nil {
+			if err == io.EOF {
+				return nil, goa.MissingPayloadError()
+			}
+			return nil, goa.DecodePayloadError(err.Error())
+		}
+		err = ValidateUpdatePipelineRequestBody(&body)
+		if err != nil {
+			return nil, err
+		}
+		payload := NewUpdatePipelinePipelineConfig(&body)
+
+		return payload, nil
+	}
+}
+
+// EncodeUpdatePipelineError returns an encoder for errors returned by the
+// update_pipeline config endpoint.
+func EncodeUpdatePipelineError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+	encodeError := goahttp.ErrorEncoder(encoder, formatter)
+	return func(ctx context.Context, w http.ResponseWriter, v error) error {
+		var en goa.GoaErrorNamer
+		if !errors.As(v, &en) {
+			return encodeError(ctx, w, v)
+		}
+		switch en.GoaErrorName() {
+		case "bad_request":
+			var res *config.BadRequestError
+			errors.As(v, &res)
+			enc := encoder(ctx, w)
+			var body any
+			if formatter != nil {
+				body = formatter(ctx, res)
+			} else {
+				body = NewUpdatePipelineBadRequestResponseBody(res)
+			}
+			w.Header().Set("goa-error", res.GoaErrorName())
+			w.WriteHeader(http.StatusBadRequest)
+			return enc.Encode(body)
+		default:
+			return encodeError(ctx, w, v)
+		}
+	}
+}
+
 // marshalConfigYOLOConfigToYOLOConfigResponseBody builds a value of type
 // *YOLOConfigResponseBody from a value of type *config.YOLOConfig.
 func marshalConfigYOLOConfigToYOLOConfigResponseBody(v *config.YOLOConfig) *YOLOConfigResponseBody {

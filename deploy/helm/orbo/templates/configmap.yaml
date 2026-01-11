@@ -17,21 +17,40 @@ data:
   telegram-enabled: {{ .Values.notifications.telegram.enabled | quote }}
   telegram-cooldown: {{ .Values.notifications.telegram.cooldownSeconds | quote }}
 
-  # Motion detection
+  # ==========================================================================
+  # Detection Pipeline Configuration (Global Defaults)
+  # ==========================================================================
+  # Detection mode: disabled, continuous, motion_triggered, scheduled, hybrid
+  detection-mode: {{ .Values.detection.mode | default "motion_triggered" | quote }}
+
+  # Execution mode: sequential or parallel
+  detection-execution-mode: {{ .Values.detection.executionMode | default "sequential" | quote }}
+
+  # Enabled detectors (comma-separated list)
+  detection-detectors: {{ .Values.detection.detectors | default (list "yolo") | join "," | quote }}
+
+  # Schedule interval for scheduled/hybrid modes
+  detection-schedule-interval: {{ .Values.detection.scheduleInterval | default "5s" | quote }}
+
+  # Motion detection settings
   motion-enabled: {{ .Values.detection.motion.enabled | quote }}
-  motion-min-confidence: {{ .Values.detection.motion.minConfidence | quote }}
+  motion-sensitivity: {{ .Values.detection.motion.sensitivity | default 0.1 | quote }}
+  motion-cooldown-seconds: {{ .Values.detection.motion.cooldownSeconds | default 2 | quote }}
   motion-min-contour-area: {{ .Values.detection.motion.minContourArea | quote }}
   motion-background-history: {{ .Values.detection.motion.backgroundHistory | quote }}
   motion-var-threshold: {{ .Values.detection.motion.varThreshold | quote }}
 
-  # Detection configuration
-  primary-detector: {{ .Values.detection.primaryDetector | quote }}
-  fallback-enabled: {{ .Values.detection.fallbackEnabled | quote }}
+  # Legacy detection configuration (backwards compatibility)
+  primary-detector: {{ .Values.detection.primaryDetector | default "yolo" | quote }}
+  fallback-enabled: {{ .Values.detection.fallbackEnabled | default true | quote }}
 
   # Storage paths
   frame-store-path: {{ .Values.storage.frames.path | quote }}
   database-path: {{ .Values.storage.database.path | quote }}
 
+  # ==========================================================================
+  # Detector Service Endpoints
+  # ==========================================================================
   # DINOv3 configuration
   dinov3-enabled: {{ .Values.dinov3.enabled | quote }}
   {{- if .Values.dinov3.enabled }}
@@ -52,4 +71,11 @@ data:
   {{- if .Values.yolo.config.classesFilter }}
   yolo-classes-filter: {{ .Values.yolo.config.classesFilter | quote }}
   {{- end }}
+  {{- end }}
+
+  # Face Recognition configuration
+  recognition-enabled: {{ .Values.recognition.enabled | quote }}
+  {{- if .Values.recognition.enabled }}
+  recognition-endpoint: "http://{{ include "orbo.fullname" . }}-recognition:{{ .Values.recognition.service.port }}"
+  recognition-similarity-threshold: {{ .Values.recognition.config.similarityThreshold | quote }}
   {{- end }}

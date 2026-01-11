@@ -1,0 +1,74 @@
+# Orbo Container Manifest for meta-container-deploy
+# Use with Yocto-based embedded Linux systems
+#
+# This manifest defines all Orbo containers for automated deployment.
+# Place in your Yocto layer and reference in CONTAINER_MANIFEST variable.
+#
+# Profiles:
+#   - basic: Orbo only (motion detection)
+#   - ai: Orbo + YOLO (object detection)
+#   - full: Orbo + YOLO + Recognition (face recognition)
+
+containers:
+  # Main Orbo application
+  - name: orbo
+    image: ghcr.io/marcopennelli/orbo:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/var/lib/orbo/frames:/app/frames:rw"
+    devices:
+      - "/dev/video0:/dev/video0"
+    environment:
+      # Detection Pipeline Configuration
+      # Mode: disabled, continuous, motion_triggered, scheduled, hybrid
+      DETECTION_MODE: "motion_triggered"
+      # Execution: sequential (YOLO → Face → Plate) or parallel
+      DETECTION_EXECUTION_MODE: "sequential"
+      # Enabled detectors (comma-separated, order matters for sequential)
+      DETECTION_DETECTORS: "yolo"
+      # Schedule interval for scheduled/hybrid modes
+      DETECTION_SCHEDULE_INTERVAL: "5s"
+      # Motion detection settings
+      MOTION_SENSITIVITY: "0.1"
+      MOTION_COOLDOWN_SECONDS: "2"
+      # Detector services
+      YOLO_ENABLED: "false"
+      YOLO_ENDPOINT: "http://localhost:8081"
+      RECOGNITION_ENABLED: "false"
+      RECOGNITION_SERVICE_ENDPOINT: "http://localhost:8082"
+      # Notifications
+      TELEGRAM_ENABLED: "false"
+      # Storage
+      DATABASE_PATH: "/app/frames/orbo.db"
+      FRAME_DIR: "/app/frames"
+      # Legacy (backwards compatibility)
+      PRIMARY_DETECTOR: "basic"
+    restart_policy: always
+    user: "1000:1000"
+    read_only: true
+
+  # YOLO Object Detection Service (optional)
+  - name: yolo-service
+    image: ghcr.io/marcopennelli/orbo-yolo:latest
+    ports:
+      - "8081:8081"
+    environment:
+      YOLO_MODEL: "yolo11n.pt"
+      CONFIDENCE_THRESHOLD: "0.5"
+    restart_policy: always
+    user: "1000:1000"
+    read_only: true
+
+  # Face Recognition Service (optional)
+  - name: recognition
+    image: ghcr.io/marcopennelli/orbo-recognition:latest
+    ports:
+      - "8082:8082"
+    volumes:
+      - "/var/lib/orbo/faces:/app/faces:rw"
+    environment:
+      SIMILARITY_THRESHOLD: "0.5"
+    restart_policy: always
+    user: "1000:1000"
+    read_only: true

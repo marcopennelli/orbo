@@ -881,17 +881,46 @@ async def get_config():
     }
 
 
+def start_grpc_server():
+    """Start gRPC server in a background thread"""
+    grpc_port = int(os.getenv('GRPC_PORT', '50052'))
+    if grpc_port <= 0:
+        logger.info("gRPC server disabled (GRPC_PORT not set or 0)")
+        return None
+
+    try:
+        from grpc_server import serve as grpc_serve
+        grpc_server = grpc_serve(recognition_service, port=grpc_port)
+        return grpc_server
+    except ImportError as e:
+        logger.warning(f"gRPC server not available (missing proto files): {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to start gRPC server: {e}")
+        return None
+
+
 if __name__ == "__main__":
     import uvicorn
 
+    # Start gRPC server in background thread
+    grpc_server = start_grpc_server()
+
+    # Start HTTP server (main thread)
     port = int(os.getenv('PORT', 8082))
     host = os.getenv('HOST', '0.0.0.0')
 
-    logger.info(f"Starting Face Recognition service on {host}:{port}")
-    uvicorn.run(
-        "main:app",
-        host=host,
-        port=port,
-        reload=False,
-        workers=1  # Single worker for model efficiency
-    )
+    logger.info(f"Starting Face Recognition service - HTTP on {host}:{port}")
+
+    try:
+        uvicorn.run(
+            "main:app",
+            host=host,
+            port=port,
+            reload=False,
+            workers=1  # Single worker for model efficiency
+        )
+    finally:
+        if grpc_server:
+            logger.info("Stopping gRPC server...")
+            grpc_server.stop(grace=5)

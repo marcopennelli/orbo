@@ -7,6 +7,7 @@ interface WebCodecsStreamState {
   errorMessage: string | null;
   fps: number;
   latencyMs: number;
+  currentSeq: number; // Current frame sequence number
 }
 
 interface UseWebCodecsStreamOptions {
@@ -16,7 +17,6 @@ interface UseWebCodecsStreamOptions {
 }
 
 // Message types from server
-const FRAME_TYPE_RAW = 0;
 const FRAME_TYPE_ANNOTATED = 1;
 
 export function useWebCodecsStream({
@@ -31,6 +31,7 @@ export function useWebCodecsStream({
     errorMessage: null,
     fps: 0,
     latencyMs: 0,
+    currentSeq: 0,
   });
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -40,6 +41,14 @@ export function useWebCodecsStream({
   const lastFpsUpdateRef = useRef(Date.now());
   const reconnectTimeoutRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
+  const currentCameraIdRef = useRef(cameraId); // Track current camera to filter stale frames
+  const lastSeqRef = useRef<bigint>(BigInt(0)); // Track last sequence for ordering validation
+
+  // Keep cameraId ref updated and reset sequence on camera change
+  useEffect(() => {
+    currentCameraIdRef.current = cameraId;
+    lastSeqRef.current = BigInt(0); // Reset sequence tracking for new camera
+  }, [cameraId]);
 
   // Create offscreen canvas for decoding
   useEffect(() => {
@@ -76,38 +85,64 @@ export function useWebCodecsStream({
   }, []);
 
   // Handle incoming WebSocket message
-  const handleMessage = useCallback(async (event: MessageEvent) => {
-    if (!(event.data instanceof ArrayBuffer)) return;
-
-    const data = new Uint8Array(event.data);
-    if (data.length < 5) return;
-
-    // Parse message: 1 byte type + 4 bytes length + frame data
-    const frameType = data[0];
-    const frameLength = (data[1] << 24) | (data[2] << 16) | (data[3] << 8) | data[4];
-    const frameData = data.slice(5, 5 + frameLength);
-
-    const isAnnotated = frameType === FRAME_TYPE_ANNOTATED;
-
-    // Decode and callback
-    const imageData = await decodeFrame(frameData.buffer);
-    if (imageData && onFrame) {
-      onFrame(imageData, isAnnotated);
-    }
-
-    // Update FPS counter
-    frameCountRef.current++;
-    const now = Date.now();
-    if (now - lastFpsUpdateRef.current >= 1000) {
-      if (mountedRef.current) {
-        setState(prev => ({
-          ...prev,
-          fps: frameCountRef.current,
-        }));
+  // Takes sourceCameraId to verify frames come from the expected connection
+  const createMessageHandler = useCallback((sourceCameraId: string) => {
+    return async (event: MessageEvent) => {
+      // Ignore frames if camera changed (stale connection still sending)
+      if (sourceCameraId !== currentCameraIdRef.current) {
+        return;
       }
-      frameCountRef.current = 0;
-      lastFpsUpdateRef.current = now;
-    }
+
+      if (!(event.data instanceof ArrayBuffer)) return;
+
+      const data = new Uint8Array(event.data);
+      // New format: 1 byte type + 8 bytes sequence + 4 bytes length + frame data
+      if (data.length < 13) return;
+
+      // Parse message header
+      const frameType = data[0];
+
+      // Parse 8-byte sequence number (BigInt for uint64)
+      const seqView = new DataView(data.buffer, 1, 8);
+      const frameSeq = seqView.getBigUint64(0, false); // big-endian
+
+      // Parse 4-byte frame length
+      const frameLength = (data[9] << 24) | (data[10] << 16) | (data[11] << 8) | data[12];
+      const frameData = data.slice(13, 13 + frameLength);
+
+      const isAnnotated = frameType === FRAME_TYPE_ANNOTATED;
+
+      // For annotated frames, validate sequence ordering
+      // Drop frames that arrive out of order (older than last displayed)
+      if (isAnnotated && frameSeq > BigInt(0)) {
+        if (frameSeq <= lastSeqRef.current) {
+          // Out-of-order frame, drop it
+          return;
+        }
+        lastSeqRef.current = frameSeq;
+      }
+
+      // Decode and callback
+      const imageData = await decodeFrame(frameData.buffer);
+      if (imageData && onFrame) {
+        onFrame(imageData, isAnnotated);
+      }
+
+      // Update FPS counter and sequence
+      frameCountRef.current++;
+      const now = Date.now();
+      if (now - lastFpsUpdateRef.current >= 1000) {
+        if (mountedRef.current) {
+          setState(prev => ({
+            ...prev,
+            fps: frameCountRef.current,
+            currentSeq: Number(frameSeq),
+          }));
+        }
+        frameCountRef.current = 0;
+        lastFpsUpdateRef.current = now;
+      }
+    };
   }, [decodeFrame, onFrame]);
 
   // Connect to WebSocket
@@ -135,7 +170,9 @@ export function useWebCodecsStream({
       }
     };
 
-    ws.onmessage = handleMessage;
+    // Create message handler bound to this specific camera connection
+    // This ensures frames from old connections are filtered out
+    ws.onmessage = createMessageHandler(cameraId);
 
     ws.onerror = (error) => {
       console.error(`[WebCodecs] WebSocket error:`, error);
@@ -168,7 +205,7 @@ export function useWebCodecsStream({
     };
 
     wsRef.current = ws;
-  }, [cameraId, enabled, handleMessage]);
+  }, [cameraId, enabled, createMessageHandler]);
 
   // Disconnect
   const disconnect = useCallback(() => {

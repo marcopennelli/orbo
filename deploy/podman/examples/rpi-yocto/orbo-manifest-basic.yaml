@@ -1,0 +1,39 @@
+# Orbo Basic Deployment for Raspberry Pi
+# Motion detection only - lightweight, suitable for RPi 3/4
+#
+# Usage with meta-container-deploy:
+#   CONTAINER_MANIFEST = "${THISDIR}/orbo-manifest-basic.yaml"
+
+containers:
+  - name: orbo
+    image: ghcr.io/marcopennelli/orbo:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/var/lib/orbo/frames:/app/frames:rw"
+    devices:
+      - "/dev/video0:/dev/video0"
+    environment:
+      # Detection Pipeline - motion only for basic profile
+      DETECTION_MODE: "motion_triggered"
+      DETECTION_EXECUTION_MODE: "sequential"
+      # No AI detectors for basic profile - just motion detection
+      DETECTION_DETECTORS: ""
+      MOTION_SENSITIVITY: "0.1"
+      MOTION_COOLDOWN_SECONDS: "2"
+      # Detector services disabled
+      YOLO_ENABLED: "false"
+      RECOGNITION_ENABLED: "false"
+      # Storage
+      DATABASE_PATH: "/app/frames/orbo.db"
+      FRAME_DIR: "/app/frames"
+      # Telegram alerts (configure tokens at runtime or here)
+      TELEGRAM_ENABLED: "false"
+      # TELEGRAM_BOT_TOKEN: "your_token"
+      # TELEGRAM_CHAT_ID: "your_chat_id"
+      TELEGRAM_COOLDOWN: "30"
+      # Legacy (backwards compatibility)
+      PRIMARY_DETECTOR: "basic"
+    restart_policy: always
+    user: "1000:1000"
+    read_only: true

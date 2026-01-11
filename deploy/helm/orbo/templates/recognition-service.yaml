@@ -13,6 +13,10 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+    - port: {{ .Values.recognition.service.grpcPort | default 50052 }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
   selector:
     {{- include "orbo.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: recognition-service

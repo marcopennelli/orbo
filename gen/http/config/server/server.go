@@ -30,6 +30,8 @@ type Server struct {
 	TestYolo         http.Handler
 	GetDetection     http.Handler
 	UpdateDetection  http.Handler
+	GetPipeline      http.Handler
+	UpdatePipeline   http.Handler
 }
 
 // MountPoint holds information about the mounted endpoints.
@@ -70,6 +72,8 @@ func New(
 			{"TestYolo", "POST", "/api/v1/config/yolo/test"},
 			{"GetDetection", "GET", "/api/v1/config/detection"},
 			{"UpdateDetection", "PUT", "/api/v1/config/detection"},
+			{"GetPipeline", "GET", "/api/v1/config/pipeline"},
+			{"UpdatePipeline", "PUT", "/api/v1/config/pipeline"},
 		},
 		Get:              NewGetHandler(e.Get, mux, decoder, encoder, errhandler, formatter),
 		Update:           NewUpdateHandler(e.Update, mux, decoder, encoder, errhandler, formatter),
@@ -82,6 +86,8 @@ func New(
 		TestYolo:         NewTestYoloHandler(e.TestYolo, mux, decoder, encoder, errhandler, formatter),
 		GetDetection:     NewGetDetectionHandler(e.GetDetection, mux, decoder, encoder, errhandler, formatter),
 		UpdateDetection:  NewUpdateDetectionHandler(e.UpdateDetection, mux, decoder, encoder, errhandler, formatter),
+		GetPipeline:      NewGetPipelineHandler(e.GetPipeline, mux, decoder, encoder, errhandler, formatter),
+		UpdatePipeline:   NewUpdatePipelineHandler(e.UpdatePipeline, mux, decoder, encoder, errhandler, formatter),
 	}
 }
 
@@ -101,6 +107,8 @@ func (s *Server) Use(m func(http.Handler) http.Handler) {
 	s.TestYolo = m(s.TestYolo)
 	s.GetDetection = m(s.GetDetection)
 	s.UpdateDetection = m(s.UpdateDetection)
+	s.GetPipeline = m(s.GetPipeline)
+	s.UpdatePipeline = m(s.UpdatePipeline)
 }
 
 // MethodNames returns the methods served.
@@ -119,6 +127,8 @@ func Mount(mux goahttp.Muxer, h *Server) {
 	MountTestYoloHandler(mux, h.TestYolo)
 	MountGetDetectionHandler(mux, h.GetDetection)
 	MountUpdateDetectionHandler(mux, h.UpdateDetection)
+	MountGetPipelineHandler(mux, h.GetPipeline)
+	MountUpdatePipelineHandler(mux, h.UpdatePipeline)
 }
 
 // Mount configures the mux to serve the config endpoints.
@@ -617,6 +627,101 @@ func NewUpdateDetectionHandler(
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
 		ctx = context.WithValue(ctx, goa.MethodKey, "update_detection")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		payload, err := decodeRequest(r)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		res, err := endpoint(ctx, payload)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountGetPipelineHandler configures the mux to serve the "config" service
+// "get_pipeline" endpoint.
+func MountGetPipelineHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("GET", "/api/v1/config/pipeline", f)
+}
+
+// NewGetPipelineHandler creates a HTTP handler which loads the HTTP request
+// and calls the "config" service "get_pipeline" endpoint.
+func NewGetPipelineHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		encodeResponse = EncodeGetPipelineResponse(encoder)
+		encodeError    = goahttp.ErrorEncoder(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "get_pipeline")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		var err error
+		res, err := endpoint(ctx, nil)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountUpdatePipelineHandler configures the mux to serve the "config" service
+// "update_pipeline" endpoint.
+func MountUpdatePipelineHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("PUT", "/api/v1/config/pipeline", f)
+}
+
+// NewUpdatePipelineHandler creates a HTTP handler which loads the HTTP request
+// and calls the "config" service "update_pipeline" endpoint.
+func NewUpdatePipelineHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		decodeRequest  = DecodeUpdatePipelineRequest(mux, decoder)
+		encodeResponse = EncodeUpdatePipelineResponse(encoder)
+		encodeError    = EncodeUpdatePipelineError(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "update_pipeline")
 		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
 		payload, err := decodeRequest(r)
 		if err != nil {

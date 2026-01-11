@@ -1,0 +1,46 @@
+# YOLO Detection Service for Orbo
+# Quadlet container file for systemd/Podman
+# Compatible with meta-container-deploy for Yocto-based systems
+#
+# Install to: /etc/containers/systemd/yolo-service.container
+# Podman will generate: yolo-service.service
+
+[Unit]
+Description=YOLO Object Detection Service for Orbo
+After=network-online.target
+Before=orbo.service
+
+[Container]
+Image=ghcr.io/marcopennelli/orbo-yolo:latest
+ContainerName=yolo-service
+
+# Internal port (accessed by orbo container via pod network)
+PublishPort=8081:8081
+
+# Environment variables
+Environment=YOLO_MODEL=yolo11n.pt
+Environment=CONFIDENCE_THRESHOLD=0.5
+
+# GPU support (uncomment for NVIDIA GPU)
+# AddDevice=nvidia.com/gpu=all
+
+# Security: run as non-root
+User=1000
+Group=1000
+
+# Read-only root filesystem
+ReadOnly=true
+
+# Health check
+HealthCmd=wget --no-verbose --tries=1 --spider http://localhost:8081/health || exit 1
+HealthInterval=30s
+HealthTimeout=5s
+HealthStartPeriod=30s
+HealthRetries=3
+
+[Service]
+Restart=always
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

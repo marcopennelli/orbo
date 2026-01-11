@@ -65,6 +65,17 @@ type SystemStatus struct {
 	NotificationsActive bool
 	// System uptime in seconds
 	UptimeSeconds int
+	// Current pipeline detection mode (disabled, continuous, motion_triggered,
+	// scheduled, hybrid)
+	PipelineMode *string
+	// Pipeline execution mode (always sequential)
+	PipelineExecutionMode *string
+	// Enabled detectors in the pipeline
+	PipelineDetectors []string
+	// Whether AI detection is enabled (false when mode=disabled)
+	PipelineDetectionEnabled *bool
+	// Number of cameras currently running detection
+	DetectingCameras *int
 }
 
 // Error returns an error description.

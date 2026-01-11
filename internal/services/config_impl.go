@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,8 +13,22 @@ import (
 	"orbo/internal/database"
 	"orbo/internal/detection"
 	"orbo/internal/motion"
+	"orbo/internal/pipeline"
 	"orbo/internal/telegram"
 )
+
+// splitAndTrim splits a string by separator and trims whitespace from each element
+func splitAndTrim(s string, sep string) []string {
+	parts := strings.Split(s, sep)
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		trimmed := strings.TrimSpace(p)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
 
 // ConfigImplementation implements the config service
 type ConfigImplementation struct {
@@ -26,6 +41,7 @@ type ConfigImplementation struct {
 	dinov3Cfg       *config.DINOv3Config
 	yoloCfg         *config.YOLOConfig
 	detectionCfg    *config.DetectionConfig
+	pipelineCfg     *config.PipelineConfig
 	db              *database.Database
 }
 
@@ -89,6 +105,52 @@ func NewConfigService(telegramBot *telegram.TelegramBot, dinov3Detector *detecti
 		FallbackEnabled: true,
 	}
 
+	// Initialize pipeline config from environment
+	detectionMode := os.Getenv("DETECTION_MODE")
+	if detectionMode == "" {
+		detectionMode = "motion_triggered"
+	}
+	executionMode := os.Getenv("DETECTION_EXECUTION_MODE")
+	if executionMode == "" {
+		executionMode = "sequential"
+	}
+	scheduleInterval := os.Getenv("DETECTION_SCHEDULE_INTERVAL")
+	if scheduleInterval == "" {
+		scheduleInterval = "5s"
+	}
+	motionSensitivity := float32(0.1)
+	if envVal := os.Getenv("MOTION_SENSITIVITY"); envVal != "" {
+		var val float64
+		if _, err := fmt.Sscanf(envVal, "%f", &val); err == nil && val >= 0 && val <= 1 {
+			motionSensitivity = float32(val)
+		}
+	}
+	motionCooldownSeconds := 2
+	if envVal := os.Getenv("MOTION_COOLDOWN_SECONDS"); envVal != "" {
+		var val int
+		if _, err := fmt.Sscanf(envVal, "%d", &val); err == nil && val >= 0 {
+			motionCooldownSeconds = val
+		}
+	}
+	// Parse detectors from comma-separated env var
+	var detectors []string
+	if envVal := os.Getenv("DETECTION_DETECTORS"); envVal != "" {
+		for _, d := range splitTrim(envVal, ",") {
+			if d != "" {
+				detectors = append(detectors, d)
+			}
+		}
+	}
+
+	pipelineCfg := &config.PipelineConfig{
+		Mode:                  detectionMode,
+		ExecutionMode:         executionMode,
+		Detectors:             detectors,
+		ScheduleInterval:      scheduleInterval,
+		MotionSensitivity:     motionSensitivity,
+		MotionCooldownSeconds: motionCooldownSeconds,
+	}
+
 	impl := &ConfigImplementation{
 		telegramBot:     telegramBot,
 		dinov3Detector:  dinov3Detector,
@@ -98,6 +160,7 @@ func NewConfigService(telegramBot *telegram.TelegramBot, dinov3Detector *detecti
 		dinov3Cfg:       dinov3Cfg,
 		yoloCfg:         yoloCfg,
 		detectionCfg:    detectionCfg,
+		pipelineCfg:     pipelineCfg,
 		db:              db,
 	}
 
@@ -121,6 +184,12 @@ func (c *ConfigImplementation) loadConfigFromDB() {
 			c.notificationCfg.CooldownSeconds = cfg.CooldownSeconds
 			// Token and ChatID come from env vars for security
 			fmt.Println("Loaded notification config from database")
+
+			// Update telegram bot enabled state from database config
+			if c.telegramBot != nil {
+				c.telegramBot.SetEnabled(cfg.TelegramEnabled)
+				fmt.Printf("Telegram notifications %s (from database)\n", map[bool]string{true: "enabled", false: "disabled"}[cfg.TelegramEnabled])
+			}
 		}
 	}
 
@@ -163,6 +232,20 @@ func (c *ConfigImplementation) loadConfigFromDB() {
 			c.dinov3Cfg.EnableSceneAnalysis = cfg.EnableSceneAnalysis
 			// Endpoint comes from env var
 			fmt.Println("Loaded DINOv3 config from database")
+		}
+	}
+
+	// Load pipeline config
+	if jsonStr, err := c.db.GetConfig("pipeline_config"); err == nil && jsonStr != "" {
+		var cfg config.PipelineConfig
+		if err := json.Unmarshal([]byte(jsonStr), &cfg); err == nil {
+			c.pipelineCfg.Mode = cfg.Mode
+			c.pipelineCfg.ExecutionMode = cfg.ExecutionMode
+			c.pipelineCfg.Detectors = cfg.Detectors
+			c.pipelineCfg.ScheduleInterval = cfg.ScheduleInterval
+			c.pipelineCfg.MotionSensitivity = cfg.MotionSensitivity
+			c.pipelineCfg.MotionCooldownSeconds = cfg.MotionCooldownSeconds
+			fmt.Println("Loaded pipeline config from database")
 		}
 	}
 }
@@ -235,6 +318,26 @@ func (c *ConfigImplementation) saveDinov3ConfigToDB() {
 	if jsonBytes, err := json.Marshal(cfg); err == nil {
 		if err := c.db.SaveConfig("dinov3_config", string(jsonBytes)); err != nil {
 			fmt.Printf("Warning: failed to save DINOv3 config to database: %v\n", err)
+		}
+	}
+}
+
+// savePipelineConfigToDB saves pipeline config to database
+func (c *ConfigImplementation) savePipelineConfigToDB() {
+	if c.db == nil {
+		return
+	}
+	cfg := config.PipelineConfig{
+		Mode:                  c.pipelineCfg.Mode,
+		ExecutionMode:         c.pipelineCfg.ExecutionMode,
+		Detectors:             c.pipelineCfg.Detectors,
+		ScheduleInterval:      c.pipelineCfg.ScheduleInterval,
+		MotionSensitivity:     c.pipelineCfg.MotionSensitivity,
+		MotionCooldownSeconds: c.pipelineCfg.MotionCooldownSeconds,
+	}
+	if jsonBytes, err := json.Marshal(cfg); err == nil {
+		if err := c.db.SaveConfig("pipeline_config", string(jsonBytes)); err != nil {
+			fmt.Printf("Warning: failed to save pipeline config to database: %v\n", err)
 		}
 	}
 }
@@ -539,9 +642,24 @@ func (c *ConfigImplementation) UpdateYolo(ctx context.Context, cfg *config.YOLOC
 		})
 	}
 
-	// Update motion detector draw boxes setting
+	// Update motion detector draw boxes setting and gRPC YOLO configuration
 	if c.motionDetector != nil {
 		c.motionDetector.SetDrawBoxes(c.yoloCfg.DrawBoxes)
+
+		// Send class filter configuration to gRPC YOLO service
+		// Parse comma-separated classes filter string into slice
+		var classesSlice []string
+		if c.yoloCfg.ClassesFilter != nil && *c.yoloCfg.ClassesFilter != "" {
+			for _, class := range splitAndTrim(*c.yoloCfg.ClassesFilter, ",") {
+				if class != "" {
+					classesSlice = append(classesSlice, class)
+				}
+			}
+		}
+		if err := c.motionDetector.ConfigureGRPCYOLO(c.yoloCfg.ConfidenceThreshold, classesSlice); err != nil {
+			// Log but don't fail - gRPC service might not be available
+			fmt.Printf("Warning: failed to configure gRPC YOLO: %v\n", err)
+		}
 	}
 
 	// Update detection config
@@ -704,6 +822,146 @@ func (c *ConfigImplementation) GetPrimaryDetector() string {
 	return c.detectionCfg.PrimaryDetector
 }
 
+// GetPipeline returns the detection pipeline configuration
+func (c *ConfigImplementation) GetPipeline(ctx context.Context) (*config.PipelineConfig, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	// Return a copy to avoid race conditions
+	detectors := make([]string, len(c.pipelineCfg.Detectors))
+	copy(detectors, c.pipelineCfg.Detectors)
+
+	return &config.PipelineConfig{
+		Mode:                  c.pipelineCfg.Mode,
+		ExecutionMode:         c.pipelineCfg.ExecutionMode,
+		Detectors:             detectors,
+		ScheduleInterval:      c.pipelineCfg.ScheduleInterval,
+		MotionSensitivity:     c.pipelineCfg.MotionSensitivity,
+		MotionCooldownSeconds: c.pipelineCfg.MotionCooldownSeconds,
+	}, nil
+}
+
+// UpdatePipeline updates the detection pipeline configuration
+func (c *ConfigImplementation) UpdatePipeline(ctx context.Context, cfg *config.PipelineConfig) (*config.PipelineConfig, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Validate detection mode
+	switch cfg.Mode {
+	case "disabled", "continuous", "motion_triggered", "scheduled", "hybrid":
+		// Valid
+	default:
+		return nil, &config.BadRequestError{
+			Message: "Detection mode must be one of: disabled, continuous, motion_triggered, scheduled, hybrid",
+		}
+	}
+
+	// Validate execution mode (only sequential is supported)
+	// Parallel mode was removed because it causes time-travel effects
+	if cfg.ExecutionMode != "" && cfg.ExecutionMode != "sequential" {
+		return nil, &config.BadRequestError{
+			Message: "Execution mode must be 'sequential' (parallel mode is not supported)",
+		}
+	}
+
+	// Validate detectors
+	validDetectors := map[string]bool{
+		"yolo":  true,
+		"face":  true,
+		"plate": true,
+	}
+	for _, det := range cfg.Detectors {
+		if !validDetectors[det] {
+			return nil, &config.BadRequestError{
+				Message: fmt.Sprintf("Invalid detector: %s. Must be one of: yolo, face, plate", det),
+			}
+		}
+	}
+
+	// Validate detector ordering in sequential mode (if both YOLO and Face are enabled)
+	// Note: Face can work alone - InsightFace has its own face detector
+	// But if both are enabled in sequential mode, YOLO should come before Face for efficiency
+	if cfg.ExecutionMode == "sequential" {
+		hasYOLO := false
+		hasFace := false
+		yoloIndex := -1
+		faceIndex := -1
+		for i, det := range cfg.Detectors {
+			if det == "yolo" {
+				hasYOLO = true
+				yoloIndex = i
+			}
+			if det == "face" {
+				hasFace = true
+				faceIndex = i
+			}
+		}
+		// If both are enabled, YOLO should come before Face for proper chaining
+		if hasFace && hasYOLO && faceIndex < yoloIndex {
+			return nil, &config.BadRequestError{
+				Message: "In sequential mode, YOLO must be ordered before Face detector (YOLO detects persons first, then faces are recognized within those regions)",
+			}
+		}
+	}
+
+	// Validate motion sensitivity
+	if cfg.MotionSensitivity < 0 || cfg.MotionSensitivity > 1 {
+		return nil, &config.BadRequestError{
+			Message: "Motion sensitivity must be between 0 and 1",
+		}
+	}
+
+	// Validate motion cooldown
+	if cfg.MotionCooldownSeconds < 0 {
+		return nil, &config.BadRequestError{
+			Message: "Motion cooldown seconds cannot be negative",
+		}
+	}
+
+	// Validate schedule interval format (simple check)
+	if cfg.ScheduleInterval != "" {
+		// Basic validation: should end with s, m, or h
+		lastChar := cfg.ScheduleInterval[len(cfg.ScheduleInterval)-1]
+		if lastChar != 's' && lastChar != 'm' && lastChar != 'h' {
+			return nil, &config.BadRequestError{
+				Message: "Schedule interval must be a valid Go duration (e.g., '5s', '10s', '1m')",
+			}
+		}
+	}
+
+	// Apply updates
+	c.pipelineCfg.Mode = cfg.Mode
+	c.pipelineCfg.ExecutionMode = cfg.ExecutionMode
+	c.pipelineCfg.Detectors = make([]string, len(cfg.Detectors))
+	copy(c.pipelineCfg.Detectors, cfg.Detectors)
+	c.pipelineCfg.ScheduleInterval = cfg.ScheduleInterval
+	c.pipelineCfg.MotionSensitivity = cfg.MotionSensitivity
+	c.pipelineCfg.MotionCooldownSeconds = cfg.MotionCooldownSeconds
+
+	// Save to database
+	c.savePipelineConfigToDB()
+
+	// Return a copy of the updated config
+	detectors := make([]string, len(c.pipelineCfg.Detectors))
+	copy(detectors, c.pipelineCfg.Detectors)
+
+	return &config.PipelineConfig{
+		Mode:                  c.pipelineCfg.Mode,
+		ExecutionMode:         c.pipelineCfg.ExecutionMode,
+		Detectors:             detectors,
+		ScheduleInterval:      c.pipelineCfg.ScheduleInterval,
+		MotionSensitivity:     c.pipelineCfg.MotionSensitivity,
+		MotionCooldownSeconds: c.pipelineCfg.MotionCooldownSeconds,
+	}, nil
+}
+
+// GetPipelineConfig returns the pipeline config for internal use
+func (c *ConfigImplementation) GetPipelineConfig() *config.PipelineConfig {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.pipelineCfg
+}
+
 // Helper functions
 
 func ptrString(s string) *string {
@@ -730,4 +988,96 @@ func maskToken(token *string) *string {
 
 func isMaskedToken(token string) bool {
 	return len(token) > 0 && (token == "****" || (len(token) >= 11 && token[4:7] == "..."))
+}
+
+func splitTrim(s string, sep string) []string {
+	parts := make([]string, 0)
+	for _, part := range splitString(s, sep) {
+		trimmed := trimSpace(part)
+		if trimmed != "" {
+			parts = append(parts, trimmed)
+		}
+	}
+	return parts
+}
+
+func splitString(s string, sep string) []string {
+	if s == "" {
+		return nil
+	}
+	result := make([]string, 0)
+	start := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == sep[0] {
+			result = append(result, s[start:i])
+			start = i + 1
+		}
+	}
+	result = append(result, s[start:])
+	return result
+}
+
+func trimSpace(s string) string {
+	start := 0
+	end := len(s)
+	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
+		start++
+	}
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
+		end--
+	}
+	return s[start:end]
+}
+
+// CreatePipelineConfigProvider creates a function that provides pipeline.EffectiveConfig
+// for mode gating in the motion detector. This converts the config service's PipelineConfig
+// to the pipeline package's EffectiveConfig format.
+func CreatePipelineConfigProvider(configImpl *ConfigImplementation) motion.PipelineConfigProvider {
+	return func(cameraID string) *pipeline.EffectiveConfig {
+		pipelineCfg := configImpl.GetPipelineConfig()
+		if pipelineCfg == nil {
+			return nil
+		}
+
+		// Convert string mode to pipeline.DetectionMode
+		var mode pipeline.DetectionMode
+		switch pipelineCfg.Mode {
+		case "disabled":
+			mode = pipeline.DetectionModeDisabled
+		case "continuous":
+			mode = pipeline.DetectionModeContinuous
+		case "motion_triggered":
+			mode = pipeline.DetectionModeMotionTriggered
+		case "scheduled":
+			mode = pipeline.DetectionModeScheduled
+		case "hybrid":
+			mode = pipeline.DetectionModeHybrid
+		default:
+			mode = pipeline.DetectionModeMotionTriggered
+		}
+
+		// Execution mode is always sequential (parallel was removed)
+		execMode := pipeline.ExecutionModeSequential
+
+		// Parse schedule interval
+		scheduleInterval := 5 * time.Second
+		if pipelineCfg.ScheduleInterval != "" {
+			if parsed, err := time.ParseDuration(pipelineCfg.ScheduleInterval); err == nil {
+				scheduleInterval = parsed
+			}
+		}
+
+		return &pipeline.EffectiveConfig{
+			CameraID:          cameraID,
+			Mode:              mode,
+			ExecutionMode:     execMode,
+			Detectors:         pipelineCfg.Detectors,
+			ScheduleInterval:  scheduleInterval,
+			MotionSensitivity: pipelineCfg.MotionSensitivity,
+			MotionCooldownMs:  pipelineCfg.MotionCooldownSeconds * 1000, // Convert seconds to milliseconds
+			YOLOConfidence:    0.5,                                      // Default
+			EnableFaceRecog:   true,                                     // Default enabled
+			EnablePlateRecog:  false,                                    // Default disabled
+		}
+	}
 }

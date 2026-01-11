@@ -22,11 +22,11 @@ func (c *CompositeStreamOverlayProvider) UpdateDetections(cameraID string, detec
 	}
 }
 
-// SetAnnotatedFrame forwards annotated frame to all providers
-func (c *CompositeStreamOverlayProvider) SetAnnotatedFrame(cameraID string, frameData []byte) {
+// SetAnnotatedFrame forwards annotated frame to all providers with sequence for ordering
+func (c *CompositeStreamOverlayProvider) SetAnnotatedFrame(cameraID string, seq uint64, frameData []byte) {
 	for _, p := range c.providers {
 		if p != nil {
-			p.SetAnnotatedFrame(cameraID, frameData)
+			p.SetAnnotatedFrame(cameraID, seq, frameData)
 		}
 	}
 }

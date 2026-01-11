@@ -17,13 +17,14 @@ type Database struct {
 
 // CameraRecord represents a camera stored in the database
 type CameraRecord struct {
-	ID         string
-	Name       string
-	Device     string
-	Resolution string
-	FPS        int
-	Status     string
-	CreatedAt  time.Time
+	ID              string
+	Name            string
+	Device          string
+	Resolution      string
+	FPS             int
+	Status          string
+	DetectionConfig string // JSON-encoded detection configuration
+	CreatedAt       time.Time
 }
 
 // MotionEventRecord represents a motion event stored in the database
@@ -132,6 +133,8 @@ func (d *Database) Migrate() error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_events_camera_time ON motion_events(camera_id, timestamp DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_events_time ON motion_events(timestamp DESC)`,
+		// Add detection_config column to cameras table
+		`ALTER TABLE cameras ADD COLUMN detection_config TEXT`,
 	}
 
 	for _, migration := range migrations {
@@ -150,16 +153,17 @@ func (d *Database) Migrate() error {
 
 // SaveCamera saves or updates a camera
 func (d *Database) SaveCamera(cam *CameraRecord) error {
-	query := `INSERT INTO cameras (id, name, device, resolution, fps, status, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+	query := `INSERT INTO cameras (id, name, device, resolution, fps, status, detection_config, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			name = excluded.name,
 			device = excluded.device,
 			resolution = excluded.resolution,
 			fps = excluded.fps,
-			status = excluded.status`
+			status = excluded.status,
+			detection_config = excluded.detection_config`
 
-	_, err := d.db.Exec(query, cam.ID, cam.Name, cam.Device, cam.Resolution, cam.FPS, cam.Status, cam.CreatedAt)
+	_, err := d.db.Exec(query, cam.ID, cam.Name, cam.Device, cam.Resolution, cam.FPS, cam.Status, cam.DetectionConfig, cam.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to save camera: %w", err)
 	}
@@ -168,10 +172,10 @@ func (d *Database) SaveCamera(cam *CameraRecord) error {
 
 // GetCamera retrieves a camera by ID
 func (d *Database) GetCamera(id string) (*CameraRecord, error) {
-	query := `SELECT id, name, device, resolution, fps, status, created_at FROM cameras WHERE id = ?`
+	query := `SELECT id, name, device, resolution, fps, status, COALESCE(detection_config, ''), created_at FROM cameras WHERE id = ?`
 
 	var cam CameraRecord
-	err := d.db.QueryRow(query, id).Scan(&cam.ID, &cam.Name, &cam.Device, &cam.Resolution, &cam.FPS, &cam.Status, &cam.CreatedAt)
+	err := d.db.QueryRow(query, id).Scan(&cam.ID, &cam.Name, &cam.Device, &cam.Resolution, &cam.FPS, &cam.Status, &cam.DetectionConfig, &cam.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -183,7 +187,7 @@ func (d *Database) GetCamera(id string) (*CameraRecord, error) {
 
 // ListCameras returns all cameras
 func (d *Database) ListCameras() ([]*CameraRecord, error) {
-	query := `SELECT id, name, device, resolution, fps, status, created_at FROM cameras ORDER BY created_at DESC`
+	query := `SELECT id, name, device, resolution, fps, status, COALESCE(detection_config, ''), created_at FROM cameras ORDER BY created_at DESC`
 
 	rows, err := d.db.Query(query)
 	if err != nil {
@@ -194,12 +198,21 @@ func (d *Database) ListCameras() ([]*CameraRecord, error) {
 	var cameras []*CameraRecord
 	for rows.Next() {
 		var cam CameraRecord
-		if err := rows.Scan(&cam.ID, &cam.Name, &cam.Device, &cam.Resolution, &cam.FPS, &cam.Status, &cam.CreatedAt); err != nil {
+		if err := rows.Scan(&cam.ID, &cam.Name, &cam.Device, &cam.Resolution, &cam.FPS, &cam.Status, &cam.DetectionConfig, &cam.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan camera: %w", err)
 		}
 		cameras = append(cameras, &cam)
 	}
 	return cameras, nil
+}
+
+// UpdateCameraDetectionConfig updates only the detection config of a camera
+func (d *Database) UpdateCameraDetectionConfig(id, detectionConfig string) error {
+	_, err := d.db.Exec("UPDATE cameras SET detection_config = ? WHERE id = ?", detectionConfig, id)
+	if err != nil {
+		return fmt.Errorf("failed to update camera detection config: %w", err)
+	}
+	return nil
 }
 
 // DeleteCamera deletes a camera by ID

@@ -1,0 +1,45 @@
+# Face Recognition Service for Orbo
+# Quadlet container file for systemd/Podman
+# Compatible with meta-container-deploy for Yocto-based systems
+#
+# Install to: /etc/containers/systemd/recognition.container
+# Podman will generate: recognition.service
+
+[Unit]
+Description=Face Recognition Service for Orbo (InsightFace)
+After=network-online.target
+Before=orbo.service
+
+[Container]
+Image=ghcr.io/marcopennelli/orbo-recognition:latest
+ContainerName=recognition
+
+# Internal port (accessed by orbo container via pod network)
+PublishPort=8082:8082
+
+# Persistent storage for face database
+Volume=/var/lib/orbo/faces:/app/faces:Z
+
+# Environment variables
+Environment=SIMILARITY_THRESHOLD=0.5
+
+# Security: run as non-root
+User=1000
+Group=1000
+
+# Read-only root filesystem (faces volume is writable)
+ReadOnly=true
+
+# Health check
+HealthCmd=wget --no-verbose --tries=1 --spider http://localhost:8082/health || exit 1
+HealthInterval=30s
+HealthTimeout=5s
+HealthStartPeriod=30s
+HealthRetries=3
+
+[Service]
+Restart=always
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target
