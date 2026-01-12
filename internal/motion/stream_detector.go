@@ -525,9 +525,12 @@ func (sd *StreamDetector) analyzeFrames(cameraID string, stopCh chan struct{}) {
 				}
 			}
 
-			// Also perform basic motion detection for detecting changes
-			// Only run if detection is enabled (not in "disabled" mode)
-			if backgroundImg != nil && sd.isDetectionEnabled(cameraID) {
+			// Basic motion detection is only needed when no AI detectors are running
+			// In "continuous" mode with YOLO or Face, they already process every frame
+			// Skip motion detection if any AI detector is handling detection
+			yoloHandling := sd.isDetectorEnabled(cameraID, "yolo")
+			faceHandling := sd.isDetectorEnabled(cameraID, "face") && sd.hasFaceRecognizer()
+			if backgroundImg != nil && sd.isDetectionEnabled(cameraID) && !yoloHandling && !faceHandling {
 				sd.fallbackToBasicMotion(cameraID, frameData, backgroundImg, currentImg)
 			}
 		}
@@ -1715,6 +1718,18 @@ func (sd *StreamDetector) IsDetectionRunning(cameraID string) bool {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 	return sd.isRunning[cameraID]
+}
+
+// HasAnyDetectionRunning returns true if detection is running on any camera
+func (sd *StreamDetector) HasAnyDetectionRunning() bool {
+	sd.mu.RLock()
+	defer sd.mu.RUnlock()
+	for _, running := range sd.isRunning {
+		if running {
+			return true
+		}
+	}
+	return false
 }
 
 // SetDrawBoxes enables or disables bounding box drawing on detection images

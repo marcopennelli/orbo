@@ -18,15 +18,17 @@ import (
 
 // Server lists the camera service endpoint HTTP handlers.
 type Server struct {
-	Mounts     []*MountPoint
-	List       http.Handler
-	Get        http.Handler
-	Create     http.Handler
-	Update     http.Handler
-	Delete     http.Handler
-	Activate   http.Handler
-	Deactivate http.Handler
-	Capture    http.Handler
+	Mounts           []*MountPoint
+	List             http.Handler
+	Get              http.Handler
+	Create           http.Handler
+	Update           http.Handler
+	Delete           http.Handler
+	Activate         http.Handler
+	Deactivate       http.Handler
+	Capture          http.Handler
+	EnableDetection  http.Handler
+	DisableDetection http.Handler
 }
 
 // MountPoint holds information about the mounted endpoints.
@@ -64,15 +66,19 @@ func New(
 			{"Activate", "POST", "/api/v1/cameras/{id}/activate"},
 			{"Deactivate", "POST", "/api/v1/cameras/{id}/deactivate"},
 			{"Capture", "GET", "/api/v1/cameras/{id}/frame"},
+			{"EnableDetection", "POST", "/api/v1/cameras/{id}/detection/enable"},
+			{"DisableDetection", "POST", "/api/v1/cameras/{id}/detection/disable"},
 		},
-		List:       NewListHandler(e.List, mux, decoder, encoder, errhandler, formatter),
-		Get:        NewGetHandler(e.Get, mux, decoder, encoder, errhandler, formatter),
-		Create:     NewCreateHandler(e.Create, mux, decoder, encoder, errhandler, formatter),
-		Update:     NewUpdateHandler(e.Update, mux, decoder, encoder, errhandler, formatter),
-		Delete:     NewDeleteHandler(e.Delete, mux, decoder, encoder, errhandler, formatter),
-		Activate:   NewActivateHandler(e.Activate, mux, decoder, encoder, errhandler, formatter),
-		Deactivate: NewDeactivateHandler(e.Deactivate, mux, decoder, encoder, errhandler, formatter),
-		Capture:    NewCaptureHandler(e.Capture, mux, decoder, encoder, errhandler, formatter),
+		List:             NewListHandler(e.List, mux, decoder, encoder, errhandler, formatter),
+		Get:              NewGetHandler(e.Get, mux, decoder, encoder, errhandler, formatter),
+		Create:           NewCreateHandler(e.Create, mux, decoder, encoder, errhandler, formatter),
+		Update:           NewUpdateHandler(e.Update, mux, decoder, encoder, errhandler, formatter),
+		Delete:           NewDeleteHandler(e.Delete, mux, decoder, encoder, errhandler, formatter),
+		Activate:         NewActivateHandler(e.Activate, mux, decoder, encoder, errhandler, formatter),
+		Deactivate:       NewDeactivateHandler(e.Deactivate, mux, decoder, encoder, errhandler, formatter),
+		Capture:          NewCaptureHandler(e.Capture, mux, decoder, encoder, errhandler, formatter),
+		EnableDetection:  NewEnableDetectionHandler(e.EnableDetection, mux, decoder, encoder, errhandler, formatter),
+		DisableDetection: NewDisableDetectionHandler(e.DisableDetection, mux, decoder, encoder, errhandler, formatter),
 	}
 }
 
@@ -89,6 +95,8 @@ func (s *Server) Use(m func(http.Handler) http.Handler) {
 	s.Activate = m(s.Activate)
 	s.Deactivate = m(s.Deactivate)
 	s.Capture = m(s.Capture)
+	s.EnableDetection = m(s.EnableDetection)
+	s.DisableDetection = m(s.DisableDetection)
 }
 
 // MethodNames returns the methods served.
@@ -104,6 +112,8 @@ func Mount(mux goahttp.Muxer, h *Server) {
 	MountActivateHandler(mux, h.Activate)
 	MountDeactivateHandler(mux, h.Deactivate)
 	MountCaptureHandler(mux, h.Capture)
+	MountEnableDetectionHandler(mux, h.EnableDetection)
+	MountDisableDetectionHandler(mux, h.DisableDetection)
 }
 
 // Mount configures the mux to serve the camera endpoints.
@@ -491,6 +501,108 @@ func NewCaptureHandler(
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
 		ctx = context.WithValue(ctx, goa.MethodKey, "capture")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "camera")
+		payload, err := decodeRequest(r)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		res, err := endpoint(ctx, payload)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountEnableDetectionHandler configures the mux to serve the "camera" service
+// "enable_detection" endpoint.
+func MountEnableDetectionHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("POST", "/api/v1/cameras/{id}/detection/enable", f)
+}
+
+// NewEnableDetectionHandler creates a HTTP handler which loads the HTTP
+// request and calls the "camera" service "enable_detection" endpoint.
+func NewEnableDetectionHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		decodeRequest  = DecodeEnableDetectionRequest(mux, decoder)
+		encodeResponse = EncodeEnableDetectionResponse(encoder)
+		encodeError    = EncodeEnableDetectionError(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "enable_detection")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "camera")
+		payload, err := decodeRequest(r)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		res, err := endpoint(ctx, payload)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountDisableDetectionHandler configures the mux to serve the "camera"
+// service "disable_detection" endpoint.
+func MountDisableDetectionHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("POST", "/api/v1/cameras/{id}/detection/disable", f)
+}
+
+// NewDisableDetectionHandler creates a HTTP handler which loads the HTTP
+// request and calls the "camera" service "disable_detection" endpoint.
+func NewDisableDetectionHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		decodeRequest  = DecodeDisableDetectionRequest(mux, decoder)
+		encodeResponse = EncodeDisableDetectionResponse(encoder)
+		encodeError    = EncodeDisableDetectionError(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "disable_detection")
 		ctx = context.WithValue(ctx, goa.ServiceKey, "camera")
 		payload, err := decodeRequest(r)
 		if err != nil {

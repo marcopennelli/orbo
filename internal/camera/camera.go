@@ -15,14 +15,15 @@ import (
 
 // Camera represents a USB camera device with direct system access
 type Camera struct {
-	ID         string
-	Name       string
-	Device     string
-	Resolution string
-	FPS        int
-	Status     string
-	CreatedAt  time.Time
-	
+	ID               string
+	Name             string
+	Device           string
+	Resolution       string
+	FPS              int
+	Status           string
+	DetectionEnabled bool // Whether AI detection is enabled for this camera
+	CreatedAt        time.Time
+
 	// Internal fields for system access
 	mu         sync.RWMutex
 	isActive   bool
@@ -96,17 +97,18 @@ func (cm *CameraManager) loadCamerasFromDB() error {
 
 	for _, record := range records {
 		camera := &Camera{
-			ID:         record.ID,
-			Name:       record.Name,
-			Device:     record.Device,
-			Resolution: record.Resolution,
-			FPS:        record.FPS,
-			Status:     "inactive", // Always start inactive
-			CreatedAt:  record.CreatedAt,
-			stopCh:     make(chan struct{}),
+			ID:               record.ID,
+			Name:             record.Name,
+			Device:           record.Device,
+			Resolution:       record.Resolution,
+			FPS:              record.FPS,
+			Status:           "inactive", // Always start inactive
+			DetectionEnabled: record.DetectionEnabled,
+			CreatedAt:        record.CreatedAt,
+			stopCh:           make(chan struct{}),
 		}
 		cm.cameras[camera.ID] = camera
-		fmt.Printf("Loaded camera from database: %s (%s)\n", camera.Name, camera.ID)
+		fmt.Printf("Loaded camera from database: %s (%s) detection_enabled=%v\n", camera.Name, camera.ID, camera.DetectionEnabled)
 	}
 
 	fmt.Printf("Loaded %d cameras from database\n", len(records))
@@ -116,14 +118,15 @@ func (cm *CameraManager) loadCamerasFromDB() error {
 // NewCamera creates a new camera instance
 func NewCamera(id, name, device, resolution string, fps int) *Camera {
 	return &Camera{
-		ID:         id,
-		Name:       name,
-		Device:     device,
-		Resolution: resolution,
-		FPS:        fps,
-		Status:     "inactive",
-		CreatedAt:  time.Now(),
-		stopCh:     make(chan struct{}),
+		ID:               id,
+		Name:             name,
+		Device:           device,
+		Resolution:       resolution,
+		FPS:              fps,
+		Status:           "inactive",
+		DetectionEnabled: true, // Default to detection enabled
+		CreatedAt:        time.Now(),
+		stopCh:           make(chan struct{}),
 	}
 }
 
@@ -142,13 +145,14 @@ func (cm *CameraManager) AddCamera(camera *Camera) error {
 	// Persist to database
 	if cm.db != nil {
 		record := &database.CameraRecord{
-			ID:         camera.ID,
-			Name:       camera.Name,
-			Device:     camera.Device,
-			Resolution: camera.Resolution,
-			FPS:        camera.FPS,
-			Status:     camera.Status,
-			CreatedAt:  camera.CreatedAt,
+			ID:               camera.ID,
+			Name:             camera.Name,
+			Device:           camera.Device,
+			Resolution:       camera.Resolution,
+			FPS:              camera.FPS,
+			Status:           camera.Status,
+			DetectionEnabled: camera.DetectionEnabled,
+			CreatedAt:        camera.CreatedAt,
 		}
 		if err := cm.db.SaveCamera(record); err != nil {
 			fmt.Printf("Warning: failed to persist camera to database: %v\n", err)
@@ -541,14 +545,14 @@ func (cm *CameraManager) GetCameraSource(cameraID string) (device string, camera
 func (c *Camera) UpdateConfiguration(name, resolution string, fps int) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	wasActive := c.isActive
-	
+
 	// Stop camera if active
 	if c.isActive {
 		c.stop()
 	}
-	
+
 	// Update configuration
 	if name != "" {
 		c.Name = name
@@ -559,12 +563,52 @@ func (c *Camera) UpdateConfiguration(name, resolution string, fps int) error {
 	if fps > 0 {
 		c.FPS = fps
 	}
-	
+
 	// Restart camera if it was active
 	if wasActive {
 		c.mu.Unlock() // Unlock before calling activate which needs the lock
 		return c.activate()
 	}
-	
+
 	return nil
+}
+
+// SetDetectionEnabled enables or disables AI detection for this camera
+func (cm *CameraManager) SetDetectionEnabled(id string, enabled bool) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	camera, exists := cm.cameras[id]
+	if !exists {
+		return fmt.Errorf("camera with ID %s not found", id)
+	}
+
+	camera.mu.Lock()
+	camera.DetectionEnabled = enabled
+	camera.mu.Unlock()
+
+	// Persist to database
+	if cm.db != nil {
+		if err := cm.db.UpdateCameraDetectionEnabled(id, enabled); err != nil {
+			fmt.Printf("Warning: failed to update camera detection_enabled in database: %v\n", err)
+		}
+	}
+
+	fmt.Printf("Camera %s detection_enabled set to %v\n", id, enabled)
+	return nil
+}
+
+// IsDetectionEnabled returns whether detection is enabled for a camera
+func (cm *CameraManager) IsDetectionEnabled(id string) bool {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	camera, exists := cm.cameras[id]
+	if !exists {
+		return false
+	}
+
+	camera.mu.RLock()
+	defer camera.mu.RUnlock()
+	return camera.DetectionEnabled
 }

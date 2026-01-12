@@ -6,13 +6,29 @@ const RECOGNITION_BASE = '/recognition';
 export interface Face {
   name: string;
   created_at: string;
-  has_image: boolean;
+  updated_at?: string;
+  has_images: boolean;
+  has_image?: boolean; // deprecated, use has_images
+  image_count: number;
   age?: number;
   gender?: string;
 }
 
 export interface FaceListResponse {
   faces: Face[];
+  count: number;
+  max_images_per_person: number;
+}
+
+export interface FaceImage {
+  index: number;
+  path: string;
+  exists: boolean;
+}
+
+export interface FaceImagesResponse {
+  name: string;
+  images: FaceImage[];
   count: number;
 }
 
@@ -53,6 +69,16 @@ export interface RegisterResponse {
   name: string;
   message: string;
   face_count: number;
+  image_count: number;
+  image_paths: string[];
+}
+
+export interface AddFaceImageResponse {
+  success: boolean;
+  name: string;
+  message: string;
+  image_count: number;
+  max_images: number;
   image_path: string;
 }
 
@@ -61,6 +87,7 @@ export interface DeleteResponse {
   name: string;
   message: string;
   face_count: number;
+  deleted_images: number;
 }
 
 export interface ServiceInfo {
@@ -171,9 +198,27 @@ export async function deleteFace(name: string): Promise<DeleteResponse> {
   return handleResponse<DeleteResponse>(response);
 }
 
-// Get face image URL
-export function getFaceImageUrl(name: string): string {
-  return `${RECOGNITION_BASE}/faces/${encodeURIComponent(name)}/image`;
+// Get face image URL (with optional index for multi-image support)
+export function getFaceImageUrl(name: string, index: number = 0): string {
+  return `${RECOGNITION_BASE}/faces/${encodeURIComponent(name)}/image?index=${index}`;
+}
+
+// Add an additional image to an existing face identity
+export async function addFaceImage(name: string, imageFile: File): Promise<AddFaceImageResponse> {
+  const formData = new FormData();
+  formData.append('file', imageFile);
+
+  const response = await fetch(`${RECOGNITION_BASE}/faces/${encodeURIComponent(name)}/add-image`, {
+    method: 'POST',
+    body: formData,
+  });
+  return handleResponse<AddFaceImageResponse>(response);
+}
+
+// Get all images for a face identity
+export async function getFaceImages(name: string): Promise<FaceImagesResponse> {
+  const response = await fetch(`${RECOGNITION_BASE}/faces/${encodeURIComponent(name)}/images`);
+  return handleResponse<FaceImagesResponse>(response);
 }
 
 // Detect faces in an image

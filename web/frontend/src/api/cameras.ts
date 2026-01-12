@@ -29,6 +29,14 @@ export async function deactivateCamera(id: string): Promise<Camera> {
   return post<Camera>(`/cameras/${id}/deactivate`);
 }
 
+export async function enableDetection(id: string): Promise<Camera> {
+  return post<Camera>(`/cameras/${id}/detection/enable`);
+}
+
+export async function disableDetection(id: string): Promise<Camera> {
+  return post<Camera>(`/cameras/${id}/detection/disable`);
+}
+
 export async function getCameraFrame(id: string): Promise<FrameResponse> {
   return get<FrameResponse>(`/cameras/${id}/frame`);
 }

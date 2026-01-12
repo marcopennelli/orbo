@@ -7,6 +7,7 @@ export interface Camera {
   resolution?: string;
   fps?: number;
   created_at?: string;
+  detection_enabled: boolean;  // Whether AI detection is enabled for this camera
 }
 
 export interface CameraCreatePayload {

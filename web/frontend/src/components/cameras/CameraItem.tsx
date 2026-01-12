@@ -1,4 +1,4 @@
-import { Camera, Power, PowerOff, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { Camera, Power, PowerOff, Edit, Trash2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import type { Camera as CameraType } from '../../types';
 import { Badge, Button } from '../ui';
 
@@ -9,6 +9,7 @@ interface CameraItemProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onToggleActive?: () => void;
+  onToggleDetection?: () => void;
   isLoading?: boolean;
 }
 
@@ -41,10 +42,12 @@ export default function CameraItem({
   onEdit,
   onDelete,
   onToggleActive,
+  onToggleDetection,
   isLoading,
 }: CameraItemProps) {
   const isActive = camera.status === 'active';
   const isError = camera.status === 'error';
+  const detectionEnabled = camera.detection_enabled;
 
   return (
     <div
@@ -78,6 +81,15 @@ export default function CameraItem({
           <Badge variant={statusVariant(camera.status)} className="text-xs">
             {statusLabel(camera.status)}
           </Badge>
+          {isActive && (
+            <Badge
+              variant={detectionEnabled ? 'success' : 'default'}
+              className="text-xs"
+              title={detectionEnabled ? 'Detection enabled' : 'Detection disabled (streaming only)'}
+            >
+              {detectionEnabled ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -95,6 +107,21 @@ export default function CameraItem({
         >
           {isActive ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
         </Button>
+        {isActive && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleDetection?.();
+            }}
+            disabled={isLoading}
+            title={detectionEnabled ? 'Disable AI detection' : 'Enable AI detection'}
+            className={detectionEnabled ? 'text-accent-green' : 'text-text-muted'}
+          >
+            {detectionEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"

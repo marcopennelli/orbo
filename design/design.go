@@ -69,6 +69,9 @@ var CameraInfo = Type("CameraInfo", func() {
     Field(7, "created_at", String, "Creation timestamp", func() {
         Format(FormatDateTime)
     })
+    Field(8, "detection_enabled", Boolean, "Whether detection is enabled for this camera", func() {
+        Description("When false, camera streams only without running AI detection.")
+    })
     Required("id", "name", "device", "status")
 })
 
@@ -440,6 +443,40 @@ var _ = Service("camera", func() {
             Response(StatusOK)
             Response("not_found", StatusNotFound)
             Response("internal", StatusInternalServerError)
+        })
+    })
+
+    Method("enable_detection", func() {
+        Description("Enable AI detection for this camera. Detection will run on captured frames.")
+        Payload(func() {
+            Field(1, "id", String, "Camera ID", func() {
+                Format(FormatUUID)
+            })
+            Required("id")
+        })
+        Result(CameraInfo)
+        Error("not_found", NotFoundError, "Camera not found")
+        HTTP(func() {
+            POST("/api/v1/cameras/{id}/detection/enable")
+            Response(StatusOK)
+            Response("not_found", StatusNotFound)
+        })
+    })
+
+    Method("disable_detection", func() {
+        Description("Disable AI detection for this camera. Camera will stream only without detection.")
+        Payload(func() {
+            Field(1, "id", String, "Camera ID", func() {
+                Format(FormatUUID)
+            })
+            Required("id")
+        })
+        Result(CameraInfo)
+        Error("not_found", NotFoundError, "Camera not found")
+        HTTP(func() {
+            POST("/api/v1/cameras/{id}/detection/disable")
+            Response(StatusOK)
+            Response("not_found", StatusNotFound)
         })
     })
 })

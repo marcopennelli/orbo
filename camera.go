@@ -70,3 +70,17 @@ func (s *camerasrvc) Capture(ctx context.Context, p *camera.CapturePayload) (res
 	s.logger.Print("camera.capture")
 	return
 }
+
+// EnableDetection enables AI detection for this camera
+func (s *camerasrvc) EnableDetection(ctx context.Context, p *camera.EnableDetectionPayload) (res *camera.CameraInfo, err error) {
+	res = &camera.CameraInfo{}
+	s.logger.Print("camera.enable_detection")
+	return
+}
+
+// DisableDetection disables AI detection for this camera
+func (s *camerasrvc) DisableDetection(ctx context.Context, p *camera.DisableDetectionPayload) (res *camera.CameraInfo, err error) {
+	res = &camera.CameraInfo{}
+	s.logger.Print("camera.disable_detection")
+	return
+}

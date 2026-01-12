@@ -74,3 +74,25 @@ export function useDeactivateCamera() {
     },
   });
 }
+
+export function useEnableDetection() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => camerasApi.enableDetection(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cameras'] });
+    },
+  });
+}
+
+export function useDisableDetection() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => camerasApi.disableDetection(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cameras'] });
+    },
+  });
+}

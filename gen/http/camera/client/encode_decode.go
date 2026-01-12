@@ -708,17 +708,182 @@ func DecodeCaptureResponse(decoder func(*http.Response) goahttp.Decoder, restore
 	}
 }
 
+// BuildEnableDetectionRequest instantiates a HTTP request object with method
+// and path set to call the "camera" service "enable_detection" endpoint
+func (c *Client) BuildEnableDetectionRequest(ctx context.Context, v any) (*http.Request, error) {
+	var (
+		id string
+	)
+	{
+		p, ok := v.(*camera.EnableDetectionPayload)
+		if !ok {
+			return nil, goahttp.ErrInvalidType("camera", "enable_detection", "*camera.EnableDetectionPayload", v)
+		}
+		id = p.ID
+	}
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: EnableDetectionCameraPath(id)}
+	req, err := http.NewRequest("POST", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("camera", "enable_detection", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeEnableDetectionResponse returns a decoder for responses returned by
+// the camera enable_detection endpoint. restoreBody controls whether the
+// response body should be restored after having been read.
+// DecodeEnableDetectionResponse may return the following errors:
+//   - "not_found" (type *camera.NotFoundError): http.StatusNotFound
+//   - error: internal error
+func DecodeEnableDetectionResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body EnableDetectionResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("camera", "enable_detection", err)
+			}
+			err = ValidateEnableDetectionResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("camera", "enable_detection", err)
+			}
+			res := NewEnableDetectionCameraInfoOK(&body)
+			return res, nil
+		case http.StatusNotFound:
+			var (
+				body EnableDetectionNotFoundResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("camera", "enable_detection", err)
+			}
+			err = ValidateEnableDetectionNotFoundResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("camera", "enable_detection", err)
+			}
+			return nil, NewEnableDetectionNotFound(&body)
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("camera", "enable_detection", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildDisableDetectionRequest instantiates a HTTP request object with method
+// and path set to call the "camera" service "disable_detection" endpoint
+func (c *Client) BuildDisableDetectionRequest(ctx context.Context, v any) (*http.Request, error) {
+	var (
+		id string
+	)
+	{
+		p, ok := v.(*camera.DisableDetectionPayload)
+		if !ok {
+			return nil, goahttp.ErrInvalidType("camera", "disable_detection", "*camera.DisableDetectionPayload", v)
+		}
+		id = p.ID
+	}
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: DisableDetectionCameraPath(id)}
+	req, err := http.NewRequest("POST", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("camera", "disable_detection", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeDisableDetectionResponse returns a decoder for responses returned by
+// the camera disable_detection endpoint. restoreBody controls whether the
+// response body should be restored after having been read.
+// DecodeDisableDetectionResponse may return the following errors:
+//   - "not_found" (type *camera.NotFoundError): http.StatusNotFound
+//   - error: internal error
+func DecodeDisableDetectionResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body DisableDetectionResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("camera", "disable_detection", err)
+			}
+			err = ValidateDisableDetectionResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("camera", "disable_detection", err)
+			}
+			res := NewDisableDetectionCameraInfoOK(&body)
+			return res, nil
+		case http.StatusNotFound:
+			var (
+				body DisableDetectionNotFoundResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("camera", "disable_detection", err)
+			}
+			err = ValidateDisableDetectionNotFoundResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("camera", "disable_detection", err)
+			}
+			return nil, NewDisableDetectionNotFound(&body)
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("camera", "disable_detection", resp.StatusCode, string(body))
+		}
+	}
+}
+
 // unmarshalCameraInfoResponseToCameraCameraInfo builds a value of type
 // *camera.CameraInfo from a value of type *CameraInfoResponse.
 func unmarshalCameraInfoResponseToCameraCameraInfo(v *CameraInfoResponse) *camera.CameraInfo {
 	res := &camera.CameraInfo{
-		ID:         *v.ID,
-		Name:       *v.Name,
-		Device:     *v.Device,
-		Status:     *v.Status,
-		Resolution: v.Resolution,
-		Fps:        v.Fps,
-		CreatedAt:  v.CreatedAt,
+		ID:               *v.ID,
+		Name:             *v.Name,
+		Device:           *v.Device,
+		Status:           *v.Status,
+		Resolution:       v.Resolution,
+		Fps:              v.Fps,
+		CreatedAt:        v.CreatedAt,
+		DetectionEnabled: v.DetectionEnabled,
 	}
 
 	return res

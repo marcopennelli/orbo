@@ -13,6 +13,10 @@ service FaceRecognitionService {
   // RegisterFace adds a new face identity to the database
   rpc RegisterFace(RegisterFaceRequest) returns (RegisterFaceResponse);
 
+  // AddFaceImage adds an additional image to an existing face identity
+  // Multiple images per person improve recognition accuracy
+  rpc AddFaceImage(AddFaceImageRequest) returns (AddFaceImageResponse);
+
   // DeleteFace removes a face identity from the database
   rpc DeleteFace(DeleteFaceRequest) returns (DeleteFaceResponse);
 
@@ -146,6 +150,33 @@ message RegisterFaceResponse {
 
   // Total faces in database after registration
   int32 face_count = 4;
+
+  // Number of images for this person
+  int32 image_count = 5;
+}
+
+// AddFaceImageRequest adds an additional image to an existing face identity
+message AddFaceImageRequest {
+  // Name of the existing face identity
+  string name = 1;
+
+  // JPEG image containing exactly one face
+  bytes image_data = 2;
+}
+
+// AddFaceImageResponse confirms image was added
+message AddFaceImageResponse {
+  bool success = 1;
+  string message = 2;
+
+  // Name of the face identity
+  string name = 3;
+
+  // Number of images now stored for this person
+  int32 image_count = 4;
+
+  // Maximum images allowed per person
+  int32 max_images = 5;
 }
 
 // DeleteFaceRequest removes a face identity
@@ -170,6 +201,9 @@ message ListFacesRequest {}
 message ListFacesResponse {
   repeated FaceIdentity faces = 1;
   int32 count = 2;
+
+  // Maximum images allowed per person
+  int32 max_images_per_person = 3;
 }
 
 // FaceIdentity represents a registered face in the database
@@ -180,12 +214,18 @@ message FaceIdentity {
   // When this face was registered
   int64 created_at_ns = 2;
 
-  // Whether the face image is available
-  bool has_image = 3;
+  // Whether the face images are available
+  bool has_images = 3;
 
   // Stored age/gender if captured during registration
   int32 age = 4;
   string gender = 5;
+
+  // Number of images/embeddings stored for this person
+  int32 image_count = 6;
+
+  // When this face was last updated (additional images added)
+  int64 updated_at_ns = 7;
 }
 
 // HealthRequest is empty - just checks service availability

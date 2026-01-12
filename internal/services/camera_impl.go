@@ -36,15 +36,17 @@ func (c *CameraImplementation) List(ctx context.Context) ([]*camera_service.Came
 		resolution := cam.Resolution
 		fps := cam.FPS
 		createdAt := cam.CreatedAt.Format(time.RFC3339)
-		
+
+		detectionEnabled := cam.DetectionEnabled
 		result[i] = &camera_service.CameraInfo{
-			ID:         cam.ID,
-			Name:       cam.Name,
-			Device:     cam.Device,
-			Status:     cam.GetStatus(),
-			Resolution: &resolution,
-			Fps:        &fps,
-			CreatedAt:  &createdAt,
+			ID:               cam.ID,
+			Name:             cam.Name,
+			Device:           cam.Device,
+			Status:           cam.GetStatus(),
+			Resolution:       &resolution,
+			Fps:              &fps,
+			CreatedAt:        &createdAt,
+			DetectionEnabled: &detectionEnabled,
 		}
 	}
 
@@ -64,15 +66,17 @@ func (c *CameraImplementation) Get(ctx context.Context, p *camera_service.GetPay
 	resolution := cam.Resolution
 	fps := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
+	detectionEnabled := cam.DetectionEnabled
 
 	return &camera_service.CameraInfo{
-		ID:         cam.ID,
-		Name:       cam.Name,
-		Device:     cam.Device,
-		Status:     cam.GetStatus(),
-		Resolution: &resolution,
-		Fps:        &fps,
-		CreatedAt:  &createdAt,
+		ID:               cam.ID,
+		Name:             cam.Name,
+		Device:           cam.Device,
+		Status:           cam.GetStatus(),
+		Resolution:       &resolution,
+		Fps:              &fps,
+		CreatedAt:        &createdAt,
+		DetectionEnabled: &detectionEnabled,
 	}, nil
 }
 
@@ -101,15 +105,17 @@ func (c *CameraImplementation) Create(ctx context.Context, p *camera_service.Cre
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
+	detectionEnabled := cam.DetectionEnabled
 
 	return &camera_service.CameraInfo{
-		ID:         cam.ID,
-		Name:       cam.Name,
-		Device:     cam.Device,
-		Status:     cam.GetStatus(),
-		Resolution: &resolutionPtr,
-		Fps:        &fpsPtr,
-		CreatedAt:  &createdAt,
+		ID:               cam.ID,
+		Name:             cam.Name,
+		Device:           cam.Device,
+		Status:           cam.GetStatus(),
+		Resolution:       &resolutionPtr,
+		Fps:              &fpsPtr,
+		CreatedAt:        &createdAt,
+		DetectionEnabled: &detectionEnabled,
 	}, nil
 }
 
@@ -165,15 +171,17 @@ func (c *CameraImplementation) Update(ctx context.Context, p *camera_service.Upd
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
+	detectionEnabled := cam.DetectionEnabled
 
 	return &camera_service.CameraInfo{
-		ID:         cam.ID,
-		Name:       cam.Name,
-		Device:     cam.Device,
-		Status:     cam.GetStatus(),
-		Resolution: &resolutionPtr,
-		Fps:        &fpsPtr,
-		CreatedAt:  &createdAt,
+		ID:               cam.ID,
+		Name:             cam.Name,
+		Device:           cam.Device,
+		Status:           cam.GetStatus(),
+		Resolution:       &resolutionPtr,
+		Fps:              &fpsPtr,
+		CreatedAt:        &createdAt,
+		DetectionEnabled: &detectionEnabled,
 	}, nil
 }
 
@@ -211,15 +219,17 @@ func (c *CameraImplementation) Activate(ctx context.Context, p *camera_service.A
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
+	detectionEnabled := cam.DetectionEnabled
 
 	return &camera_service.CameraInfo{
-		ID:         cam.ID,
-		Name:       cam.Name,
-		Device:     cam.Device,
-		Status:     cam.GetStatus(),
-		Resolution: &resolutionPtr,
-		Fps:        &fpsPtr,
-		CreatedAt:  &createdAt,
+		ID:               cam.ID,
+		Name:             cam.Name,
+		Device:           cam.Device,
+		Status:           cam.GetStatus(),
+		Resolution:       &resolutionPtr,
+		Fps:              &fpsPtr,
+		CreatedAt:        &createdAt,
+		DetectionEnabled: &detectionEnabled,
 	}, nil
 }
 
@@ -231,6 +241,12 @@ func (c *CameraImplementation) Deactivate(ctx context.Context, p *camera_service
 			Message: "Camera not found",
 			ID:      p.ID,
 		}
+	}
+
+	// Stop detection for this camera if it's running
+	if c.motionDetector.IsDetectionRunning(p.ID) {
+		c.motionDetector.StopDetection(p.ID)
+		fmt.Printf("[CameraService] Stopped detection for camera %s (camera deactivated)\n", p.ID)
 	}
 
 	// Deactivate camera - this also deletes the MJPEG stream
@@ -245,15 +261,17 @@ func (c *CameraImplementation) Deactivate(ctx context.Context, p *camera_service
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
+	detectionEnabled := cam.DetectionEnabled
 
 	return &camera_service.CameraInfo{
-		ID:         cam.ID,
-		Name:       cam.Name,
-		Device:     cam.Device,
-		Status:     cam.GetStatus(),
-		Resolution: &resolutionPtr,
-		Fps:        &fpsPtr,
-		CreatedAt:  &createdAt,
+		ID:               cam.ID,
+		Name:             cam.Name,
+		Device:           cam.Device,
+		Status:           cam.GetStatus(),
+		Resolution:       &resolutionPtr,
+		Fps:              &fpsPtr,
+		CreatedAt:        &createdAt,
+		DetectionEnabled: &detectionEnabled,
 	}, nil
 }
 
@@ -280,5 +298,96 @@ func (c *CameraImplementation) Capture(ctx context.Context, p *camera_service.Ca
 	return &camera_service.FrameResponse{
 		Data:        base64Data,
 		ContentType: "image/jpeg",
+	}, nil
+}
+
+// EnableDetection enables AI detection for this camera
+func (c *CameraImplementation) EnableDetection(ctx context.Context, p *camera_service.EnableDetectionPayload) (*camera_service.CameraInfo, error) {
+	cam, err := c.cameraManager.GetCamera(p.ID)
+	if err != nil {
+		return nil, &camera_service.NotFoundError{
+			Message: "Camera not found",
+			ID:      p.ID,
+		}
+	}
+
+	// Enable detection for this camera
+	err = c.cameraManager.SetDetectionEnabled(p.ID, true)
+	if err != nil {
+		return nil, &camera_service.NotFoundError{
+			Message: "Camera not found",
+			ID:      p.ID,
+		}
+	}
+
+	// If camera is active and global detection is running on any camera,
+	// start detection for this camera immediately
+	if cam.GetStatus() == "active" && c.motionDetector.HasAnyDetectionRunning() {
+		if !c.motionDetector.IsDetectionRunning(p.ID) {
+			err := c.motionDetector.StartDetection(p.ID, cam.Device)
+			if err != nil {
+				fmt.Printf("[CameraService] Warning: Failed to start detection for camera %s: %v\n", p.ID, err)
+			} else {
+				fmt.Printf("[CameraService] Started detection for camera %s (detection enabled)\n", p.ID)
+			}
+		}
+	}
+
+	resolutionPtr := cam.Resolution
+	fpsPtr := cam.FPS
+	createdAt := cam.CreatedAt.Format(time.RFC3339)
+	detectionEnabled := true // Just set to true since we enabled it
+
+	return &camera_service.CameraInfo{
+		ID:               cam.ID,
+		Name:             cam.Name,
+		Device:           cam.Device,
+		Status:           cam.GetStatus(),
+		Resolution:       &resolutionPtr,
+		Fps:              &fpsPtr,
+		CreatedAt:        &createdAt,
+		DetectionEnabled: &detectionEnabled,
+	}, nil
+}
+
+// DisableDetection disables AI detection for this camera (streaming only)
+func (c *CameraImplementation) DisableDetection(ctx context.Context, p *camera_service.DisableDetectionPayload) (*camera_service.CameraInfo, error) {
+	cam, err := c.cameraManager.GetCamera(p.ID)
+	if err != nil {
+		return nil, &camera_service.NotFoundError{
+			Message: "Camera not found",
+			ID:      p.ID,
+		}
+	}
+
+	// Disable detection for this camera
+	err = c.cameraManager.SetDetectionEnabled(p.ID, false)
+	if err != nil {
+		return nil, &camera_service.NotFoundError{
+			Message: "Camera not found",
+			ID:      p.ID,
+		}
+	}
+
+	// Stop detection immediately if it's running for this camera
+	if c.motionDetector.IsDetectionRunning(p.ID) {
+		c.motionDetector.StopDetection(p.ID)
+		fmt.Printf("[CameraService] Stopped detection for camera %s (detection disabled)\n", p.ID)
+	}
+
+	resolutionPtr := cam.Resolution
+	fpsPtr := cam.FPS
+	createdAt := cam.CreatedAt.Format(time.RFC3339)
+	detectionEnabled := false // Just set to false since we disabled it
+
+	return &camera_service.CameraInfo{
+		ID:               cam.ID,
+		Name:             cam.Name,
+		Device:           cam.Device,
+		Status:           cam.GetStatus(),
+		Resolution:       &resolutionPtr,
+		Fps:              &fpsPtr,
+		CreatedAt:        &createdAt,
+		DetectionEnabled: &detectionEnabled,
 	}, nil
 }

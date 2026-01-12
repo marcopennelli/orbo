@@ -47,14 +47,16 @@ func (s *SystemImplementation) Status(ctx context.Context) (*system_service.Syst
 	cameraInfos := make([]*system_service.CameraInfo, len(cameras))
 	for i, cam := range cameras {
 		createdAtStr := cam.CreatedAt.Format(time.RFC3339)
+		detectionEnabled := cam.DetectionEnabled
 		cameraInfos[i] = &system_service.CameraInfo{
-			ID:         cam.ID,
-			Name:       cam.Name,
-			Device:     cam.Device,
-			Status:     cam.Status,
-			Resolution: &cam.Resolution,
-			Fps:        &cam.FPS,
-			CreatedAt:  &createdAtStr,
+			ID:               cam.ID,
+			Name:             cam.Name,
+			Device:           cam.Device,
+			Status:           cam.Status,
+			Resolution:       &cam.Resolution,
+			Fps:              &cam.FPS,
+			CreatedAt:        &createdAtStr,
+			DetectionEnabled: &detectionEnabled,
 		}
 	}
 
@@ -128,6 +130,12 @@ func (s *SystemImplementation) StartDetection(ctx context.Context) (*system_serv
 
 	for _, cam := range cameras {
 		if cam.Status == "active" {
+			// Check if detection is enabled for this camera
+			if !cam.DetectionEnabled {
+				fmt.Printf("[SystemService] Skipping detection for camera %s (detection_enabled=false)\n", cam.ID)
+				continue
+			}
+
 			// Start motion detection for this camera
 			if !s.motionDetector.IsDetectionRunning(cam.ID) {
 				err := s.motionDetector.StartDetection(cam.ID, cam.Device)

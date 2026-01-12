@@ -452,6 +452,219 @@ func joinStrings(strs []string, sep string) string {
 	return result
 }
 
+// RegisterFaceResult represents the result of registering a face
+type RegisterFaceResult struct {
+	Success    bool     `json:"success"`
+	Name       string   `json:"name"`
+	Message    string   `json:"message"`
+	FaceCount  int      `json:"face_count"`
+	ImageCount int      `json:"image_count"`
+	ImagePaths []string `json:"image_paths,omitempty"`
+}
+
+// AddFaceImageResult represents the result of adding an image to a face
+type AddFaceImageResult struct {
+	Success    bool   `json:"success"`
+	Name       string `json:"name"`
+	Message    string `json:"message"`
+	ImageCount int    `json:"image_count"`
+	MaxImages  int    `json:"max_images"`
+	ImagePath  string `json:"image_path,omitempty"`
+}
+
+// FaceIdentity represents a registered face identity
+type FaceIdentity struct {
+	Name       string  `json:"name"`
+	CreatedAt  *string `json:"created_at,omitempty"`
+	UpdatedAt  *string `json:"updated_at,omitempty"`
+	ImageCount int     `json:"image_count"`
+	HasImages  bool    `json:"has_images"`
+	Age        int     `json:"age,omitempty"`
+	Gender     string  `json:"gender,omitempty"`
+}
+
+// ListFacesResult represents the result of listing all faces
+type ListFacesResult struct {
+	Faces              []FaceIdentity `json:"faces"`
+	Count              int            `json:"count"`
+	MaxImagesPerPerson int            `json:"max_images_per_person"`
+}
+
+// RegisterFace registers a new face identity
+func (fr *FaceRecognizer) RegisterFace(name string, imageData []byte) (*RegisterFaceResult, error) {
+	if !fr.enabled {
+		return nil, fmt.Errorf("face recognition is disabled")
+	}
+
+	url := fmt.Sprintf("%s/faces/register", fr.endpoint)
+
+	// Create multipart form
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Add name field
+	if err := writer.WriteField("name", name); err != nil {
+		return nil, fmt.Errorf("failed to add name field: %w", err)
+	}
+
+	// Add image file
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="file"; filename="face.jpg"`)
+	h.Set("Content-Type", "image/jpeg")
+	part, err := writer.CreatePart(h)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create form file: %w", err)
+	}
+	if _, err := part.Write(imageData); err != nil {
+		return nil, fmt.Errorf("failed to write image data: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := fr.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result RegisterFaceResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// AddFaceImage adds an additional image to an existing face identity
+func (fr *FaceRecognizer) AddFaceImage(name string, imageData []byte) (*AddFaceImageResult, error) {
+	if !fr.enabled {
+		return nil, fmt.Errorf("face recognition is disabled")
+	}
+
+	url := fmt.Sprintf("%s/faces/%s/add-image", fr.endpoint, name)
+
+	// Create multipart form
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Add image file
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", `form-data; name="file"; filename="face.jpg"`)
+	h.Set("Content-Type", "image/jpeg")
+	part, err := writer.CreatePart(h)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create form file: %w", err)
+	}
+	if _, err := part.Write(imageData); err != nil {
+		return nil, fmt.Errorf("failed to write image data: %w", err)
+	}
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := fr.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result AddFaceImageResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListFaces lists all registered face identities
+func (fr *FaceRecognizer) ListFaces() (*ListFacesResult, error) {
+	if !fr.enabled {
+		return nil, fmt.Errorf("face recognition is disabled")
+	}
+
+	url := fmt.Sprintf("%s/faces", fr.endpoint)
+
+	resp, err := fr.client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result ListFacesResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// DeleteFace deletes a registered face identity
+func (fr *FaceRecognizer) DeleteFace(name string) error {
+	if !fr.enabled {
+		return fmt.Errorf("face recognition is disabled")
+	}
+
+	url := fmt.Sprintf("%s/faces/%s", fr.endpoint, name)
+
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := fr.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
 // LogRecognitionResult logs the face recognition result
 func (fr *FaceRecognizer) LogRecognitionResult(result *FaceRecognitionResult, cameraID string) {
 	if result.Count == 0 {

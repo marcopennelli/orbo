@@ -47,6 +47,8 @@ type CameraInfo struct {
 	Fps *int
 	// Creation timestamp
 	CreatedAt *string
+	// When false, camera streams only without running AI detection.
+	DetectionEnabled *bool
 }
 
 // Internal server error

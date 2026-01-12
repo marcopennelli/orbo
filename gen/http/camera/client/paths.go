@@ -50,3 +50,13 @@ func DeactivateCameraPath(id string) string {
 func CaptureCameraPath(id string) string {
 	return fmt.Sprintf("/api/v1/cameras/%v/frame", id)
 }
+
+// EnableDetectionCameraPath returns the URL path to the camera service enable_detection HTTP endpoint.
+func EnableDetectionCameraPath(id string) string {
+	return fmt.Sprintf("/api/v1/cameras/%v/detection/enable", id)
+}
+
+// DisableDetectionCameraPath returns the URL path to the camera service disable_detection HTTP endpoint.
+func DisableDetectionCameraPath(id string) string {
+	return fmt.Sprintf("/api/v1/cameras/%v/detection/disable", id)
+}

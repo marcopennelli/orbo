@@ -16,6 +16,8 @@ import {
   useDeleteCamera,
   useActivateCamera,
   useDeactivateCamera,
+  useEnableDetection,
+  useDisableDetection,
 } from './hooks/useCameras';
 import { useEvents } from './hooks/useEvents';
 import {
@@ -78,6 +80,8 @@ function AppContent() {
   const deleteCamera = useDeleteCamera();
   const activateCamera = useActivateCamera();
   const deactivateCamera = useDeactivateCamera();
+  const enableDetection = useEnableDetection();
+  const disableDetection = useDisableDetection();
   const startDetection = useStartDetection();
   const stopDetection = useStopDetection();
   const updateTelegram = useUpdateTelegramConfig();
@@ -136,6 +140,22 @@ function AppContent() {
       }
     },
     [activateCamera, deactivateCamera]
+  );
+
+  const handleToggleCameraDetection = useCallback(
+    async (camera: Camera) => {
+      setLoadingCameraId(camera.id);
+      try {
+        if (camera.detection_enabled) {
+          await disableDetection.mutateAsync(camera.id);
+        } else {
+          await enableDetection.mutateAsync(camera.id);
+        }
+      } finally {
+        setLoadingCameraId(undefined);
+      }
+    },
+    [enableDetection, disableDetection]
   );
 
   const handleToggleDetection = useCallback(async () => {
@@ -246,6 +266,7 @@ function AppContent() {
                   onEditCamera={handleEditCamera}
                   onDeleteCamera={handleDeleteCamera}
                   onToggleCameraActive={handleToggleCameraActive}
+                  onToggleCameraDetection={handleToggleCameraDetection}
                   isLoading={camerasLoading}
                   loadingCameraId={loadingCameraId}
                 />

@@ -192,7 +192,8 @@ class FaceRecognitionServicer(recognition_pb2_grpc.FaceRecognitionServiceService
                         best_similarity = 0.0
 
                         for name, data in self.service.known_faces.items():
-                            similarity = self.service._compute_similarity(face.embedding, data['embedding'])
+                            # Use embeddings (list) for multi-image support
+                            similarity = self.service._compute_similarity(face.embedding, data['embeddings'])
                             if similarity > best_similarity:
                                 best_similarity = similarity
                                 best_match = name
@@ -234,14 +235,41 @@ class FaceRecognitionServicer(recognition_pb2_grpc.FaceRecognitionServiceService
                 success=result.get('success', False),
                 message=result.get('message', ''),
                 name=result.get('name', request.name),
-                face_count=len(self.service.known_faces)
+                face_count=len(self.service.known_faces),
+                image_count=result.get('image_count', 1)
             )
         except Exception as e:
             return recognition_pb2.RegisterFaceResponse(
                 success=False,
                 message=str(e),
                 name=request.name,
-                face_count=len(self.service.known_faces)
+                face_count=len(self.service.known_faces),
+                image_count=0
+            )
+
+    def AddFaceImage(
+        self,
+        request: recognition_pb2.AddFaceImageRequest,
+        context: grpc.ServicerContext
+    ) -> recognition_pb2.AddFaceImageResponse:
+        """Add an additional image to an existing face identity"""
+        try:
+            result = self.service.add_face_image(request.name, request.image_data)
+
+            return recognition_pb2.AddFaceImageResponse(
+                success=result.get('success', False),
+                message=result.get('message', ''),
+                name=result.get('name', request.name),
+                image_count=result.get('image_count', 0),
+                max_images=result.get('max_images', self.service.max_images_per_person)
+            )
+        except Exception as e:
+            return recognition_pb2.AddFaceImageResponse(
+                success=False,
+                message=str(e),
+                name=request.name,
+                image_count=0,
+                max_images=self.service.max_images_per_person
             )
 
     def DeleteFace(
@@ -274,15 +302,17 @@ class FaceRecognitionServicer(recognition_pb2_grpc.FaceRecognitionServiceService
         result = self.service.list_faces()
 
         response = recognition_pb2.ListFacesResponse(
-            count=result.get('count', 0)
+            count=result.get('count', 0),
+            max_images_per_person=result.get('max_images_per_person', self.service.max_images_per_person)
         )
 
         for face in result.get('faces', []):
             face_identity = recognition_pb2.FaceIdentity(
                 name=face.get('name', ''),
-                has_image=face.get('has_image', False),
+                has_images=face.get('has_images', False),
                 age=face.get('age', 0),
-                gender=face.get('gender', '')
+                gender=face.get('gender', ''),
+                image_count=face.get('image_count', 0)
             )
             # Parse created_at if present
             if face.get('created_at'):
@@ -290,6 +320,14 @@ class FaceRecognitionServicer(recognition_pb2_grpc.FaceRecognitionServiceService
                     from datetime import datetime
                     dt = datetime.fromisoformat(face['created_at'])
                     face_identity.created_at_ns = int(dt.timestamp() * 1e9)
+                except:
+                    pass
+            # Parse updated_at if present
+            if face.get('updated_at'):
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(face['updated_at'])
+                    face_identity.updated_at_ns = int(dt.timestamp() * 1e9)
                 except:
                     pass
             response.faces.append(face_identity)

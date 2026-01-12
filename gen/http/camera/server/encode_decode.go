@@ -515,17 +515,142 @@ func EncodeCaptureError(encoder func(context.Context, http.ResponseWriter) goaht
 	}
 }
 
+// EncodeEnableDetectionResponse returns an encoder for responses returned by
+// the camera enable_detection endpoint.
+func EncodeEnableDetectionResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*camera.CameraInfo)
+		enc := encoder(ctx, w)
+		body := NewEnableDetectionResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// DecodeEnableDetectionRequest returns a decoder for requests sent to the
+// camera enable_detection endpoint.
+func DecodeEnableDetectionRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
+	return func(r *http.Request) (any, error) {
+		var (
+			id  string
+			err error
+
+			params = mux.Vars(r)
+		)
+		id = params["id"]
+		err = goa.MergeErrors(err, goa.ValidateFormat("id", id, goa.FormatUUID))
+		if err != nil {
+			return nil, err
+		}
+		payload := NewEnableDetectionPayload(id)
+
+		return payload, nil
+	}
+}
+
+// EncodeEnableDetectionError returns an encoder for errors returned by the
+// enable_detection camera endpoint.
+func EncodeEnableDetectionError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+	encodeError := goahttp.ErrorEncoder(encoder, formatter)
+	return func(ctx context.Context, w http.ResponseWriter, v error) error {
+		var en goa.GoaErrorNamer
+		if !errors.As(v, &en) {
+			return encodeError(ctx, w, v)
+		}
+		switch en.GoaErrorName() {
+		case "not_found":
+			var res *camera.NotFoundError
+			errors.As(v, &res)
+			enc := encoder(ctx, w)
+			var body any
+			if formatter != nil {
+				body = formatter(ctx, res)
+			} else {
+				body = NewEnableDetectionNotFoundResponseBody(res)
+			}
+			w.Header().Set("goa-error", res.GoaErrorName())
+			w.WriteHeader(http.StatusNotFound)
+			return enc.Encode(body)
+		default:
+			return encodeError(ctx, w, v)
+		}
+	}
+}
+
+// EncodeDisableDetectionResponse returns an encoder for responses returned by
+// the camera disable_detection endpoint.
+func EncodeDisableDetectionResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*camera.CameraInfo)
+		enc := encoder(ctx, w)
+		body := NewDisableDetectionResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// DecodeDisableDetectionRequest returns a decoder for requests sent to the
+// camera disable_detection endpoint.
+func DecodeDisableDetectionRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
+	return func(r *http.Request) (any, error) {
+		var (
+			id  string
+			err error
+
+			params = mux.Vars(r)
+		)
+		id = params["id"]
+		err = goa.MergeErrors(err, goa.ValidateFormat("id", id, goa.FormatUUID))
+		if err != nil {
+			return nil, err
+		}
+		payload := NewDisableDetectionPayload(id)
+
+		return payload, nil
+	}
+}
+
+// EncodeDisableDetectionError returns an encoder for errors returned by the
+// disable_detection camera endpoint.
+func EncodeDisableDetectionError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+	encodeError := goahttp.ErrorEncoder(encoder, formatter)
+	return func(ctx context.Context, w http.ResponseWriter, v error) error {
+		var en goa.GoaErrorNamer
+		if !errors.As(v, &en) {
+			return encodeError(ctx, w, v)
+		}
+		switch en.GoaErrorName() {
+		case "not_found":
+			var res *camera.NotFoundError
+			errors.As(v, &res)
+			enc := encoder(ctx, w)
+			var body any
+			if formatter != nil {
+				body = formatter(ctx, res)
+			} else {
+				body = NewDisableDetectionNotFoundResponseBody(res)
+			}
+			w.Header().Set("goa-error", res.GoaErrorName())
+			w.WriteHeader(http.StatusNotFound)
+			return enc.Encode(body)
+		default:
+			return encodeError(ctx, w, v)
+		}
+	}
+}
+
 // marshalCameraCameraInfoToCameraInfoResponse builds a value of type
 // *CameraInfoResponse from a value of type *camera.CameraInfo.
 func marshalCameraCameraInfoToCameraInfoResponse(v *camera.CameraInfo) *CameraInfoResponse {
 	res := &CameraInfoResponse{
-		ID:         v.ID,
-		Name:       v.Name,
-		Device:     v.Device,
-		Status:     v.Status,
-		Resolution: v.Resolution,
-		Fps:        v.Fps,
-		CreatedAt:  v.CreatedAt,
+		ID:               v.ID,
+		Name:             v.Name,
+		Device:           v.Device,
+		Status:           v.Status,
+		Resolution:       v.Resolution,
+		Fps:              v.Fps,
+		CreatedAt:        v.CreatedAt,
+		DetectionEnabled: v.DetectionEnabled,
 	}
 
 	return res

@@ -88,6 +88,11 @@ func (md *MotionDetector) IsDetectionRunning(cameraID string) bool {
 	return md.streamDetector.IsDetectionRunning(cameraID)
 }
 
+// HasAnyDetectionRunning returns true if detection is running on any camera
+func (md *MotionDetector) HasAnyDetectionRunning() bool {
+	return md.streamDetector.HasAnyDetectionRunning()
+}
+
 // SetDrawBoxes enables or disables bounding box drawing on detection images
 func (md *MotionDetector) SetDrawBoxes(enabled bool) {
 	md.streamDetector.SetDrawBoxes(enabled)

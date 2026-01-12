@@ -44,8 +44,11 @@ class FaceRecognitionService:
         self.face_app = None
         self.model_loaded = False
         self.device = 'cpu'  # InsightFace auto-detects GPU
-        self.known_faces: Dict[str, Dict[str, Any]] = {}  # name -> {embedding, image_path, created_at}
+        # Data model supports multiple embeddings per person:
+        # name -> {embeddings: [np.array, ...], image_paths: [...], created_at, ...}
+        self.known_faces: Dict[str, Dict[str, Any]] = {}
         self.similarity_threshold = float(os.getenv('SIMILARITY_THRESHOLD', '0.5'))
+        self.max_images_per_person = int(os.getenv('MAX_IMAGES_PER_PERSON', '10'))
         self.initialize_model()
         self.load_known_faces()
 
@@ -88,11 +91,29 @@ class FaceRecognitionService:
             self.model_loaded = False
 
     def load_known_faces(self):
-        """Load known faces database from disk"""
+        """Load known faces database from disk and migrate old format if needed"""
         try:
             if os.path.exists(FACES_DB_PATH):
                 with open(FACES_DB_PATH, 'rb') as f:
                     self.known_faces = pickle.load(f)
+
+                # Migrate old single-embedding format to new multi-embedding format
+                migrated = 0
+                for name, data in self.known_faces.items():
+                    if 'embedding' in data and 'embeddings' not in data:
+                        # Old format: single embedding -> convert to list
+                        data['embeddings'] = [data['embedding']]
+                        del data['embedding']
+                        # Also convert image_path to image_paths list
+                        if 'image_path' in data:
+                            data['image_paths'] = [data['image_path']]
+                            del data['image_path']
+                        migrated += 1
+
+                if migrated > 0:
+                    logger.info(f"Migrated {migrated} faces from single to multi-embedding format")
+                    self.save_known_faces()
+
                 logger.info(f"Loaded {len(self.known_faces)} known faces from database")
             else:
                 logger.info("No faces database found, starting fresh")
@@ -219,8 +240,8 @@ class FaceRecognitionService:
                     best_similarity = 0.0
 
                     for name, data in self.known_faces.items():
-                        # Compute cosine similarity
-                        similarity = self._compute_similarity(face.embedding, data['embedding'])
+                        # Compute similarity against all embeddings for this person
+                        similarity = self._compute_similarity(face.embedding, data['embeddings'])
                         if similarity > best_similarity:
                             best_similarity = similarity
                             best_match = name
@@ -252,7 +273,7 @@ class FaceRecognitionService:
             logger.error(f"Face recognition failed: {e}")
             raise HTTPException(status_code=500, detail=f"Face recognition failed: {str(e)}")
 
-    def _compute_similarity(self, embedding1: np.ndarray, embedding2: np.ndarray) -> float:
+    def _compute_similarity_single(self, embedding1: np.ndarray, embedding2: np.ndarray) -> float:
         """Compute cosine similarity between two face embeddings"""
         # Normalize embeddings
         norm1 = np.linalg.norm(embedding1)
@@ -264,6 +285,20 @@ class FaceRecognitionService:
         # Cosine similarity
         similarity = np.dot(embedding1, embedding2) / (norm1 * norm2)
         return float(similarity)
+
+    def _compute_similarity(self, query_embedding: np.ndarray, stored_embeddings: List[np.ndarray]) -> float:
+        """
+        Compute similarity between query embedding and multiple stored embeddings.
+        Uses ensemble averaging: computes similarity to each stored embedding and returns the max.
+        This allows matching against any of the registered images for a person.
+        """
+        if not stored_embeddings:
+            return 0.0
+
+        # Compute similarity against each stored embedding, take the max
+        # This means: "match if the face looks like ANY of the registered images"
+        similarities = [self._compute_similarity_single(query_embedding, stored) for stored in stored_embeddings]
+        return max(similarities)
 
     def analyze_faces_forensic(self, image_data: bytes) -> Dict[str, Any]:
         """
@@ -388,7 +423,7 @@ class FaceRecognitionService:
                     best_similarity = 0.0
 
                     for name, data in self.known_faces.items():
-                        sim = self._compute_similarity(face.embedding, data['embedding'])
+                        sim = self._compute_similarity(face.embedding, data['embeddings'])
                         if sim > best_similarity:
                             best_similarity = sim
                             best_match = name
@@ -491,13 +526,14 @@ class FaceRecognitionService:
             face_pil = Image.fromarray(face_crop)
             face_pil.save(image_path, 'JPEG', quality=95)
 
-            # Store in database
+            # Store in database (new multi-embedding format)
             self.known_faces[name] = {
-                'embedding': face.embedding,
-                'image_path': image_path,
+                'embeddings': [face.embedding],  # List of embeddings
+                'image_paths': [image_path],      # List of image paths
                 'created_at': datetime.now().isoformat(),
                 'bbox': bbox.tolist(),
-                'confidence': float(face.det_score)
+                'confidence': float(face.det_score),
+                'image_count': 1
             }
 
             # Add age/gender if available
@@ -513,7 +549,8 @@ class FaceRecognitionService:
                 "name": name,
                 "message": f"Face registered successfully for '{name}'",
                 "face_count": len(self.known_faces),
-                "image_path": image_path
+                "image_count": 1,
+                "image_paths": [image_path]
             }
 
         except HTTPException:
@@ -522,16 +559,102 @@ class FaceRecognitionService:
             logger.error(f"Face registration failed: {e}")
             raise HTTPException(status_code=500, detail=f"Face registration failed: {str(e)}")
 
+    def add_face_image(self, name: str, image_data: bytes) -> Dict[str, Any]:
+        """Add an additional image to an existing face identity for better recognition"""
+        if not self.model_loaded:
+            raise HTTPException(status_code=503, detail="Model not loaded")
+
+        if name not in self.known_faces:
+            raise HTTPException(status_code=404, detail=f"Face '{name}' not found. Use /faces/register to create a new identity.")
+
+        try:
+            data = self.known_faces[name]
+            current_count = len(data.get('embeddings', []))
+
+            if current_count >= self.max_images_per_person:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Maximum images ({self.max_images_per_person}) reached for '{name}'. Delete some images first."
+                )
+
+            image = self.preprocess_image(image_data)
+
+            # Detect faces
+            faces = self.face_app.get(image)
+
+            if len(faces) == 0:
+                raise HTTPException(status_code=400, detail="No face detected in image")
+
+            if len(faces) > 1:
+                raise HTTPException(status_code=400, detail=f"Multiple faces detected ({len(faces)}). Please provide an image with a single face.")
+
+            face = faces[0]
+
+            if face.embedding is None:
+                raise HTTPException(status_code=500, detail="Could not extract face embedding")
+
+            # Save face image
+            os.makedirs(FACES_IMAGES_PATH, exist_ok=True)
+            image_filename = f"{name.replace(' ', '_')}_{int(time.time())}.jpg"
+            image_path = os.path.join(FACES_IMAGES_PATH, image_filename)
+
+            # Crop face from image
+            bbox = face.bbox.astype(int)
+            padding = 20
+            x1 = max(0, bbox[0] - padding)
+            y1 = max(0, bbox[1] - padding)
+            x2 = min(image.shape[1], bbox[2] + padding)
+            y2 = min(image.shape[0], bbox[3] + padding)
+            face_crop = image[y1:y2, x1:x2]
+
+            # Save cropped face
+            face_pil = Image.fromarray(face_crop)
+            face_pil.save(image_path, 'JPEG', quality=95)
+
+            # Add to existing embeddings and image paths
+            data['embeddings'].append(face.embedding)
+            data['image_paths'].append(image_path)
+            data['image_count'] = len(data['embeddings'])
+            data['updated_at'] = datetime.now().isoformat()
+
+            self.save_known_faces()
+
+            logger.info(f"Added image #{data['image_count']} for '{name}'")
+
+            return {
+                "success": True,
+                "name": name,
+                "message": f"Image added successfully for '{name}'",
+                "image_count": data['image_count'],
+                "max_images": self.max_images_per_person,
+                "image_path": image_path
+            }
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Add face image failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Add face image failed: {str(e)}")
+
     def delete_face(self, name: str) -> Dict[str, Any]:
-        """Delete a registered face"""
+        """Delete a registered face and all its images"""
         if name not in self.known_faces:
             raise HTTPException(status_code=404, detail=f"Face '{name}' not found")
 
         try:
-            # Delete image file if exists
             data = self.known_faces[name]
-            if 'image_path' in data and os.path.exists(data['image_path']):
+            deleted_images = 0
+
+            # Delete all image files (new format with image_paths list)
+            if 'image_paths' in data:
+                for image_path in data['image_paths']:
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                        deleted_images += 1
+            # Also handle old format with single image_path
+            elif 'image_path' in data and os.path.exists(data['image_path']):
                 os.remove(data['image_path'])
+                deleted_images = 1
 
             # Remove from database
             del self.known_faces[name]
@@ -540,8 +663,9 @@ class FaceRecognitionService:
             return {
                 "success": True,
                 "name": name,
-                "message": f"Face '{name}' deleted successfully",
-                "face_count": len(self.known_faces)
+                "message": f"Face '{name}' deleted successfully ({deleted_images} images removed)",
+                "face_count": len(self.known_faces),
+                "deleted_images": deleted_images
             }
 
         except HTTPException:
@@ -554,10 +678,23 @@ class FaceRecognitionService:
         """List all registered faces"""
         faces = []
         for name, data in self.known_faces.items():
+            # Count images (handle both old and new format)
+            if 'image_paths' in data:
+                image_count = len(data['image_paths'])
+                has_images = any(os.path.exists(p) for p in data['image_paths'])
+            elif 'image_path' in data:
+                image_count = 1
+                has_images = os.path.exists(data.get('image_path', ''))
+            else:
+                image_count = 0
+                has_images = False
+
             face_info = {
                 "name": name,
                 "created_at": data.get('created_at'),
-                "has_image": 'image_path' in data and os.path.exists(data.get('image_path', '')),
+                "updated_at": data.get('updated_at'),
+                "image_count": image_count,
+                "has_images": has_images,
             }
             if 'age' in data:
                 face_info['age'] = data['age']
@@ -567,7 +704,8 @@ class FaceRecognitionService:
 
         return {
             "faces": faces,
-            "count": len(faces)
+            "count": len(faces),
+            "max_images_per_person": self.max_images_per_person
         }
 
     def detect_and_annotate(self, image_data: bytes, recognize: bool = True) -> Tuple[bytes, Dict[str, Any]]:
@@ -603,7 +741,7 @@ class FaceRecognitionService:
                     best_similarity = 0.0
 
                     for name, data in self.known_faces.items():
-                        sim = self._compute_similarity(face.embedding, data['embedding'])
+                        sim = self._compute_similarity(face.embedding, data['embeddings'])
                         if sim > best_similarity:
                             best_similarity = sim
                             best_match = name
@@ -834,29 +972,117 @@ async def register_face(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@app.post("/faces/{name}/add-image")
+async def add_face_image(
+    name: str,
+    file: UploadFile = File(...)
+):
+    """
+    Add an additional image to an existing face identity.
+
+    Multiple images per person improve recognition accuracy, especially for:
+    - Different angles (front, profile, 3/4 view)
+    - Different lighting conditions
+    - Different expressions
+    - With/without glasses, hats, etc.
+
+    Maximum images per person is configurable (default: 10).
+    """
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    try:
+        image_data = await file.read()
+        return recognition_service.add_face_image(name, image_data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @app.delete("/faces/{name}")
 async def delete_face(name: str):
-    """Delete a registered face identity"""
+    """Delete a registered face identity and all its images"""
     return recognition_service.delete_face(name)
 
 
 @app.get("/faces")
 async def list_faces():
-    """List all registered face identities"""
+    """List all registered face identities with image counts"""
     return recognition_service.list_faces()
 
 
-@app.get("/faces/{name}/image")
-async def get_face_image(name: str):
-    """Get the registered image for a face identity"""
+@app.get("/faces/{name}/images")
+async def get_face_images(name: str):
+    """Get all registered images for a face identity"""
     if name not in recognition_service.known_faces:
         raise HTTPException(status_code=404, detail=f"Face '{name}' not found")
 
     data = recognition_service.known_faces[name]
-    if 'image_path' not in data or not os.path.exists(data['image_path']):
-        raise HTTPException(status_code=404, detail="Image not found")
 
-    with open(data['image_path'], 'rb') as f:
+    # Handle both old and new format
+    if 'image_paths' in data:
+        images = []
+        for idx, image_path in enumerate(data['image_paths']):
+            if os.path.exists(image_path):
+                images.append({
+                    "index": idx,
+                    "path": image_path,
+                    "exists": True
+                })
+            else:
+                images.append({
+                    "index": idx,
+                    "path": image_path,
+                    "exists": False
+                })
+        return {
+            "name": name,
+            "images": images,
+            "count": len(images)
+        }
+    elif 'image_path' in data:
+        # Old format
+        exists = os.path.exists(data['image_path'])
+        return {
+            "name": name,
+            "images": [{"index": 0, "path": data['image_path'], "exists": exists}],
+            "count": 1 if exists else 0
+        }
+    else:
+        return {
+            "name": name,
+            "images": [],
+            "count": 0
+        }
+
+
+@app.get("/faces/{name}/image")
+async def get_face_image(name: str, index: int = Query(0, description="Image index (0-based)")):
+    """Get a specific registered image for a face identity by index"""
+    if name not in recognition_service.known_faces:
+        raise HTTPException(status_code=404, detail=f"Face '{name}' not found")
+
+    data = recognition_service.known_faces[name]
+
+    # Handle new format with multiple images
+    if 'image_paths' in data:
+        if index < 0 or index >= len(data['image_paths']):
+            raise HTTPException(status_code=404, detail=f"Image index {index} not found. Available: 0-{len(data['image_paths'])-1}")
+        image_path = data['image_paths'][index]
+    elif 'image_path' in data:
+        # Old format with single image
+        if index != 0:
+            raise HTTPException(status_code=404, detail="Only index 0 available for this face")
+        image_path = data['image_path']
+    else:
+        raise HTTPException(status_code=404, detail="No images found")
+
+    if not os.path.exists(image_path):
+        raise HTTPException(status_code=404, detail="Image file not found")
+
+    with open(image_path, 'rb') as f:
         return Response(content=f.read(), media_type="image/jpeg")
 
 

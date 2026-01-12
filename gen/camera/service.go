@@ -30,6 +30,11 @@ type Service interface {
 	Deactivate(context.Context, *DeactivatePayload) (res *CameraInfo, err error)
 	// Capture a single frame from camera as base64
 	Capture(context.Context, *CapturePayload) (res *FrameResponse, err error)
+	// Enable AI detection for this camera. Detection will run on captured frames.
+	EnableDetection(context.Context, *EnableDetectionPayload) (res *CameraInfo, err error)
+	// Disable AI detection for this camera. Camera will stream only without
+	// detection.
+	DisableDetection(context.Context, *DisableDetectionPayload) (res *CameraInfo, err error)
 }
 
 // ServiceName is the name of the service as defined in the design. This is the
@@ -40,7 +45,7 @@ const ServiceName = "camera"
 // MethodNames lists the service method names as defined in the design. These
 // are the same values that are set in the endpoint request contexts under the
 // MethodKey key.
-var MethodNames = [8]string{"list", "get", "create", "update", "delete", "activate", "deactivate", "capture"}
+var MethodNames = [10]string{"list", "get", "create", "update", "delete", "activate", "deactivate", "capture", "enable_detection", "disable_detection"}
 
 // ActivatePayload is the payload type of the camera service activate method.
 type ActivatePayload struct {
@@ -72,6 +77,8 @@ type CameraInfo struct {
 	Fps *int
 	// Creation timestamp
 	CreatedAt *string
+	// When false, camera streams only without running AI detection.
+	DetectionEnabled *bool
 }
 
 // CapturePayload is the payload type of the camera service capture method.
@@ -101,6 +108,20 @@ type DeactivatePayload struct {
 
 // DeletePayload is the payload type of the camera service delete method.
 type DeletePayload struct {
+	// Camera ID
+	ID string
+}
+
+// DisableDetectionPayload is the payload type of the camera service
+// disable_detection method.
+type DisableDetectionPayload struct {
+	// Camera ID
+	ID string
+}
+
+// EnableDetectionPayload is the payload type of the camera service
+// enable_detection method.
+type EnableDetectionPayload struct {
 	// Camera ID
 	ID string
 }
