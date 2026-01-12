@@ -9,6 +9,7 @@ Orbo is a modern, open-source video alarm system built with Go and OpenCV. It fe
 ## Features
 
 - **React Web UI**: Modern dashboard with camera management, multi-camera grid layouts, and unified settings panel
+- **Per-Camera Detection Toggle**: Enable/disable AI detection per camera independently from streaming
 - **Real-Time Streaming**: Low-latency WebSocket streaming with gRPC-based detection pipeline
 - **Dual Streaming Modes**: MJPEG (traditional) and WebCodecs (low-latency WebSocket) streaming
 - **Camera Support**: USB cameras (`/dev/video*`), HTTP endpoints, and RTSP streams
@@ -74,7 +75,8 @@ helm upgrade orbo deploy/helm/orbo --set recognition.enabled=true
 The React-based web UI provides:
 
 - **Camera Management**: Add, edit, delete cameras with live preview
-- **Multi-Camera Grid**: Configurable layouts (1x1, 2x1, 2x2, 3x2, 3x3)
+- **Per-Camera Detection Control**: Toggle AI detection on/off per camera independently
+- **Multi-Camera Grid**: Configurable layouts (1x1, 2x1, 2x2, 3x3) with detection status indicators
 - **Motion Events**: Browse and filter detection events with thumbnails
 - **Settings Panel**: Configure Telegram, YOLO, and detection settings
 - **System Controls**: Start/stop detection, view system status
@@ -193,17 +195,33 @@ Cameras inherit from global defaults and can override: `mode`, `executionMode`, 
 
 Once configured, control Orbo directly from Telegram:
 
+**System Commands:**
 | Command | Description |
 |---------|-------------|
-| `/status` | System status (cameras, detection, uptime) |
-| `/cameras` | List all cameras with status |
-| `/enable <name>` | Enable a camera |
-| `/disable <name>` | Disable a camera |
-| `/start_detection` | Start motion detection on all cameras |
-| `/stop_detection` | Stop motion detection |
-| `/snapshot <name>` | Capture and send a frame from a camera |
-| `/events [limit]` | Show recent motion events (default: 5) |
+| `/status` | System status (cameras, detection stats, uptime) |
+| `/cameras` | List all cameras with status and detection indicators |
 | `/help` | Show available commands |
+
+**Camera Control:**
+| Command | Description |
+|---------|-------------|
+| `/enable <name>` | Activate camera (start streaming) |
+| `/disable <name>` | Deactivate camera |
+| `/detect_on <name>` | Enable AI detection for a camera |
+| `/detect_off <name>` | Disable AI detection (streaming only) |
+
+**Detection:**
+| Command | Description |
+|---------|-------------|
+| `/start_detection` | Start detection on all detection-enabled cameras |
+| `/stop_detection` | Stop all detection |
+| `/snapshot <name>` | Capture and send a frame from a camera |
+| `/events [limit]` | Show recent detection events (default: 5) |
+
+**Camera Status Icons:**
+- 👁️ Currently detecting
+- 🔍 Detection enabled (not running)
+- 📺 Streaming only (detection disabled)
 
 ## API Reference
 
@@ -219,7 +237,8 @@ Once configured, control Orbo directly from Telegram:
 - `GET /api/v1/cameras` - List cameras
 - `POST /api/v1/cameras` - Add camera
 - `GET|PUT|DELETE /api/v1/cameras/{id}` - Manage camera
-- `POST /api/v1/cameras/{id}/activate|deactivate` - Control camera
+- `POST /api/v1/cameras/{id}/activate|deactivate` - Control camera streaming
+- `POST /api/v1/cameras/{id}/detection/enable|disable` - Toggle AI detection per camera
 - `GET /api/v1/cameras/{id}/frame` - Get current frame
 
 ### Motion Events

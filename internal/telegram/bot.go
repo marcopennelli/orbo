@@ -158,7 +158,7 @@ func (tb *TelegramBot) SendMotionAlert(ctx context.Context, cameraName string, c
 	timestamp := fmt.Sprintf("%s %s", now.Format("2 Jan 2006, 15:04:05"), zoneName)
 
 	message := fmt.Sprintf(
-		"🚨 <b>Motion Detected!</b>\n\n"+
+		"🚨 <b>Detection Alert!</b>\n\n"+
 			"📹 Camera: %s\n"+
 			"🕐 Time: %s",
 		cameraName,
@@ -201,7 +201,7 @@ func (tb *TelegramBot) SendMotionAlertWithFaces(ctx context.Context, cameraName 
 	}
 
 	message := fmt.Sprintf(
-		"🚨 <b>Motion Detected!</b>\n\n"+
+		"🚨 <b>Detection Alert!</b>\n\n"+
 			"📹 Camera: %s\n"+
 			"🎯 Detected: %s\n"+
 			"%s Threat: %s\n"+
