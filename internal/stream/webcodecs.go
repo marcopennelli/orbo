@@ -256,26 +256,22 @@ func (s *WebCodecsStream) receiveFrames(sub *pipeline.FrameSubscription) {
 
 // broadcastAnnotatedFrame sends an annotated frame to auto-mode clients only
 // Called directly from detection pipeline - no channel buffering (real-time)
-// Frames with seq <= last received are dropped to prevent out-of-order display
 // Raw-mode clients don't receive annotated frames
 func (s *WebCodecsStream) broadcastAnnotatedFrame(seq uint64, frameData []byte) {
 	if len(frameData) == 0 {
 		return
 	}
 
-	// Validate frame sequence - drop out-of-order frames
-	s.lastAnnotatedSeqMu.Lock()
-	if seq <= s.lastAnnotatedSeq {
-		s.lastAnnotatedSeqMu.Unlock()
-		return // Drop this frame - it's older than the last one we sent
-	}
-	s.lastAnnotatedSeq = seq
-	s.lastAnnotatedSeqMu.Unlock()
-
 	// Update last annotated time (to suppress raw frames for auto-mode clients)
 	s.lastAnnotatedMu.Lock()
 	s.lastAnnotatedTime = time.Now()
 	s.lastAnnotatedMu.Unlock()
+
+	// Update sequence (used by client for ordering, but we don't drop frames server-side
+	// since annotated frames from detection are already sequential from the pipeline)
+	s.lastAnnotatedSeqMu.Lock()
+	s.lastAnnotatedSeq = seq
+	s.lastAnnotatedSeqMu.Unlock()
 
 	s.clientsMu.RLock()
 	defer s.clientsMu.RUnlock()

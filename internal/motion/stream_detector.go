@@ -673,28 +673,15 @@ func (sd *StreamDetector) runDirectYOLODetectionAnnotatedWithSeq(cameraID string
 		return
 	}
 
-	// Check if Face detector is the NEXT stage in the pipeline
-	// This implements "single stream output" - only the final pipeline stage sends to UI
+	// Simplified pipeline logic:
+	// - If YOLO-only: YOLO sends ALL frames to stream (with or without detections)
+	// - If YOLO+Face: YOLO does NOT send to stream, Face sends ALL frames
+	// This ensures consistent frame rate and no time-travel effect
 	faceDetectorEnabled := sd.isDetectorEnabled(cameraID, "face") && sd.hasFaceRecognizer()
 
-	// Check if person was detected (needed for face recognition)
-	hasPersonDetection := false
-	for _, det := range annotatedResult.Detections {
-		if det.Class == "person" {
-			hasPersonDetection = true
-			break
-		}
-	}
-
-	// Determine if Face will actually process this frame
-	// Face only runs if: Face is enabled AND there's a person detection
-	faceWillProcess := faceDetectorEnabled && hasPersonDetection
-
-	// Send YOLO annotated frame to stream ONLY if this is the final stage
-	// YOLO is final stage if:
-	// 1. Face detector is not enabled, OR
-	// 2. Face is enabled but no person was detected (Face won't process)
-	if len(annotatedResult.ImageData) > 0 && !faceWillProcess {
+	// YOLO sends to stream ONLY if Face is NOT enabled (YOLO-only mode)
+	// When Face is enabled, Face will send ALL frames (including ones without persons)
+	if len(annotatedResult.ImageData) > 0 && !faceDetectorEnabled {
 		if captureSeq > 0 {
 			sd.sendAnnotatedFrameToStreamWithSeq(cameraID, annotatedResult.ImageData, captureSeq)
 		} else {
@@ -702,6 +689,21 @@ func (sd *StreamDetector) runDirectYOLODetectionAnnotatedWithSeq(cameraID string
 		}
 	}
 
+	// When Face detector is enabled (YOLO+Face mode), ALWAYS pass frame to Face
+	// Face will send ALL frames to stream (maintaining consistent frame rate)
+	if faceDetectorEnabled {
+		// Pass the YOLO-annotated frame to face recognition so face boxes
+		// are drawn ON TOP OF the YOLO boxes (combined visualization)
+		frameForFaceRecognition := frameData
+		if len(annotatedResult.ImageData) > 0 {
+			frameForFaceRecognition = annotatedResult.ImageData
+		}
+		// performFaceRecognitionForStream always sends to stream (simplified pipeline)
+		sd.performFaceRecognitionForStream(cameraID, frameForFaceRecognition, captureSeq, annotatedResult)
+		return // Face handles stream output in YOLO+Face mode
+	}
+
+	// YOLO-only mode: process detections and create events
 	if annotatedResult.Count > 0 {
 		fmt.Printf("YOLO detected %d objects on camera %s (inference: %.1fms on %s) - saving annotated image\n",
 			annotatedResult.Count, cameraID, annotatedResult.InferenceTimeMs, annotatedResult.Device)
@@ -783,18 +785,6 @@ func (sd *StreamDetector) runDirectYOLODetectionAnnotatedWithSeq(cameraID string
 			ThreatLevel:      threatLevel,
 			InferenceTimeMs:  annotatedResult.InferenceTimeMs,
 			DetectionDevice:  annotatedResult.Device,
-		}
-
-		// If person detected and face recognition is enabled, run face recognition
-		// Face recognition will send the final annotated frame with both YOLO and Face boxes
-		if faceWillProcess {
-			// Pass the YOLO-annotated frame to face recognition so face boxes
-			// are drawn ON TOP OF the YOLO boxes (combined visualization)
-			frameForFaceRecognition := frameData
-			if len(annotatedResult.ImageData) > 0 {
-				frameForFaceRecognition = annotatedResult.ImageData
-			}
-			sd.performFaceRecognition(cameraID, frameForFaceRecognition, event)
 		}
 
 		sd.addEvent(event)
@@ -1127,6 +1117,188 @@ func (sd *StreamDetector) performFaceRecognitionFallback(cameraID string, frameD
 
 		sd.updateStreamOverlayFaces(cameraID, result.Recognitions)
 		sd.performForensicAnalysis(cameraID, frameData, event)
+	}
+}
+
+// performFaceRecognitionForStream runs face recognition and ALWAYS sends to stream
+// This is the simplified pipeline for YOLO+Face mode where Face is the final stage
+// Face ALWAYS sends frames to maintain consistent frame rate (no time-travel)
+func (sd *StreamDetector) performFaceRecognitionForStream(cameraID string, frameData []byte, captureSeq uint64, yoloResult *detection.AnnotatedSecurityResult) {
+	// Get face recognizers
+	sd.mu.RLock()
+	grpcFace := sd.grpcFaceRecognizer
+	httpFace := sd.faceRecognizer
+	sd.mu.RUnlock()
+
+	// Check if any face recognition is available
+	grpcAvailable := grpcFace != nil && grpcFace.IsEnabled() && grpcFace.IsHealthy()
+	httpAvailable := httpFace != nil && httpFace.IsEnabled()
+
+	// Frame to send to stream - default to input (YOLO-annotated or raw)
+	frameToSend := frameData
+
+	var annotatedResult *detection.AnnotatedRecognitionResult
+	var err error
+
+	if grpcAvailable {
+		annotatedResult, err = grpcFace.RecognizeFacesAnnotatedGRPC(frameData)
+		if err != nil {
+			fmt.Printf("gRPC face recognition failed for camera %s: %v, falling back to HTTP\n", cameraID, err)
+			grpcAvailable = false
+		}
+	}
+
+	// Fall back to HTTP if gRPC failed or unavailable
+	if !grpcAvailable && httpAvailable {
+		if !httpFace.IsHealthy() {
+			if err := httpFace.CheckHealth(); err != nil {
+				fmt.Printf("Face recognition service unhealthy for camera %s: %v\n", cameraID, err)
+				// Still send the YOLO frame to maintain stream
+			}
+		} else {
+			annotatedResult, err = httpFace.RecognizeFacesAnnotated(frameData)
+			if err != nil {
+				fmt.Printf("HTTP face recognition failed for camera %s: %v\n", cameraID, err)
+			}
+		}
+	}
+
+	// Use Face-annotated frame if available, otherwise keep YOLO frame
+	if annotatedResult != nil && len(annotatedResult.ImageData) > 0 {
+		frameToSend = annotatedResult.ImageData
+	}
+
+	// ALWAYS send frame to stream (Face is final stage in YOLO+Face pipeline)
+	if captureSeq > 0 {
+		sd.sendAnnotatedFrameToStreamWithSeq(cameraID, frameToSend, captureSeq)
+	} else {
+		sd.sendAnnotatedFrameToStream(cameraID, frameToSend)
+	}
+
+	// Process face recognition results for events/notifications
+	if annotatedResult != nil && annotatedResult.Count > 0 {
+		fmt.Printf("Face recognition for camera %s: total=%d, known=%d, unknown=%d (inference: %.1fms)\n",
+			cameraID, annotatedResult.Count, annotatedResult.KnownCount, annotatedResult.UnknownCount, annotatedResult.InferenceTimeMs)
+
+		// Determine threat level based on YOLO + Face results
+		threatLevel := "low"
+		objectClass := "unknown"
+		var objectConfidence float32
+
+		// Use YOLO detection info if available
+		if yoloResult != nil && len(yoloResult.Detections) > 0 {
+			bestDet := yoloResult.Detections[0]
+			objectClass = bestDet.Class
+			objectConfidence = bestDet.Confidence
+			threatLevel = sd.gpuDetector.GetThreatLevel(bestDet)
+		}
+
+		// Upgrade threat level if unknown faces detected
+		if annotatedResult.UnknownCount > 0 {
+			threatLevel = "high"
+		}
+
+		// Save frame for event
+		framePath := fmt.Sprintf("%s/yolo_face_%s_%d.jpg", sd.frameDir, cameraID, time.Now().UnixNano())
+		if err := sd.saveFrameBytes(frameToSend, framePath); err != nil {
+			fmt.Printf("Failed to save detection frame for camera %s: %v\n", cameraID, err)
+			framePath = ""
+		}
+
+		// Create event combining YOLO + Face data
+		event := &MotionEvent{
+			ID:                uuid.New().String(),
+			CameraID:          cameraID,
+			Timestamp:         time.Now(),
+			FramePath:         framePath,
+			ObjectClass:       objectClass,
+			ObjectConfidence:  objectConfidence,
+			ThreatLevel:       threatLevel,
+			InferenceTimeMs:   annotatedResult.InferenceTimeMs,
+			DetectionDevice:   "yolo+insightface",
+			FacesDetected:     annotatedResult.Count,
+			UnknownFacesCount: annotatedResult.UnknownCount,
+		}
+
+		// Add YOLO inference time if available
+		if yoloResult != nil {
+			event.InferenceTimeMs += yoloResult.InferenceTimeMs
+		}
+
+		// Extract known identities
+		for _, face := range annotatedResult.Recognitions {
+			if face.IsKnown && face.Identity != nil {
+				event.KnownIdentities = append(event.KnownIdentities, *face.Identity)
+			}
+		}
+
+		// Broadcast via WebSocket
+		if sd.wsHub != nil && sd.wsHub.HasClients(cameraID) {
+			wsMsg := ws.NewFaceMessage(cameraID)
+			for _, face := range annotatedResult.Recognitions {
+				var identity *string
+				var similarity *float32
+				var age *int
+				var gender *string
+
+				if face.Identity != nil {
+					identity = face.Identity
+				}
+				if face.Similarity > 0 {
+					sim := face.Similarity
+					similarity = &sim
+				}
+				if face.Age > 0 {
+					a := face.Age
+					age = &a
+				}
+				if face.Gender != "" {
+					g := face.Gender
+					gender = &g
+				}
+
+				bbox := face.BBox
+				if len(bbox) == 4 {
+					bbox = []float32{bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]}
+				}
+				wsMsg.AddFace(bbox, face.Confidence, identity, face.IsKnown, similarity, age, gender)
+			}
+			sd.wsHub.BroadcastFaces(cameraID, wsMsg)
+		}
+
+		// Update stream overlay
+		sd.updateStreamOverlayFaces(cameraID, annotatedResult.Recognitions)
+
+		// Run forensic analysis
+		sd.performForensicAnalysis(cameraID, frameData, event)
+
+		// Save event
+		sd.addEvent(event)
+	} else if yoloResult != nil && yoloResult.Count > 0 {
+		// No faces detected but YOLO found objects - create YOLO-only event
+		bestDet := yoloResult.Detections[0]
+
+		framePath := fmt.Sprintf("%s/yolo_%s_%d.jpg", sd.frameDir, cameraID, time.Now().UnixNano())
+		if err := sd.saveFrameBytes(frameToSend, framePath); err != nil {
+			fmt.Printf("Failed to save YOLO frame for camera %s: %v\n", cameraID, err)
+			framePath = ""
+		}
+
+		event := &MotionEvent{
+			ID:               uuid.New().String(),
+			CameraID:         cameraID,
+			Timestamp:        time.Now(),
+			FramePath:        framePath,
+			ObjectClass:      bestDet.Class,
+			ObjectConfidence: bestDet.Confidence,
+			ThreatLevel:      sd.gpuDetector.GetThreatLevel(bestDet),
+			InferenceTimeMs:  yoloResult.InferenceTimeMs,
+			DetectionDevice:  yoloResult.Device,
+		}
+
+		sd.addEvent(event)
+		fmt.Printf("YOLO detection (no faces) saved for camera %s: %s (%.0f%% confidence)\n",
+			cameraID, bestDet.Class, bestDet.Confidence*100)
 	}
 }
 
