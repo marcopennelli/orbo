@@ -169,7 +169,22 @@ func NewConfigService(telegramBot *telegram.TelegramBot, dinov3Detector *detecti
 		impl.loadConfigFromDB()
 	}
 
+	// Wire up YOLO config provider to motion detector
+	// This allows the stream detector to use the current configured threshold
+	if motionDetector != nil {
+		impl.wireYOLOConfigProvider()
+	}
+
 	return impl
+}
+
+// wireYOLOConfigProvider sets up the motion detector to get YOLO config from this implementation
+func (c *ConfigImplementation) wireYOLOConfigProvider() {
+	c.motionDetector.SetYOLOConfig(func() float32 {
+		c.mu.RLock()
+		defer c.mu.RUnlock()
+		return c.yoloCfg.ConfidenceThreshold
+	})
 }
 
 // loadConfigFromDB loads configuration from the database

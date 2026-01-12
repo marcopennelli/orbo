@@ -30,6 +30,9 @@ import (
 // Returns nil if the camera doesn't have a pipeline configuration (use defaults)
 type PipelineConfigProvider func(cameraID string) *pipeline.EffectiveConfig
 
+// YOLOConfigProvider is a function that returns the current YOLO confidence threshold
+type YOLOConfigProvider func() float32
+
 // StreamDetector handles streaming motion detection
 type StreamDetector struct {
 	mu               sync.RWMutex
@@ -55,6 +58,7 @@ type StreamDetector struct {
 	streamOverlay    stream.StreamOverlayProvider  // Stream overlay for drawing bounding boxes on MJPEG
 	frameSeqCounters map[string]*uint64            // Per-camera frame sequence counters
 	pipelineConfig   PipelineConfigProvider        // Function to get pipeline config for mode gating
+	yoloConfig       YOLOConfigProvider            // Function to get YOLO confidence threshold
 }
 
 // NewStreamDetector creates a new streaming motion detector
@@ -544,19 +548,22 @@ func (sd *StreamDetector) runDirectYOLODetection(cameraID string, frameData []by
 		return
 	}
 
+	// Get configured confidence threshold
+	confThreshold := sd.getYOLOConfThreshold()
+
 	// Prefer gRPC detector for low-latency streaming
 	var securityResult *detection.SecurityDetectionResult
 	var err error
 	if grpcDet != nil && grpcDet.IsHealthy() {
-		securityResult, err = grpcDet.DetectSecurityObjects(frameData, 0.5)
+		securityResult, err = grpcDet.DetectSecurityObjects(frameData, confThreshold)
 		if err != nil {
 			fmt.Printf("gRPC YOLO detection failed for camera %s: %v, falling back to HTTP\n", cameraID, err)
 			// Fall back to HTTP
-			securityResult, err = sd.gpuDetector.DetectSecurityObjects(frameData, 0.5)
+			securityResult, err = sd.gpuDetector.DetectSecurityObjects(frameData, confThreshold)
 		}
 	} else {
 		// Use HTTP detector
-		securityResult, err = sd.gpuDetector.DetectSecurityObjects(frameData, 0.5)
+		securityResult, err = sd.gpuDetector.DetectSecurityObjects(frameData, confThreshold)
 	}
 	if err != nil {
 		fmt.Printf("Direct YOLO detection failed for camera %s: %v\n", cameraID, err)
@@ -655,18 +662,21 @@ func (sd *StreamDetector) runDirectYOLODetectionAnnotatedWithSeq(cameraID string
 	grpcDet := sd.grpcDetector
 	sd.mu.RUnlock()
 
+	// Get configured confidence threshold
+	confThreshold := sd.getYOLOConfThreshold()
+
 	var annotatedResult *detection.AnnotatedSecurityResult
 	var err error
 	if grpcDet != nil && grpcDet.IsHealthy() {
-		annotatedResult, err = grpcDet.DetectSecurityObjectsAnnotated(frameData, 0.5)
+		annotatedResult, err = grpcDet.DetectSecurityObjectsAnnotated(frameData, confThreshold)
 		if err != nil {
 			fmt.Printf("gRPC YOLO annotated detection failed for camera %s: %v, falling back to HTTP\n", cameraID, err)
 			// Fall back to HTTP
-			annotatedResult, err = sd.gpuDetector.DetectSecurityObjectsAnnotated(frameData, 0.5)
+			annotatedResult, err = sd.gpuDetector.DetectSecurityObjectsAnnotated(frameData, confThreshold)
 		}
 	} else {
 		// Use HTTP detector
-		annotatedResult, err = sd.gpuDetector.DetectSecurityObjectsAnnotated(frameData, 0.5)
+		annotatedResult, err = sd.gpuDetector.DetectSecurityObjectsAnnotated(frameData, confThreshold)
 	}
 	if err != nil {
 		fmt.Printf("Direct YOLO annotated detection failed for camera %s: %v\n", cameraID, err)
@@ -884,9 +894,12 @@ func (sd *StreamDetector) processDINOv3Detection(cameraID string, frameData []by
 
 // processMotionWithGPU processes detected motion using GPU-accelerated object detection
 func (sd *StreamDetector) processMotionWithGPU(cameraID string, frameData []byte, motionConfidence float32, motionBBox BoundingBox) {
+	// Get configured confidence threshold
+	confThreshold := sd.getYOLOConfThreshold()
+
 	// Try GPU detection first
 	if sd.gpuDetector.IsHealthy() {
-		securityResult, err := sd.gpuDetector.DetectSecurityObjects(frameData, 0.5)
+		securityResult, err := sd.gpuDetector.DetectSecurityObjects(frameData, confThreshold)
 		if err != nil {
 			fmt.Printf("GPU detection failed, falling back to basic motion: %v\n", err)
 			sd.createBasicMotionEvent(cameraID, frameData, motionConfidence, motionBBox)
@@ -1741,6 +1754,26 @@ func (sd *StreamDetector) SetPipelineConfig(provider PipelineConfigProvider) {
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 	sd.pipelineConfig = provider
+}
+
+// SetYOLOConfig sets the function that provides YOLO configuration
+func (sd *StreamDetector) SetYOLOConfig(provider YOLOConfigProvider) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.yoloConfig = provider
+}
+
+// getYOLOConfThreshold returns the configured YOLO confidence threshold
+// Falls back to 0.5 if no config provider is set
+func (sd *StreamDetector) getYOLOConfThreshold() float32 {
+	sd.mu.RLock()
+	provider := sd.yoloConfig
+	sd.mu.RUnlock()
+
+	if provider == nil {
+		return 0.5 // Default threshold
+	}
+	return provider()
 }
 
 // SetGRPCDetector sets the gRPC-based YOLO detector for low-latency streaming detection

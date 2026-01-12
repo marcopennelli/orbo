@@ -152,3 +152,9 @@ func (md *MotionDetector) SetGRPCFaceRecognizer(grpcFace *detection.GRPCFaceReco
 func (md *MotionDetector) ConfigureGRPCYOLO(confThreshold float32, classes []string) error {
 	return md.streamDetector.ConfigureGRPCYOLO(confThreshold, classes)
 }
+
+// SetYOLOConfig sets the function that provides YOLO configuration (confidence threshold)
+// This allows the stream detector to use the current configured threshold for HTTP fallback
+func (md *MotionDetector) SetYOLOConfig(provider YOLOConfigProvider) {
+	md.streamDetector.SetYOLOConfig(provider)
+}
