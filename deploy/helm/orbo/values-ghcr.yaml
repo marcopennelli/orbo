@@ -1,0 +1,281 @@
+# =============================================================================
+# Orbo Helm Values - GHCR Images (Production)
+# =============================================================================
+# Usage: helm install orbo ./helm/orbo -f values-ghcr.yaml
+#
+# Use this values file to deploy with pre-built images from GitHub Container
+# Registry instead of locally built images.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Global Settings
+# -----------------------------------------------------------------------------
+global:
+  environment: production
+  logLevel: info
+  # Set your GitHub username/org here
+  imageRegistry: ghcr.io/marcopennelli
+
+# -----------------------------------------------------------------------------
+# Image Pull Secrets (required for private repos)
+# -----------------------------------------------------------------------------
+imagePullSecrets:
+  - name: ghcr-secret
+  # Create the secret with:
+  # kubectl create secret docker-registry ghcr-secret \
+  #   --docker-server=ghcr.io \
+  #   --docker-username=YOUR_GITHUB_USERNAME \
+  #   --docker-password=YOUR_GITHUB_PAT \
+  #   -n orbo
+
+# -----------------------------------------------------------------------------
+# Main Orbo Application
+# -----------------------------------------------------------------------------
+orbo:
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/marcopennelli/orbo
+    tag: latest
+    pullPolicy: Always
+
+  # Server configuration
+  server:
+    host: "0.0.0.0"
+    httpPort: 8080
+    debug: false
+
+  # Resource limits
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 512Mi
+
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+
+# -----------------------------------------------------------------------------
+# Authentication
+# -----------------------------------------------------------------------------
+auth:
+  enabled: true
+  username: admin
+  password: ""  # Set via --set auth.password=xxx or external secret
+  jwtSecret: ""  # Leave empty for random secret
+  jwtExpiry: 24h
+
+# -----------------------------------------------------------------------------
+# Detection Pipeline Configuration
+# -----------------------------------------------------------------------------
+detection:
+  mode: motion_triggered
+  executionMode: sequential
+  detectors:
+    - yolo
+  scheduleInterval: 5s
+
+  motion:
+    enabled: true
+    sensitivity: 0.1
+    cooldownSeconds: 2
+    minContourArea: 1000
+    backgroundHistory: 500
+    varThreshold: 16
+
+  primaryDetector: yolo
+  fallbackEnabled: true
+
+# -----------------------------------------------------------------------------
+# YOLO Service
+# -----------------------------------------------------------------------------
+yolo:
+  enabled: true
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/marcopennelli/orbo-yolo
+    tag: latest
+    pullPolicy: Always
+
+  config:
+    confidenceThreshold: 0.5
+    securityMode: true
+    classesFilter: ""
+    drawBoxes: true
+    model: yolo11n.pt
+    enabledTasks: "detect,segment,pose"
+
+  service:
+    type: ClusterIP
+    port: 8081
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop: [ALL]
+
+  gpu:
+    enabled: false
+    cudaDevices: "0"
+    nodeSelector: {}
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# Face Recognition Service
+# -----------------------------------------------------------------------------
+recognition:
+  enabled: false
+  replicaCount: 1
+
+  image:
+    repository: ghcr.io/marcopennelli/orbo-recognition
+    tag: latest
+    pullPolicy: Always
+
+  config:
+    similarityThreshold: 0.5
+    model: buffalo_l
+
+  service:
+    type: ClusterIP
+    port: 8082
+
+  persistence:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    storageClass: ""
+
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ALL]
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -----------------------------------------------------------------------------
+# Notifications
+# -----------------------------------------------------------------------------
+notifications:
+  telegram:
+    enabled: false
+    botToken: ""
+    chatId: ""
+    cooldownSeconds: 30
+
+# -----------------------------------------------------------------------------
+# Storage
+# -----------------------------------------------------------------------------
+storage:
+  persistence:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteOnce
+    size: 20Gi
+    mountPath: /app/frames
+
+  database:
+    path: /app/frames/orbo.db
+
+  frames:
+    path: /app/frames
+
+# -----------------------------------------------------------------------------
+# Networking
+# -----------------------------------------------------------------------------
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: orbo.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: orbo-tls
+      hosts:
+        - orbo.example.com
+
+# -----------------------------------------------------------------------------
+# Health Checks
+# -----------------------------------------------------------------------------
+probes:
+  liveness:
+    enabled: true
+    path: /healthz
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readiness:
+    enabled: true
+    path: /readyz
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# -----------------------------------------------------------------------------
+# Autoscaling
+# -----------------------------------------------------------------------------
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# -----------------------------------------------------------------------------
+# Service Account
+# -----------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""

@@ -1,0 +1,243 @@
+name: Build and Push Container Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'api/**'
+      - 'web/**'
+      - 'yolo-service/**'
+      - 'recognition-service/**'
+      - 'deploy/docker/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/build-images.yaml'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      build_orbo:
+        description: 'Build orbo image'
+        type: boolean
+        default: true
+      build_yolo:
+        description: 'Build yolo-service image'
+        type: boolean
+        default: true
+      build_recognition:
+        description: 'Build recognition-service image'
+        type: boolean
+        default: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  # Determine which images need to be built based on changed files
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      orbo: ${{ steps.filter.outputs.orbo }}
+      yolo: ${{ steps.filter.outputs.yolo }}
+      recognition: ${{ steps.filter.outputs.recognition }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            orbo:
+              - 'cmd/**'
+              - 'internal/**'
+              - 'api/**'
+              - 'web/**'
+              - 'go.mod'
+              - 'go.sum'
+              - 'deploy/docker/Dockerfile'
+            yolo:
+              - 'yolo-service/**'
+              - 'api/proto/**'
+            recognition:
+              - 'recognition-service/**'
+              - 'api/proto/**'
+
+  # Build main orbo Go application
+  build-orbo:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: |
+      needs.changes.outputs.orbo == 'true' ||
+      github.event_name == 'workflow_dispatch' && github.event.inputs.build_orbo == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Build frontend
+        run: |
+          cd web/frontend
+          npm ci
+          npm run build
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/orbo
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push orbo image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # Build YOLO service (Python + PyTorch)
+  build-yolo:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: |
+      needs.changes.outputs.yolo == 'true' ||
+      github.event_name == 'workflow_dispatch' && github.event.inputs.build_yolo == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/orbo-yolo
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Copy proto file for build context
+        run: |
+          cp api/proto/detection/v1/detection.proto yolo-service/
+
+      - name: Build and push YOLO image
+        uses: docker/build-push-action@v6
+        with:
+          context: yolo-service
+          file: yolo-service/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # YOLO with ROCm base is large, only build amd64 for now
+          platforms: linux/amd64
+
+  # Build face recognition service (Python + InsightFace)
+  build-recognition:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: |
+      needs.changes.outputs.recognition == 'true' ||
+      github.event_name == 'workflow_dispatch' && github.event.inputs.build_recognition == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/orbo-recognition
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push recognition image
+        uses: docker/build-push-action@v6
+        with:
+          context: recognition-service
+          file: recognition-service/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # Summary job
+  summary:
+    runs-on: ubuntu-latest
+    needs: [build-orbo, build-yolo, build-recognition]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| orbo | ${{ needs.build-orbo.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| orbo-yolo | ${{ needs.build-yolo.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| orbo-recognition | ${{ needs.build-recognition.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Images pushed to: ghcr.io/${{ github.repository_owner }}/" >> $GITHUB_STEP_SUMMARY
