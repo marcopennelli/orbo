@@ -73,6 +73,104 @@ sudo systemctl daemon-reload
 sudo systemctl restart orbo.service
 ```
 
+### Plain Podman Commands (Without Quadlet)
+
+If you prefer not to use Quadlet/systemd, you can run containers directly with Podman:
+
+#### Using a Network (Recommended)
+
+```bash
+# Create a network for inter-container communication
+podman network create orbo-net
+
+# Create persistent storage
+sudo mkdir -p /var/lib/orbo/frames /var/lib/orbo/faces
+sudo chown -R 1000:1000 /var/lib/orbo
+
+# 1. YOLO Service (start first)
+podman run -d \
+  --name yolo-service \
+  --network orbo-net \
+  -p 8081:8081 \
+  -e YOLO_MODEL=yolo11n.pt \
+  -e CONFIDENCE_THRESHOLD=0.5 \
+  -e ENABLED_TASKS=detect,segment,pose \
+  --user 1000:1000 \
+  ghcr.io/marcopennelli/orbo-yolo:latest
+
+# 2. Recognition Service (optional)
+podman run -d \
+  --name recognition \
+  --network orbo-net \
+  -p 8082:8082 \
+  -v /var/lib/orbo/faces:/app/data:Z \
+  -e SIMILARITY_THRESHOLD=0.5 \
+  -e FACES_DB_PATH=/app/data/faces.pkl \
+  -e FACES_IMAGES_PATH=/app/data/faces \
+  --user 1000:1000 \
+  --read-only \
+  ghcr.io/marcopennelli/orbo-recognition:latest
+
+# 3. Main Orbo Application
+podman run -d \
+  --name orbo \
+  --network orbo-net \
+  -p 8080:8080 \
+  --device /dev/video0:/dev/video0 \
+  -v /var/lib/orbo/frames:/app/frames:Z \
+  -e DETECTION_MODE=motion_triggered \
+  -e DETECTION_DETECTORS=yolo \
+  -e YOLO_ENABLED=true \
+  -e YOLO_ENDPOINT=http://yolo-service:8081 \
+  -e RECOGNITION_ENABLED=false \
+  -e RECOGNITION_SERVICE_ENDPOINT=http://recognition:8082 \
+  -e DATABASE_PATH=/app/frames/orbo.db \
+  -e FRAME_DIR=/app/frames \
+  --user 1000:1000 \
+  --read-only \
+  ghcr.io/marcopennelli/orbo:latest
+```
+
+#### Minimal Setup (Motion Detection Only)
+
+```bash
+podman run -d \
+  --name orbo \
+  -p 8080:8080 \
+  --device /dev/video0:/dev/video0 \
+  -v /var/lib/orbo/frames:/app/frames:Z \
+  -e DETECTION_MODE=motion_triggered \
+  -e YOLO_ENABLED=false \
+  --user 1000:1000 \
+  --read-only \
+  ghcr.io/marcopennelli/orbo:latest
+```
+
+#### Management Commands
+
+```bash
+# Check status
+podman ps -a
+
+# View logs
+podman logs -f orbo
+podman logs -f yolo-service
+
+# Stop all
+podman stop orbo yolo-service recognition
+
+# Remove all
+podman rm -f orbo yolo-service recognition
+podman network rm orbo-net
+
+# Pull latest images
+podman pull ghcr.io/marcopennelli/orbo:latest
+podman pull ghcr.io/marcopennelli/orbo-yolo:latest
+podman pull ghcr.io/marcopennelli/orbo-recognition:latest
+```
+
+**Note:** When using a network, containers communicate via container names as hostnames (e.g., `http://yolo-service:8081`).
+
 ## Yocto/OpenEmbedded Deployment
 
 ### Using meta-container-deploy
