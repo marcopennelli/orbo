@@ -7,6 +7,7 @@ import (
 
 	"orbo/internal/database"
 	"orbo/internal/detection"
+	"orbo/internal/pipeline"
 	"orbo/internal/stream"
 	"orbo/internal/telegram"
 	"orbo/internal/ws"
@@ -162,4 +163,11 @@ func (md *MotionDetector) ConfigureGRPCYOLO(confThreshold float32, classes []str
 // This allows the stream detector to use the current configured threshold for HTTP fallback
 func (md *MotionDetector) SetYOLOConfig(provider YOLOConfigProvider) {
 	md.streamDetector.SetYOLOConfig(provider)
+}
+
+// SetFrameProvider sets the unified frame provider for detection
+// When set, the detector will subscribe to frames from the provider instead of
+// doing its own HTTP polling, avoiding duplicate requests to the same camera endpoint
+func (md *MotionDetector) SetFrameProvider(fp pipeline.FrameProvider) {
+	md.streamDetector.SetFrameProvider(fp)
 }

@@ -200,7 +200,8 @@ func handleHTTPServer(ctx context.Context, u *url.URL, healthEndpoints *health.E
 	// Register WebCodecs with motion detector for detection overlays
 	if motionDetector != nil {
 		motionDetector.SetStreamOverlay(webCodecsManager)
-		logger.Printf("Stream overlay connected to motion detector (WebCodecs)")
+		motionDetector.SetFrameProvider(frameProvider)
+		logger.Printf("Stream overlay and frame provider connected to motion detector")
 	}
 
 	// WebSocket endpoint for low-latency WebCodecs streaming (auto mode)

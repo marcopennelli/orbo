@@ -60,6 +60,7 @@ type StreamDetector struct {
 	frameSeqCounters map[string]*uint64            // Per-camera frame sequence counters
 	pipelineConfig   PipelineConfigProvider        // Function to get pipeline config for mode gating
 	yoloConfig       YOLOConfigProvider            // Function to get YOLO confidence threshold
+	frameProvider    pipeline.FrameProvider        // Unified frame provider (avoids duplicate HTTP polling)
 }
 
 // NewStreamDetector creates a new streaming motion detector
@@ -246,8 +247,19 @@ func (sd *StreamDetector) streamFrames(cameraID, cameraDevice string, stopCh cha
 	fmt.Printf("Started streaming motion detection for camera %s\n", cameraID)
 	defer fmt.Printf("Stopped streaming motion detection for camera %s\n", cameraID)
 
-	// For HTTP image endpoints, use polling instead of ffmpeg streaming
+	// Check if we have a frame provider - use it to avoid duplicate HTTP polling
+	sd.mu.RLock()
+	fp := sd.frameProvider
+	sd.mu.RUnlock()
+
+	// For HTTP image endpoints, prefer FrameProvider to avoid duplicate requests
 	if isNetworkSource(cameraDevice) && (strings.Contains(cameraDevice, "image.jpg") || strings.Contains(cameraDevice, ".jpg") || strings.Contains(cameraDevice, ".jpeg")) {
+		if fp != nil {
+			// Use shared frame provider - subscribe to frames instead of polling
+			sd.streamFromProvider(cameraID, fp, stopCh)
+			return
+		}
+		// Fallback to direct polling if no frame provider
 		sd.streamHTTPImages(cameraID, cameraDevice, stopCh)
 		return
 	}
@@ -485,10 +497,11 @@ func (sd *StreamDetector) analyzeFrames(cameraID string, stopCh chan struct{}) {
 				fmt.Printf("Updated background frame for camera %s\n", cameraID)
 			}
 
-			// YOLO11-style: Process EVERY frame through detection pipeline
-			// This creates a smooth annotated stream (uniformly delayed, no time-travel)
-			// The GPU will process frames at its own rate - we accept the latency
-			// IMPORTANT: Only run detection if pipeline mode is not "disabled"
+			// Detection pipeline logic:
+			// - disabled: No detection at all (streaming only)
+			// - continuous/visual_only: Run YOLO/Face on EVERY frame (YOLO11-style)
+			// - motion_triggered/hybrid: Run motion detection first, then YOLO/Face only when motion detected
+			// - scheduled: Run YOLO/Face at intervals (not implemented here)
 
 			// Check if detection is enabled for this camera
 			if !sd.isDetectionEnabled(cameraID) {
@@ -496,43 +509,58 @@ func (sd *StreamDetector) analyzeFrames(cameraID string, stopCh chan struct{}) {
 				if frameCount%100 == 0 {
 					fmt.Printf("[StreamDetector] Detection disabled for camera %s, streaming only\n", cameraID)
 				}
-			} else {
-				// Check which detectors are enabled
-				yoloEnabled := sd.isDetectorEnabled(cameraID, "yolo")
-				faceEnabled := sd.isDetectorEnabled(cameraID, "face") && sd.hasFaceRecognizer()
+				continue
+			}
 
+			// Check which detectors are enabled
+			yoloEnabled := sd.isDetectorEnabled(cameraID, "yolo")
+			faceEnabled := sd.isDetectorEnabled(cameraID, "face") && sd.hasFaceRecognizer()
+			continuousMode := sd.isContinuousMode(cameraID)
+
+			if continuousMode {
+				// CONTINUOUS/VISUAL_ONLY MODE: Run detection on EVERY frame
+				// This creates a smooth annotated stream (uniformly delayed, no time-travel)
 				if yoloEnabled {
-					// YOLO is enabled - run YOLO detection on EVERY frame (YOLO11-style)
 					isHealthy := sd.gpuDetector.IsHealthy()
 					if isHealthy {
 						if frameCount%30 == 0 { // Log every 30 frames to reduce noise
 							fmt.Printf("Running YOLO detection for camera %s (frame %d, seq %d)\n", cameraID, frameCount, captureSeq)
 						}
-						// Pass captureSeq to preserve frame ordering through async YOLO pipeline
 						sd.runDirectYOLODetectionWithSeq(cameraID, frameData, uint64(captureSeq))
 					} else if frameCount%60 == 0 {
-						// Log if YOLO is not healthy
 						fmt.Printf("YOLO detector not healthy for camera %s (frame %d)\n", cameraID, frameCount)
 					}
 				} else if faceEnabled {
-					// Face-only mode: run face recognition on EVERY frame (YOLO11-style)
-					if frameCount%30 == 0 { // Log every 30 frames to reduce noise
+					// Face-only mode in continuous
+					if frameCount%30 == 0 {
 						fmt.Printf("Running Face detection for camera %s (frame %d, seq %d)\n", cameraID, frameCount, captureSeq)
 					}
 					sd.runDirectFaceDetection(cameraID, frameData, uint64(captureSeq))
 				} else if frameCount%100 == 0 {
-					// No detectors enabled
-					fmt.Printf("[StreamDetector] No detectors enabled for camera %s, skipping\n", cameraID)
+					fmt.Printf("[StreamDetector] No detectors enabled for camera %s (continuous mode)\n", cameraID)
 				}
-			}
-
-			// Basic motion detection is only needed when no AI detectors are running
-			// In "continuous" mode with YOLO or Face, they already process every frame
-			// Skip motion detection if any AI detector is handling detection
-			yoloHandling := sd.isDetectorEnabled(cameraID, "yolo")
-			faceHandling := sd.isDetectorEnabled(cameraID, "face") && sd.hasFaceRecognizer()
-			if backgroundImg != nil && sd.isDetectionEnabled(cameraID) && !yoloHandling && !faceHandling {
-				sd.fallbackToBasicMotion(cameraID, frameData, backgroundImg, currentImg)
+			} else {
+				// MOTION-TRIGGERED MODE: Run motion detection first, then YOLO/Face only on motion
+				// This is more efficient for motion_triggered, hybrid, scheduled modes
+				if backgroundImg != nil {
+					hasMotion := sd.detectMotion(cameraID, backgroundImg, currentImg)
+					if hasMotion {
+						// Motion detected - run AI detection
+						if yoloEnabled {
+							isHealthy := sd.gpuDetector.IsHealthy()
+							if isHealthy {
+								fmt.Printf("Motion detected - Running YOLO for camera %s (frame %d)\n", cameraID, frameCount)
+								sd.runDirectYOLODetectionWithSeq(cameraID, frameData, uint64(captureSeq))
+							}
+						} else if faceEnabled {
+							fmt.Printf("Motion detected - Running Face for camera %s (frame %d)\n", cameraID, frameCount)
+							sd.runDirectFaceDetection(cameraID, frameData, uint64(captureSeq))
+						} else {
+							// Basic motion event (no AI)
+							sd.createMotionEvent(cameraID, frameData, backgroundImg, currentImg)
+						}
+					}
+				}
 			}
 		}
 	}
@@ -1453,6 +1481,45 @@ func (sd *StreamDetector) compareFrames(background, current image.Image) (motion
 	return true, confidence, bbox
 }
 
+// detectMotion checks if there's motion between background and current frame
+// Returns true if motion is detected above threshold
+func (sd *StreamDetector) detectMotion(cameraID string, background, current image.Image) bool {
+	motionDetected, _, _ := sd.compareFrames(background, current)
+	return motionDetected
+}
+
+// createMotionEvent creates a basic motion event (no AI detection)
+// Used when motion is detected but no AI detectors are enabled
+func (sd *StreamDetector) createMotionEvent(cameraID string, frameData []byte, background, current image.Image) {
+	motionDetected, confidence, bbox := sd.compareFrames(background, current)
+	if !motionDetected {
+		return
+	}
+
+	// Create event
+	eventID := uuid.New().String()
+	framePath := fmt.Sprintf("%s/motion_%s.jpg", sd.frameDir, eventID)
+
+	// Save frame
+	if err := sd.saveFrameBytes(frameData, framePath); err != nil {
+		fmt.Printf("Failed to save motion frame for camera %s: %v\n", cameraID, err)
+		return
+	}
+
+	event := &MotionEvent{
+		ID:            eventID,
+		CameraID:      cameraID,
+		Timestamp:     time.Now(),
+		Confidence:    confidence,
+		BoundingBoxes: []BoundingBox{bbox},
+		FramePath:     framePath,
+		ObjectClass:   "motion",
+	}
+
+	sd.addEvent(event)
+	fmt.Printf("Basic motion detected on camera %s with confidence %.2f\n", cameraID, confidence)
+}
+
 // Reuse methods from original detector
 func (sd *StreamDetector) saveFrame(img image.Image, path string) error {
 	file, err := os.Create(path)
@@ -1817,6 +1884,16 @@ func (sd *StreamDetector) SetGRPCFaceRecognizer(grpcFace *detection.GRPCFaceReco
 	sd.grpcFaceRecognizer = grpcFace
 }
 
+// SetFrameProvider sets the unified frame provider for detection
+// When set, the detector will subscribe to frames from the provider instead of
+// doing its own HTTP polling, avoiding duplicate requests to the same camera endpoint
+func (sd *StreamDetector) SetFrameProvider(fp pipeline.FrameProvider) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.frameProvider = fp
+	fmt.Println("[StreamDetector] Frame provider set - will use shared frame source")
+}
+
 // ConfigureGRPCYOLO sends configuration to the gRPC YOLO service
 // This is called when YOLO settings are changed via the config API
 func (sd *StreamDetector) ConfigureGRPCYOLO(confThreshold float32, classes []string) error {
@@ -1884,6 +1961,34 @@ func (sd *StreamDetector) isDetectorEnabled(cameraID string, detectorType string
 		}
 	}
 	return false
+}
+
+// isContinuousMode checks if detection should run on every frame (continuous/visual_only)
+// vs requiring motion first (motion_triggered/hybrid/scheduled)
+// Returns true for: continuous, visual_only
+// Returns false for: motion_triggered, hybrid, scheduled, disabled
+func (sd *StreamDetector) isContinuousMode(cameraID string) bool {
+	sd.mu.RLock()
+	provider := sd.pipelineConfig
+	sd.mu.RUnlock()
+
+	if provider == nil {
+		return true // No config provider, default to continuous for backwards compatibility
+	}
+
+	config := provider(cameraID)
+	if config == nil {
+		return true // No config for this camera, default to continuous
+	}
+
+	// Continuous modes run detection on every frame
+	switch config.Mode {
+	case pipeline.DetectionModeContinuous, pipeline.DetectionModeVisualOnly:
+		return true
+	default:
+		// motion_triggered, hybrid, scheduled, disabled all require motion gating
+		return false
+	}
 }
 
 // updateStreamOverlay sends detection data to the MJPEG stream for drawing bounding boxes
@@ -2216,6 +2321,55 @@ func (sd *StreamDetector) runDirectYOLODetectionWithSeq(cameraID string, frameDa
 	sd.runDirectYOLODetection(cameraID, frameData)
 }
 
+// streamFromProvider receives frames from the unified FrameProvider
+// This avoids duplicate HTTP polling - both streaming and detection share the same frame source
+func (sd *StreamDetector) streamFromProvider(cameraID string, fp pipeline.FrameProvider, stopCh chan struct{}) {
+	fmt.Printf("[StreamDetector] Subscribing to frame provider for camera %s\n", cameraID)
+
+	// Subscribe to frames from the provider
+	sub, err := fp.Subscribe(cameraID, 10)
+	if err != nil {
+		fmt.Printf("[StreamDetector] Failed to subscribe to frame provider for camera %s: %v\n", cameraID, err)
+		return
+	}
+	defer fp.Unsubscribe(sub)
+
+	// Get the frame buffer for this camera
+	sd.mu.RLock()
+	frameBuffer := sd.frameBuffers[cameraID]
+	sd.mu.RUnlock()
+
+	if frameBuffer == nil {
+		fmt.Printf("[StreamDetector] No frame buffer for camera %s\n", cameraID)
+		return
+	}
+
+	frameCount := 0
+	for {
+		select {
+		case <-stopCh:
+			fmt.Printf("[StreamDetector] Frame provider subscription stopped for camera %s after %d frames\n", cameraID, frameCount)
+			return
+		case <-sub.Done:
+			fmt.Printf("[StreamDetector] Frame provider subscription ended for camera %s\n", cameraID)
+			return
+		case frame := <-sub.Channel:
+			if frame != nil && len(frame.Data) > 0 {
+				frameCount++
+				// Forward frame to the detection buffer
+				select {
+				case frameBuffer <- frame.Data:
+					if frameCount%100 == 0 {
+						fmt.Printf("[StreamDetector] Received %d frames from provider for camera %s\n", frameCount, cameraID)
+					}
+				default:
+					// Buffer full, skip frame
+				}
+			}
+		}
+	}
+}
+
 // streamHTTPImages polls HTTP image endpoints for motion detection
 func (sd *StreamDetector) streamHTTPImages(cameraID, imageURL string, stopCh chan struct{}) {
 	fmt.Printf("Starting HTTP image polling for camera %s at %s\n", cameraID, imageURL)
@@ -2236,21 +2390,50 @@ func (sd *StreamDetector) streamHTTPImages(cameraID, imageURL string, stopCh cha
 }
 
 // pollHTTPImage continuously fetches images from HTTP endpoint
+// Uses adaptive polling with backoff on errors to avoid overwhelming rate-limited servers
 func (sd *StreamDetector) pollHTTPImage(cameraID, imageURL string, frameBuffer chan []byte, stopCh chan struct{}) {
-	ticker := time.NewTicker(500 * time.Millisecond) // 2 FPS
+	baseInterval := 1000 * time.Millisecond // 1 FPS base rate (reduced from 2 FPS)
+	currentInterval := baseInterval
+	maxInterval := 5 * time.Second
+	consecutiveErrors := 0
+
+	ticker := time.NewTicker(currentInterval)
 	defer ticker.Stop()
 
 	frameCount := 0
+	errorCount := 0
 	for {
 		select {
 		case <-stopCh:
-			fmt.Printf("HTTP polling stopped for camera %s after %d frames\n", cameraID, frameCount)
+			fmt.Printf("HTTP polling stopped for camera %s after %d frames (%d errors)\n", cameraID, frameCount, errorCount)
 			return
 		case <-ticker.C:
 			frameData, err := sd.fetchHTTPImage(imageURL)
 			if err != nil {
-				fmt.Printf("Failed to fetch image from %s: %v\n", imageURL, err)
+				errorCount++
+				consecutiveErrors++
+				// Only log every 10th error to reduce spam
+				if errorCount%10 == 1 {
+					fmt.Printf("Failed to fetch image from %s: %v (error %d)\n", imageURL, err, errorCount)
+				}
+				// Exponential backoff on consecutive errors
+				if consecutiveErrors > 3 {
+					currentInterval = time.Duration(float64(currentInterval) * 1.5)
+					if currentInterval > maxInterval {
+						currentInterval = maxInterval
+					}
+					ticker.Reset(currentInterval)
+				}
 				continue
+			}
+
+			// Success - reset backoff
+			if consecutiveErrors > 0 {
+				consecutiveErrors = 0
+				if currentInterval != baseInterval {
+					currentInterval = baseInterval
+					ticker.Reset(currentInterval)
+				}
 			}
 
 			frameCount++
@@ -2258,25 +2441,34 @@ func (sd *StreamDetector) pollHTTPImage(cameraID, imageURL string, frameBuffer c
 			// Try non-blocking send, check stop channel first
 			select {
 			case <-stopCh:
-				fmt.Printf("HTTP polling stopped for camera %s after %d frames\n", cameraID, frameCount)
+				fmt.Printf("HTTP polling stopped for camera %s after %d frames (%d errors)\n", cameraID, frameCount, errorCount)
 				return
 			case frameBuffer <- frameData:
-				if frameCount%20 == 0 { // Log every 20 frames (~10 seconds)
+				if frameCount%20 == 0 { // Log every 20 frames
 					fmt.Printf("HTTP polling: sent %d frames for camera %s\n", frameCount, cameraID)
 				}
 			default:
-				fmt.Printf("HTTP polling: buffer full, dropping frame for camera %s\n", cameraID)
+				// Buffer full - this is fine, skip frame
 			}
 		}
 	}
 }
 
+// httpClient is a shared HTTP client with connection pooling for frame fetching
+// Reusing connections reduces EOF errors from connection churn
+var httpImageClient = &http.Client{
+	Timeout: 10 * time.Second,
+	Transport: &http.Transport{
+		MaxIdleConns:        10,
+		MaxIdleConnsPerHost: 2,
+		IdleConnTimeout:     30 * time.Second,
+	},
+}
+
 // fetchHTTPImage fetches a single image from HTTP endpoint using direct HTTP GET
 // This is more reliable than ffmpeg for simple JPEG image endpoints
 func (sd *StreamDetector) fetchHTTPImage(imageURL string) ([]byte, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
-
-	resp, err := client.Get(imageURL)
+	resp, err := httpImageClient.Get(imageURL)
 	if err != nil {
 		return nil, fmt.Errorf("HTTP error: %v", err)
 	}
