@@ -76,6 +76,10 @@ spec:
             {{- end }}
             - name: YOLO_MODEL
               value: {{ .Values.yolo.config.model | quote }}
+            {{- if .Values.yolo.config.enabledTasks }}
+            - name: ENABLED_TASKS
+              value: {{ .Values.yolo.config.enabledTasks | quote }}
+            {{- end }}
       {{- if .Values.yolo.gpu.enabled }}
       {{- with .Values.yolo.gpu.nodeSelector }}
       nodeSelector:

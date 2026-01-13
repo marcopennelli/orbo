@@ -108,6 +108,7 @@ yolo:
     classesFilter: ""  # Empty = all classes
     drawBoxes: true
     model: yolo11n.pt  # YOLO11 nano (fastest) - alternatives: yolo11s.pt, yolo11m.pt
+    enabledTasks: "detect,segment,pose"  # YOLO11 tasks: detect, segment, pose, obb, classify
 
   # Service configuration
   service:

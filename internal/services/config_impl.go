@@ -33,18 +33,19 @@ func splitAndTrim(s string, sep string) []string {
 
 // ConfigImplementation implements the config service
 type ConfigImplementation struct {
-	mu              sync.RWMutex
-	telegramBot     *telegram.TelegramBot
-	dinov3Detector  *detection.DINOv3Detector
-	yoloDetector    *detection.YOLODetector
-	motionDetector  *motion.MotionDetector
-	notificationCfg *config.NotificationConfig
-	dinov3Cfg       *config.DINOv3Config
-	yoloCfg         *config.YOLOConfig
-	recognitionCfg  *config.RecognitionConfig
-	detectionCfg    *config.DetectionConfig
-	pipelineCfg     *config.PipelineConfig
-	db              *database.Database
+	mu               sync.RWMutex
+	telegramBot      *telegram.TelegramBot
+	dinov3Detector   *detection.DINOv3Detector
+	yoloDetector     *detection.YOLODetector
+	grpcYoloDetector *detection.GRPCDetector // gRPC YOLO detector for tasks
+	motionDetector   *motion.MotionDetector
+	notificationCfg  *config.NotificationConfig
+	dinov3Cfg        *config.DINOv3Config
+	yoloCfg          *config.YOLOConfig
+	recognitionCfg   *config.RecognitionConfig
+	detectionCfg     *config.DetectionConfig
+	pipelineCfg      *config.PipelineConfig
+	db               *database.Database
 }
 
 // NewConfigService creates a new config service implementation
@@ -210,6 +211,19 @@ func (c *ConfigImplementation) wireYOLOConfigProvider() {
 		defer c.mu.RUnlock()
 		return c.yoloCfg.ConfidenceThreshold
 	})
+}
+
+// SetGRPCYoloDetector sets the gRPC YOLO detector for updating tasks at runtime
+func (c *ConfigImplementation) SetGRPCYoloDetector(detector *detection.GRPCDetector) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.grpcYoloDetector = detector
+
+	// Apply current tasks to the detector
+	if detector != nil && len(c.yoloCfg.Tasks) > 0 {
+		detector.SetTasks(c.yoloCfg.Tasks)
+		fmt.Printf("[Config] Applied YOLO tasks to gRPC detector: %v\n", c.yoloCfg.Tasks)
+	}
 }
 
 // loadConfigFromDB loads configuration from the database
@@ -733,6 +747,13 @@ func (c *ConfigImplementation) UpdateYolo(ctx context.Context, cfg *config.YOLOC
 			// Log but don't fail - gRPC service might not be available
 			fmt.Printf("Warning: failed to configure gRPC YOLO: %v\n", err)
 		}
+	}
+
+	// Update gRPC YOLO detector tasks (for multi-task support: detect, segment, pose, etc.)
+	if c.grpcYoloDetector != nil {
+		c.grpcYoloDetector.SetTasks(c.yoloCfg.Tasks)
+		c.grpcYoloDetector.SetDrawBoxes(c.yoloCfg.DrawBoxes)
+		fmt.Printf("[Config] Updated gRPC YOLO tasks: %v\n", c.yoloCfg.Tasks)
 	}
 
 	// Update detection config

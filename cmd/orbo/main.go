@@ -243,6 +243,12 @@ func main() {
 			// This is what actually controls whether YOLO runs or not based on mode
 			motionDetector.SetPipelineConfig(services.CreatePipelineConfigProvider(configImpl))
 			logger.Println("Pipeline config provider wired to motion detector")
+
+			// Wire gRPC YOLO detector for multi-task support (detect, segment, pose, etc.)
+			if grpcDetector != nil {
+				configImpl.SetGRPCYoloDetector(grpcDetector)
+				logger.Println("gRPC YOLO detector wired to config service for task updates")
+			}
 		}
 		systemSvc = systemImpl
 	}

@@ -19,24 +19,32 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DetectionService_DetectStream_FullMethodName = "/orbo.detection.v1.DetectionService/DetectStream"
-	DetectionService_HealthCheck_FullMethodName  = "/orbo.detection.v1.DetectionService/HealthCheck"
-	DetectionService_Configure_FullMethodName    = "/orbo.detection.v1.DetectionService/Configure"
+	DetectionService_DetectStream_FullMethodName  = "/orbo.detection.v1.DetectionService/DetectStream"
+	DetectionService_AnalyzeStream_FullMethodName = "/orbo.detection.v1.DetectionService/AnalyzeStream"
+	DetectionService_HealthCheck_FullMethodName   = "/orbo.detection.v1.DetectionService/HealthCheck"
+	DetectionService_Configure_FullMethodName     = "/orbo.detection.v1.DetectionService/Configure"
+	DetectionService_GetTasks_FullMethodName      = "/orbo.detection.v1.DetectionService/GetTasks"
 )
 
 // DetectionServiceClient is the client API for DetectionService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// DetectionService provides real-time object detection using YOLO
+// DetectionService provides real-time object detection using YOLO11
+// Supports multiple tasks: detect, pose, segment, obb, classify
 type DetectionServiceClient interface {
 	// DetectStream is a bidirectional streaming RPC for real-time detection
 	// Client sends frames, server responds with detection results
 	DetectStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[FrameRequest, DetectionResponse], error)
+	// AnalyzeStream is a bidirectional streaming RPC for multi-task analysis
+	// Client sends frames with task list, server responds with combined results
+	AnalyzeStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AnalyzeRequest, AnalyzeResponse], error)
 	// HealthCheck verifies the detection service is operational
 	HealthCheck(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 	// Configure updates detection parameters at runtime
 	Configure(ctx context.Context, in *ConfigureRequest, opts ...grpc.CallOption) (*ConfigureResponse, error)
+	// GetTasks returns available YOLO tasks and their status
+	GetTasks(ctx context.Context, in *TasksRequest, opts ...grpc.CallOption) (*TasksResponse, error)
 }
 
 type detectionServiceClient struct {
@@ -60,6 +68,19 @@ func (c *detectionServiceClient) DetectStream(ctx context.Context, opts ...grpc.
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type DetectionService_DetectStreamClient = grpc.BidiStreamingClient[FrameRequest, DetectionResponse]
 
+func (c *detectionServiceClient) AnalyzeStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AnalyzeRequest, AnalyzeResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DetectionService_ServiceDesc.Streams[1], DetectionService_AnalyzeStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[AnalyzeRequest, AnalyzeResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DetectionService_AnalyzeStreamClient = grpc.BidiStreamingClient[AnalyzeRequest, AnalyzeResponse]
+
 func (c *detectionServiceClient) HealthCheck(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(HealthResponse)
@@ -80,19 +101,35 @@ func (c *detectionServiceClient) Configure(ctx context.Context, in *ConfigureReq
 	return out, nil
 }
 
+func (c *detectionServiceClient) GetTasks(ctx context.Context, in *TasksRequest, opts ...grpc.CallOption) (*TasksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TasksResponse)
+	err := c.cc.Invoke(ctx, DetectionService_GetTasks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DetectionServiceServer is the server API for DetectionService service.
 // All implementations must embed UnimplementedDetectionServiceServer
 // for forward compatibility.
 //
-// DetectionService provides real-time object detection using YOLO
+// DetectionService provides real-time object detection using YOLO11
+// Supports multiple tasks: detect, pose, segment, obb, classify
 type DetectionServiceServer interface {
 	// DetectStream is a bidirectional streaming RPC for real-time detection
 	// Client sends frames, server responds with detection results
 	DetectStream(grpc.BidiStreamingServer[FrameRequest, DetectionResponse]) error
+	// AnalyzeStream is a bidirectional streaming RPC for multi-task analysis
+	// Client sends frames with task list, server responds with combined results
+	AnalyzeStream(grpc.BidiStreamingServer[AnalyzeRequest, AnalyzeResponse]) error
 	// HealthCheck verifies the detection service is operational
 	HealthCheck(context.Context, *HealthRequest) (*HealthResponse, error)
 	// Configure updates detection parameters at runtime
 	Configure(context.Context, *ConfigureRequest) (*ConfigureResponse, error)
+	// GetTasks returns available YOLO tasks and their status
+	GetTasks(context.Context, *TasksRequest) (*TasksResponse, error)
 	mustEmbedUnimplementedDetectionServiceServer()
 }
 
@@ -106,11 +143,17 @@ type UnimplementedDetectionServiceServer struct{}
 func (UnimplementedDetectionServiceServer) DetectStream(grpc.BidiStreamingServer[FrameRequest, DetectionResponse]) error {
 	return status.Error(codes.Unimplemented, "method DetectStream not implemented")
 }
+func (UnimplementedDetectionServiceServer) AnalyzeStream(grpc.BidiStreamingServer[AnalyzeRequest, AnalyzeResponse]) error {
+	return status.Error(codes.Unimplemented, "method AnalyzeStream not implemented")
+}
 func (UnimplementedDetectionServiceServer) HealthCheck(context.Context, *HealthRequest) (*HealthResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method HealthCheck not implemented")
 }
 func (UnimplementedDetectionServiceServer) Configure(context.Context, *ConfigureRequest) (*ConfigureResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Configure not implemented")
+}
+func (UnimplementedDetectionServiceServer) GetTasks(context.Context, *TasksRequest) (*TasksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTasks not implemented")
 }
 func (UnimplementedDetectionServiceServer) mustEmbedUnimplementedDetectionServiceServer() {}
 func (UnimplementedDetectionServiceServer) testEmbeddedByValue()                          {}
@@ -139,6 +182,13 @@ func _DetectionService_DetectStream_Handler(srv interface{}, stream grpc.ServerS
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type DetectionService_DetectStreamServer = grpc.BidiStreamingServer[FrameRequest, DetectionResponse]
+
+func _DetectionService_AnalyzeStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DetectionServiceServer).AnalyzeStream(&grpc.GenericServerStream[AnalyzeRequest, AnalyzeResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DetectionService_AnalyzeStreamServer = grpc.BidiStreamingServer[AnalyzeRequest, AnalyzeResponse]
 
 func _DetectionService_HealthCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(HealthRequest)
@@ -176,6 +226,24 @@ func _DetectionService_Configure_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DetectionService_GetTasks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TasksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DetectionServiceServer).GetTasks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DetectionService_GetTasks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DetectionServiceServer).GetTasks(ctx, req.(*TasksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DetectionService_ServiceDesc is the grpc.ServiceDesc for DetectionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -191,11 +259,21 @@ var DetectionService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Configure",
 			Handler:    _DetectionService_Configure_Handler,
 		},
+		{
+			MethodName: "GetTasks",
+			Handler:    _DetectionService_GetTasks_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "DetectStream",
 			Handler:       _DetectionService_DetectStream_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "AnalyzeStream",
+			Handler:       _DetectionService_AnalyzeStream_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

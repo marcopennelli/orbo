@@ -49,8 +49,9 @@ RUN mkdir -p /app/models /app/runs /tmp/Ultralytics && chmod 777 /app/runs
 ENV YOLO_CONFIG_DIR=/tmp/Ultralytics
 ENV ULTRALYTICS_SETTINGS_JSON='{"runs_dir": "/app/runs"}'
 
-# Download YOLO11 model weights (nano for best speed, can be changed via YOLO_MODEL env)
-RUN python3 -c "from ultralytics import YOLO; YOLO('yolo11n.pt')"
+# Download YOLO11 model weights for all enabled tasks (nano for best speed)
+# detect: yolo11n.pt, segment: yolo11n-seg.pt, pose: yolo11n-pose.pt
+RUN python3 -c "from ultralytics import YOLO; YOLO('yolo11n.pt'); YOLO('yolo11n-seg.pt'); YOLO('yolo11n-pose.pt')"
 
 # Expose ports (HTTP and gRPC)
 EXPOSE 8081 50051

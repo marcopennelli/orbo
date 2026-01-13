@@ -10,7 +10,7 @@ import time
 import logging
 import os
 import threading
-from typing import Iterator, Dict, Any, Optional
+from typing import Iterator, Dict, Any, Optional, List
 
 # Proto imports - generated from api/proto/detection/v1/detection.proto
 # Run: python -m grpc_tools.protoc -I../../api/proto --python_out=. --grpc_python_out=. ../../api/proto/detection/v1/detection.proto
@@ -235,6 +235,221 @@ class DetectionServicer(detection_pb2_grpc.DetectionServiceServicer):
             return "medium"
         else:
             return "low"
+
+    def _proto_task_to_string(self, task: int) -> str:
+        """Convert proto YoloTask enum to string"""
+        task_map = {
+            0: "detect",  # YOLO_TASK_UNSPECIFIED
+            1: "detect",  # YOLO_TASK_DETECT
+            2: "pose",    # YOLO_TASK_POSE
+            3: "segment", # YOLO_TASK_SEGMENT
+            4: "obb",     # YOLO_TASK_OBB
+            5: "classify" # YOLO_TASK_CLASSIFY
+        }
+        return task_map.get(task, "detect")
+
+    def AnalyzeStream(
+        self,
+        request_iterator: Iterator[detection_pb2.AnalyzeRequest],
+        context: grpc.ServicerContext
+    ) -> Iterator[detection_pb2.AnalyzeResponse]:
+        """
+        Bidirectional streaming RPC for multi-task YOLO11 analysis.
+        Supports: detect, pose, segment, obb, classify
+        """
+        with self.streams_lock:
+            self.active_streams += 1
+            stream_id = self.active_streams
+
+        logger.info(f"[gRPC] AnalyzeStream {stream_id} started")
+
+        try:
+            for request in request_iterator:
+                start_time = time.time()
+
+                try:
+                    # Convert proto tasks to string list
+                    tasks = [self._proto_task_to_string(t) for t in request.tasks]
+                    if not tasks:
+                        tasks = ["detect"]
+
+                    logger.info(f"[gRPC] AnalyzeStream {stream_id} request: tasks={tasks}, camera={request.camera_id}")
+
+                    conf_threshold = request.conf_threshold if request.conf_threshold > 0 else self.conf_threshold
+
+                    # Convert classes filter
+                    classes_filter = list(request.classes_filter) if request.classes_filter else self.classes_filter
+
+                    # Run multi-task analysis
+                    result = self.service.analyze(
+                        image_data=request.jpeg_data,
+                        tasks=tasks,
+                        conf_threshold=conf_threshold,
+                        classes_filter=classes_filter,
+                        return_annotated=request.return_annotated
+                    )
+
+                    # Build response
+                    response = detection_pb2.AnalyzeResponse(
+                        camera_id=request.camera_id,
+                        frame_seq=request.frame_seq,
+                        capture_timestamp_ns=request.timestamp_ns,
+                        inference_timestamp_ns=int(time.time() * 1e9),
+                        total_inference_ms=result.get('inference_time_ms', 0),
+                        device=result.get('device', str(self.service.device))
+                    )
+
+                    # Add annotated image if requested
+                    if request.return_annotated and 'annotated_image' in result:
+                        import base64
+                        response.annotated_jpeg = base64.b64decode(result['annotated_image'])
+
+                    # Add detection results
+                    task_results = result.get('tasks', {})
+
+                    if 'detect' in task_results:
+                        detect_result = task_results['detect']
+                        detect_pb = detection_pb2.TaskResults(
+                            count=detect_result.get('count', 0),
+                            inference_ms=result.get('inference_time_ms', 0) / max(len(tasks), 1)
+                        )
+                        for det in detect_result.get('detections', []):
+                            bbox = det.get('bbox', [0, 0, 0, 0])
+                            detection = detection_pb2.Detection(
+                                class_name=det.get('class', ''),
+                                class_id=det.get('class_id', 0),
+                                confidence=det.get('confidence', 0),
+                                bbox=detection_pb2.BBox(
+                                    x1=bbox[0] if len(bbox) > 0 else 0,
+                                    y1=bbox[1] if len(bbox) > 1 else 0,
+                                    x2=bbox[2] if len(bbox) > 2 else 0,
+                                    y2=bbox[3] if len(bbox) > 3 else 0
+                                ),
+                                threat_level=self._get_threat_level(det.get('class', ''))
+                            )
+                            detect_pb.detections.append(detection)
+                        response.detect.CopyFrom(detect_pb)
+
+                    if 'pose' in task_results:
+                        pose_result = task_results['pose']
+                        pose_pb = detection_pb2.PoseResults(
+                            count=pose_result.get('count', 0),
+                            inference_ms=result.get('inference_time_ms', 0) / max(len(tasks), 1)
+                        )
+                        for pose in pose_result.get('poses', []):
+                            bbox = pose.get('bbox') or [0, 0, 0, 0]
+                            pose_det = detection_pb2.PoseDetection(
+                                bbox=detection_pb2.BBox(
+                                    x1=bbox[0] if len(bbox) > 0 else 0,
+                                    y1=bbox[1] if len(bbox) > 1 else 0,
+                                    x2=bbox[2] if len(bbox) > 2 else 0,
+                                    y2=bbox[3] if len(bbox) > 3 else 0
+                                ),
+                                confidence=pose.get('confidence', 0),
+                                pose_class=pose.get('pose_class', 'unknown')
+                            )
+                            # Add keypoints
+                            keypoints = pose.get('keypoints', [])
+                            keypoint_conf = pose.get('keypoint_confidence', [])
+                            keypoint_names = pose.get('keypoint_names', [])
+                            for i, kp in enumerate(keypoints):
+                                if len(kp) >= 2:
+                                    kp_name = keypoint_names[i] if i < len(keypoint_names) else f'kp_{i}'
+                                    kp_conf = keypoint_conf[i] if i < len(keypoint_conf) else 0.0
+                                    keypoint = detection_pb2.Keypoint(
+                                        x=kp[0],
+                                        y=kp[1],
+                                        confidence=kp_conf,
+                                        name=kp_name
+                                    )
+                                    pose_det.keypoints.append(keypoint)
+                            pose_pb.poses.append(pose_det)
+                        response.pose.CopyFrom(pose_pb)
+
+                    if 'segment' in task_results:
+                        seg_result = task_results['segment']
+                        seg_pb = detection_pb2.SegmentResults(
+                            count=seg_result.get('count', 0),
+                            inference_ms=result.get('inference_time_ms', 0) / max(len(tasks), 1)
+                        )
+                        for seg in seg_result.get('segments', []):
+                            bbox = seg.get('bbox', [0, 0, 0, 0])
+                            seg_det = detection_pb2.SegmentDetection(
+                                class_name=seg.get('class', ''),
+                                class_id=seg.get('class_id', 0),
+                                confidence=seg.get('confidence', 0),
+                                bbox=detection_pb2.BBox(
+                                    x1=bbox[0] if len(bbox) > 0 else 0,
+                                    y1=bbox[1] if len(bbox) > 1 else 0,
+                                    x2=bbox[2] if len(bbox) > 2 else 0,
+                                    y2=bbox[3] if len(bbox) > 3 else 0
+                                )
+                            )
+                            # Add mask polygon if available (polygon is list of [x, y] pairs)
+                            polygon = seg.get('polygon', [])
+                            for point in polygon:
+                                if isinstance(point, (list, tuple)) and len(point) >= 2:
+                                    seg_det.mask_polygon.append(float(point[0]))
+                                    seg_det.mask_polygon.append(float(point[1]))
+                                elif isinstance(point, (int, float)):
+                                    seg_det.mask_polygon.append(float(point))
+                            seg_pb.segments.append(seg_det)
+                        response.segment.CopyFrom(seg_pb)
+
+                    if 'obb' in task_results:
+                        obb_result = task_results['obb']
+                        obb_pb = detection_pb2.OBBResults(
+                            count=obb_result.get('count', 0),
+                            inference_ms=result.get('inference_time_ms', 0) / max(len(tasks), 1)
+                        )
+                        for obb in obb_result.get('obbs', []):
+                            obb_det = detection_pb2.OBBDetection(
+                                class_name=obb.get('class', ''),
+                                class_id=obb.get('class_id', 0),
+                                confidence=obb.get('confidence', 0),
+                                cx=obb.get('center', [0, 0])[0],
+                                cy=obb.get('center', [0, 0])[1],
+                                width=obb.get('width', 0),
+                                height=obb.get('height', 0),
+                                angle=obb.get('angle', 0)
+                            )
+                            for corner in obb.get('corners', []):
+                                obb_det.corners.append(float(corner))
+                            obb_pb.obbs.append(obb_det)
+                        response.obb.CopyFrom(obb_pb)
+
+                    if 'classify' in task_results:
+                        cls_result = task_results['classify']
+                        cls_pb = detection_pb2.ClassifyResults(
+                            inference_ms=result.get('inference_time_ms', 0) / max(len(tasks), 1)
+                        )
+                        for cls in cls_result.get('classifications', []):
+                            classification = detection_pb2.Classification(
+                                class_name=cls.get('class', ''),
+                                class_id=cls.get('class_id', 0),
+                                confidence=cls.get('confidence', 0)
+                            )
+                            cls_pb.classifications.append(classification)
+                        response.classify.CopyFrom(cls_pb)
+
+                    # Add alerts from pose analysis
+                    for alert in result.get('alerts', []):
+                        response.alerts.append(alert.get('type', ''))
+
+                    yield response
+
+                except Exception as e:
+                    logger.error(f"[gRPC] AnalyzeStream {stream_id} detection error: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+
+        except Exception as e:
+            logger.error(f"[gRPC] AnalyzeStream {stream_id} error: {e}")
+        finally:
+            with self.streams_lock:
+                self.active_streams -= 1
+            logger.info(f"[gRPC] AnalyzeStream {stream_id} ended")
 
 
 def serve(detection_service, port: int = 50051, max_workers: int = 4):

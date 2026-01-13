@@ -17,24 +17,27 @@ import (
 
 // GRPCDetector provides gRPC-based object detection using YOLO
 // Uses bidirectional streaming for low-latency real-time detection
+// Supports YOLO11 multi-task analysis: detect, pose, segment, obb, classify
 type GRPCDetector struct {
 	endpoint   string
 	conn       *grpc.ClientConn
 	client     pb.DetectionServiceClient
-	stream     pb.DetectionService_DetectStreamClient
 	streamMu   sync.Mutex
 	enabled    bool
 	healthy    bool
 	healthMu   sync.RWMutex
 	lastHealth time.Time
 	drawBoxes  bool
+	tasks      []string // YOLO11 tasks: detect, pose, segment, obb, classify
+	tasksMu    sync.RWMutex
 
-	// Stream management
-	streamCtx    context.Context
-	streamCancel context.CancelFunc
-	responsesCh  chan *pb.DetectionResponse
-	requestsCh   chan *pb.FrameRequest
-	wg           sync.WaitGroup
+	// AnalyzeStream for multi-task detection
+	analyzeStream     pb.DetectionService_AnalyzeStreamClient
+	analyzeStreamCtx  context.Context
+	analyzeCancel     context.CancelFunc
+	analyzeResponseCh chan *pb.AnalyzeResponse
+	analyzeRequestCh  chan *pb.AnalyzeRequest
+	wg                sync.WaitGroup
 }
 
 // GRPCDetectorConfig holds configuration for the gRPC detector
@@ -42,22 +45,31 @@ type GRPCDetectorConfig struct {
 	Endpoint      string
 	DrawBoxes     bool
 	ConfThreshold float32
+	Tasks         []string // YOLO11 tasks: detect, pose, segment, obb, classify
 }
 
 // NewGRPCDetector creates a new gRPC-based detector
 func NewGRPCDetector(config GRPCDetectorConfig) (*GRPCDetector, error) {
+	// Default to detect if no tasks specified
+	tasks := config.Tasks
+	if len(tasks) == 0 {
+		tasks = []string{"detect"}
+	}
+
 	gd := &GRPCDetector{
-		endpoint:    config.Endpoint,
-		enabled:     true,
-		drawBoxes:   config.DrawBoxes,
-		responsesCh: make(chan *pb.DetectionResponse, 10),
-		requestsCh:  make(chan *pb.FrameRequest, 10),
+		endpoint:          config.Endpoint,
+		enabled:           true,
+		drawBoxes:         config.DrawBoxes,
+		tasks:             tasks,
+		analyzeResponseCh: make(chan *pb.AnalyzeResponse, 10),
+		analyzeRequestCh:  make(chan *pb.AnalyzeRequest, 10),
 	}
 
 	if err := gd.connect(); err != nil {
 		return nil, fmt.Errorf("failed to connect to detection service: %w", err)
 	}
 
+	log.Printf("[GRPCDetector] Initialized with tasks: %v", tasks)
 	return gd, nil
 }
 
@@ -89,44 +101,47 @@ func (gd *GRPCDetector) connect() error {
 	return nil
 }
 
-// startStream initializes the bidirectional streaming RPC
+// startStream initializes the bidirectional AnalyzeStream RPC for multi-task detection
 func (gd *GRPCDetector) startStream() error {
 	gd.streamMu.Lock()
 	defer gd.streamMu.Unlock()
 
-	if gd.stream != nil {
+	if gd.analyzeStream != nil {
 		return nil // Already have a stream
 	}
 
-	gd.streamCtx, gd.streamCancel = context.WithCancel(context.Background())
+	gd.analyzeStreamCtx, gd.analyzeCancel = context.WithCancel(context.Background())
 
-	stream, err := gd.client.DetectStream(gd.streamCtx)
+	stream, err := gd.client.AnalyzeStream(gd.analyzeStreamCtx)
 	if err != nil {
-		return fmt.Errorf("failed to start stream: %w", err)
+		return fmt.Errorf("failed to start analyze stream: %w", err)
 	}
 
-	gd.stream = stream
+	gd.analyzeStream = stream
 
 	// Start goroutines to handle send/receive
 	gd.wg.Add(2)
 	go gd.sendLoop()
 	go gd.recvLoop()
 
-	log.Printf("[GRPCDetector] Stream started")
+	gd.tasksMu.RLock()
+	tasks := gd.tasks
+	gd.tasksMu.RUnlock()
+	log.Printf("[GRPCDetector] AnalyzeStream started with tasks: %v", tasks)
 	return nil
 }
 
-// sendLoop sends frame requests to the stream
+// sendLoop sends AnalyzeRequest to the stream
 func (gd *GRPCDetector) sendLoop() {
 	defer gd.wg.Done()
 
 	for {
 		select {
-		case <-gd.streamCtx.Done():
+		case <-gd.analyzeStreamCtx.Done():
 			return
-		case req := <-gd.requestsCh:
+		case req := <-gd.analyzeRequestCh:
 			gd.streamMu.Lock()
-			stream := gd.stream
+			stream := gd.analyzeStream
 			gd.streamMu.Unlock()
 
 			if stream == nil {
@@ -142,18 +157,18 @@ func (gd *GRPCDetector) sendLoop() {
 	}
 }
 
-// recvLoop receives detection responses from the stream
+// recvLoop receives AnalyzeResponse from the stream
 func (gd *GRPCDetector) recvLoop() {
 	defer gd.wg.Done()
 
 	for {
 		gd.streamMu.Lock()
-		stream := gd.stream
+		stream := gd.analyzeStream
 		gd.streamMu.Unlock()
 
 		if stream == nil {
 			select {
-			case <-gd.streamCtx.Done():
+			case <-gd.analyzeStreamCtx.Done():
 				return
 			case <-time.After(100 * time.Millisecond):
 				continue
@@ -162,7 +177,7 @@ func (gd *GRPCDetector) recvLoop() {
 
 		resp, err := stream.Recv()
 		if err == io.EOF {
-			log.Printf("[GRPCDetector] Stream ended")
+			log.Printf("[GRPCDetector] AnalyzeStream ended")
 			gd.resetStream()
 			return
 		}
@@ -173,7 +188,7 @@ func (gd *GRPCDetector) recvLoop() {
 		}
 
 		select {
-		case gd.responsesCh <- resp:
+		case gd.analyzeResponseCh <- resp:
 		default:
 			// Drop response if channel full (consumer too slow)
 			log.Printf("[GRPCDetector] Dropping response, channel full")
@@ -186,10 +201,10 @@ func (gd *GRPCDetector) resetStream() {
 	gd.streamMu.Lock()
 	defer gd.streamMu.Unlock()
 
-	if gd.streamCancel != nil {
-		gd.streamCancel()
+	if gd.analyzeCancel != nil {
+		gd.analyzeCancel()
 	}
-	gd.stream = nil
+	gd.analyzeStream = nil
 }
 
 // IsHealthy checks if the gRPC detection service is available
@@ -221,8 +236,60 @@ func (gd *GRPCDetector) IsHealthy() bool {
 	return gd.healthy
 }
 
-// DetectSecurityObjects performs object detection on a frame using the streaming RPC
-// This is the high-performance path for real-time detection
+// taskStringToProto converts a task string to its proto enum value
+func taskStringToProto(task string) pb.YoloTask {
+	switch task {
+	case "detect":
+		return pb.YoloTask_YOLO_TASK_DETECT
+	case "pose":
+		return pb.YoloTask_YOLO_TASK_POSE
+	case "segment":
+		return pb.YoloTask_YOLO_TASK_SEGMENT
+	case "obb":
+		return pb.YoloTask_YOLO_TASK_OBB
+	case "classify":
+		return pb.YoloTask_YOLO_TASK_CLASSIFY
+	default:
+		return pb.YoloTask_YOLO_TASK_DETECT
+	}
+}
+
+// getTasks returns the current configured tasks as proto enum values
+func (gd *GRPCDetector) getTasks() []pb.YoloTask {
+	gd.tasksMu.RLock()
+	tasks := gd.tasks
+	gd.tasksMu.RUnlock()
+
+	protoTasks := make([]pb.YoloTask, 0, len(tasks))
+	for _, t := range tasks {
+		protoTasks = append(protoTasks, taskStringToProto(t))
+	}
+	return protoTasks
+}
+
+// SetTasks updates the YOLO11 tasks to run
+func (gd *GRPCDetector) SetTasks(tasks []string) {
+	gd.tasksMu.Lock()
+	defer gd.tasksMu.Unlock()
+	if len(tasks) == 0 {
+		gd.tasks = []string{"detect"}
+	} else {
+		gd.tasks = tasks
+	}
+	log.Printf("[GRPCDetector] Tasks updated: %v", gd.tasks)
+}
+
+// GetTasks returns the currently configured tasks
+func (gd *GRPCDetector) GetTasks() []string {
+	gd.tasksMu.RLock()
+	defer gd.tasksMu.RUnlock()
+	result := make([]string, len(gd.tasks))
+	copy(result, gd.tasks)
+	return result
+}
+
+// DetectSecurityObjects performs multi-task detection on a frame using AnalyzeStream
+// This is the high-performance path for real-time detection with YOLO11 tasks
 func (gd *GRPCDetector) DetectSecurityObjects(imageData []byte, confThreshold float32) (*SecurityDetectionResult, error) {
 	if !gd.IsHealthy() {
 		return nil, fmt.Errorf("gRPC detection service unavailable")
@@ -233,41 +300,41 @@ func (gd *GRPCDetector) DetectSecurityObjects(imageData []byte, confThreshold fl
 		return nil, err
 	}
 
-	// Create request
-	req := &pb.FrameRequest{
-		CameraId:       "default", // Will be overwritten by caller
-		FrameSeq:       0,
-		TimestampNs:    time.Now().UnixNano(),
-		JpegData:       imageData,
+	// Create AnalyzeRequest with configured tasks
+	req := &pb.AnalyzeRequest{
+		CameraId:        "default", // Will be overwritten by caller
+		FrameSeq:        0,
+		TimestampNs:     time.Now().UnixNano(),
+		JpegData:        imageData,
+		Tasks:           gd.getTasks(),
 		ReturnAnnotated: gd.drawBoxes,
-		ConfThreshold:  confThreshold,
-		EnableTracking: true,
+		ConfThreshold:   confThreshold,
 	}
 
 	// Send request
 	select {
-	case gd.requestsCh <- req:
+	case gd.analyzeRequestCh <- req:
 	case <-time.After(100 * time.Millisecond):
 		return nil, fmt.Errorf("send timeout")
 	}
 
 	// Wait for response
 	select {
-	case resp := <-gd.responsesCh:
-		return gd.convertResponse(resp), nil
+	case resp := <-gd.analyzeResponseCh:
+		return gd.convertAnalyzeResponse(resp), nil
 	case <-time.After(500 * time.Millisecond):
 		return nil, fmt.Errorf("response timeout")
 	}
 }
 
-// DetectSecurityObjectsAnnotated performs detection and returns annotated image
+// DetectSecurityObjectsAnnotated performs multi-task detection and returns annotated image
 func (gd *GRPCDetector) DetectSecurityObjectsAnnotated(imageData []byte, confThreshold float32) (*AnnotatedSecurityResult, error) {
 	// For annotated results, use unary call to guarantee we get the image back
 	return gd.DetectSecurityObjectsAnnotatedUnary(imageData, confThreshold)
 }
 
-// DetectSecurityObjectsAnnotatedUnary performs a single detection with annotated image
-// This is slower than streaming but guarantees we get the annotated image back
+// DetectSecurityObjectsAnnotatedUnary performs a single multi-task detection with annotated image
+// Uses AnalyzeStream for YOLO11 multi-task support (detect, pose, segment, etc.)
 func (gd *GRPCDetector) DetectSecurityObjectsAnnotatedUnary(imageData []byte, confThreshold float32) (*AnnotatedSecurityResult, error) {
 	if !gd.IsHealthy() {
 		return nil, fmt.Errorf("gRPC detection service unavailable")
@@ -276,20 +343,20 @@ func (gd *GRPCDetector) DetectSecurityObjectsAnnotatedUnary(imageData []byte, co
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	// For unary call, we create a one-shot stream
-	stream, err := gd.client.DetectStream(ctx)
+	// For unary call, we create a one-shot AnalyzeStream
+	stream, err := gd.client.AnalyzeStream(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create stream: %w", err)
+		return nil, fmt.Errorf("failed to create analyze stream: %w", err)
 	}
 
-	req := &pb.FrameRequest{
-		CameraId:       "default",
-		FrameSeq:       0,
-		TimestampNs:    time.Now().UnixNano(),
-		JpegData:       imageData,
+	req := &pb.AnalyzeRequest{
+		CameraId:        "default",
+		FrameSeq:        0,
+		TimestampNs:     time.Now().UnixNano(),
+		JpegData:        imageData,
+		Tasks:           gd.getTasks(),
 		ReturnAnnotated: true,
-		ConfThreshold:  confThreshold,
-		EnableTracking: true,
+		ConfThreshold:   confThreshold,
 	}
 
 	if err := stream.Send(req); err != nil {
@@ -307,30 +374,87 @@ func (gd *GRPCDetector) DetectSecurityObjectsAnnotatedUnary(imageData []byte, co
 		return nil, fmt.Errorf("recv failed: %w", err)
 	}
 
-	return gd.convertAnnotatedResponse(resp), nil
+	return gd.convertAnnotatedAnalyzeResponse(resp), nil
 }
 
-// convertResponse converts gRPC response to internal format
-func (gd *GRPCDetector) convertResponse(resp *pb.DetectionResponse) *SecurityDetectionResult {
-	detections := make([]Detection, 0, len(resp.Detections))
+// convertAnalyzeResponse converts AnalyzeResponse to internal format
+// Combines detections from all task results (detect, segment, etc.)
+func (gd *GRPCDetector) convertAnalyzeResponse(resp *pb.AnalyzeResponse) *SecurityDetectionResult {
+	detections := make([]Detection, 0)
 
-	for _, det := range resp.Detections {
-		detections = append(detections, Detection{
-			Class:      det.ClassName,
-			ClassID:    int(det.ClassId),
-			Confidence: det.Confidence,
-			BBox: []float32{
-				det.Bbox.X1,
-				det.Bbox.Y1,
-				det.Bbox.X2,
-				det.Bbox.Y2,
-			},
-			Center: []float32{
-				(det.Bbox.X1 + det.Bbox.X2) / 2,
-				(det.Bbox.Y1 + det.Bbox.Y2) / 2,
-			},
-			Area: (det.Bbox.X2 - det.Bbox.X1) * (det.Bbox.Y2 - det.Bbox.Y1),
-		})
+	// Get detections from detect task
+	if resp.Detect != nil {
+		for _, det := range resp.Detect.Detections {
+			if det.Bbox == nil {
+				continue
+			}
+			detections = append(detections, Detection{
+				Class:      det.ClassName,
+				ClassID:    int(det.ClassId),
+				Confidence: det.Confidence,
+				BBox: []float32{
+					det.Bbox.X1,
+					det.Bbox.Y1,
+					det.Bbox.X2,
+					det.Bbox.Y2,
+				},
+				Center: []float32{
+					(det.Bbox.X1 + det.Bbox.X2) / 2,
+					(det.Bbox.Y1 + det.Bbox.Y2) / 2,
+				},
+				Area: (det.Bbox.X2 - det.Bbox.X1) * (det.Bbox.Y2 - det.Bbox.Y1),
+			})
+		}
+	}
+
+	// Get detections from segment task (also provides bounding boxes)
+	if resp.Segment != nil {
+		for _, seg := range resp.Segment.Segments {
+			if seg.Bbox == nil {
+				continue
+			}
+			detections = append(detections, Detection{
+				Class:      seg.ClassName,
+				ClassID:    int(seg.ClassId),
+				Confidence: seg.Confidence,
+				BBox: []float32{
+					seg.Bbox.X1,
+					seg.Bbox.Y1,
+					seg.Bbox.X2,
+					seg.Bbox.Y2,
+				},
+				Center: []float32{
+					(seg.Bbox.X1 + seg.Bbox.X2) / 2,
+					(seg.Bbox.Y1 + seg.Bbox.Y2) / 2,
+				},
+				Area: (seg.Bbox.X2 - seg.Bbox.X1) * (seg.Bbox.Y2 - seg.Bbox.Y1),
+			})
+		}
+	}
+
+	// Get detections from pose task (person detection with keypoints)
+	if resp.Pose != nil {
+		for _, pose := range resp.Pose.Poses {
+			if pose.Bbox == nil {
+				continue
+			}
+			detections = append(detections, Detection{
+				Class:      "person",
+				ClassID:    0,
+				Confidence: pose.Confidence,
+				BBox: []float32{
+					pose.Bbox.X1,
+					pose.Bbox.Y1,
+					pose.Bbox.X2,
+					pose.Bbox.Y2,
+				},
+				Center: []float32{
+					(pose.Bbox.X1 + pose.Bbox.X2) / 2,
+					(pose.Bbox.Y1 + pose.Bbox.Y2) / 2,
+				},
+				Area: (pose.Bbox.X2 - pose.Bbox.X1) * (pose.Bbox.Y2 - pose.Bbox.Y1),
+			})
+		}
 	}
 
 	// Categorize by threat level
@@ -340,33 +464,89 @@ func (gd *GRPCDetector) convertResponse(resp *pb.DetectionResponse) *SecurityDet
 		Detections:      detections,
 		Count:           len(detections),
 		ThreatAnalysis:  threat,
-		InferenceTimeMs: resp.InferenceMs,
+		InferenceTimeMs: resp.TotalInferenceMs,
 		Device:          resp.Device,
 		SecurityFilter:  []string{"person", "car", "truck", "motorcycle", "bicycle"},
 	}
 }
 
-// convertAnnotatedResponse converts gRPC response to annotated result
-func (gd *GRPCDetector) convertAnnotatedResponse(resp *pb.DetectionResponse) *AnnotatedSecurityResult {
-	detections := make([]Detection, 0, len(resp.Detections))
+// convertAnnotatedAnalyzeResponse converts AnalyzeResponse to annotated result
+func (gd *GRPCDetector) convertAnnotatedAnalyzeResponse(resp *pb.AnalyzeResponse) *AnnotatedSecurityResult {
+	detections := make([]Detection, 0)
 
-	for _, det := range resp.Detections {
-		detections = append(detections, Detection{
-			Class:      det.ClassName,
-			ClassID:    int(det.ClassId),
-			Confidence: det.Confidence,
-			BBox: []float32{
-				det.Bbox.X1,
-				det.Bbox.Y1,
-				det.Bbox.X2,
-				det.Bbox.Y2,
-			},
-			Center: []float32{
-				(det.Bbox.X1 + det.Bbox.X2) / 2,
-				(det.Bbox.Y1 + det.Bbox.Y2) / 2,
-			},
-			Area: (det.Bbox.X2 - det.Bbox.X1) * (det.Bbox.Y2 - det.Bbox.Y1),
-		})
+	// Get detections from detect task
+	if resp.Detect != nil {
+		for _, det := range resp.Detect.Detections {
+			if det.Bbox == nil {
+				continue
+			}
+			detections = append(detections, Detection{
+				Class:      det.ClassName,
+				ClassID:    int(det.ClassId),
+				Confidence: det.Confidence,
+				BBox: []float32{
+					det.Bbox.X1,
+					det.Bbox.Y1,
+					det.Bbox.X2,
+					det.Bbox.Y2,
+				},
+				Center: []float32{
+					(det.Bbox.X1 + det.Bbox.X2) / 2,
+					(det.Bbox.Y1 + det.Bbox.Y2) / 2,
+				},
+				Area: (det.Bbox.X2 - det.Bbox.X1) * (det.Bbox.Y2 - det.Bbox.Y1),
+			})
+		}
+	}
+
+	// Get detections from segment task
+	if resp.Segment != nil {
+		for _, seg := range resp.Segment.Segments {
+			if seg.Bbox == nil {
+				continue
+			}
+			detections = append(detections, Detection{
+				Class:      seg.ClassName,
+				ClassID:    int(seg.ClassId),
+				Confidence: seg.Confidence,
+				BBox: []float32{
+					seg.Bbox.X1,
+					seg.Bbox.Y1,
+					seg.Bbox.X2,
+					seg.Bbox.Y2,
+				},
+				Center: []float32{
+					(seg.Bbox.X1 + seg.Bbox.X2) / 2,
+					(seg.Bbox.Y1 + seg.Bbox.Y2) / 2,
+				},
+				Area: (seg.Bbox.X2 - seg.Bbox.X1) * (seg.Bbox.Y2 - seg.Bbox.Y1),
+			})
+		}
+	}
+
+	// Get detections from pose task
+	if resp.Pose != nil {
+		for _, pose := range resp.Pose.Poses {
+			if pose.Bbox == nil {
+				continue
+			}
+			detections = append(detections, Detection{
+				Class:      "person",
+				ClassID:    0,
+				Confidence: pose.Confidence,
+				BBox: []float32{
+					pose.Bbox.X1,
+					pose.Bbox.Y1,
+					pose.Bbox.X2,
+					pose.Bbox.Y2,
+				},
+				Center: []float32{
+					(pose.Bbox.X1 + pose.Bbox.X2) / 2,
+					(pose.Bbox.Y1 + pose.Bbox.Y2) / 2,
+				},
+				Area: (pose.Bbox.X2 - pose.Bbox.X1) * (pose.Bbox.Y2 - pose.Bbox.Y1),
+			})
+		}
 	}
 
 	threat := gd.categorizeThreat(detections)
@@ -375,7 +555,7 @@ func (gd *GRPCDetector) convertAnnotatedResponse(resp *pb.DetectionResponse) *An
 		ImageData:       resp.AnnotatedJpeg,
 		Detections:      detections,
 		Count:           len(detections),
-		InferenceTimeMs: resp.InferenceMs,
+		InferenceTimeMs: resp.TotalInferenceMs,
 		Device:          resp.Device,
 		ThreatAnalysis:  &threat,
 	}

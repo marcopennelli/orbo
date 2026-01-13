@@ -21,7 +21,66 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// FrameRequest contains a video frame to be processed
+// YoloTask represents the available YOLO11 task types
+type YoloTask int32
+
+const (
+	YoloTask_YOLO_TASK_UNSPECIFIED YoloTask = 0
+	YoloTask_YOLO_TASK_DETECT      YoloTask = 1 // Standard object detection
+	YoloTask_YOLO_TASK_POSE        YoloTask = 2 // Human pose estimation (17 keypoints)
+	YoloTask_YOLO_TASK_SEGMENT     YoloTask = 3 // Instance segmentation
+	YoloTask_YOLO_TASK_OBB         YoloTask = 4 // Oriented bounding boxes
+	YoloTask_YOLO_TASK_CLASSIFY    YoloTask = 5 // Image classification
+)
+
+// Enum value maps for YoloTask.
+var (
+	YoloTask_name = map[int32]string{
+		0: "YOLO_TASK_UNSPECIFIED",
+		1: "YOLO_TASK_DETECT",
+		2: "YOLO_TASK_POSE",
+		3: "YOLO_TASK_SEGMENT",
+		4: "YOLO_TASK_OBB",
+		5: "YOLO_TASK_CLASSIFY",
+	}
+	YoloTask_value = map[string]int32{
+		"YOLO_TASK_UNSPECIFIED": 0,
+		"YOLO_TASK_DETECT":      1,
+		"YOLO_TASK_POSE":        2,
+		"YOLO_TASK_SEGMENT":     3,
+		"YOLO_TASK_OBB":         4,
+		"YOLO_TASK_CLASSIFY":    5,
+	}
+)
+
+func (x YoloTask) Enum() *YoloTask {
+	p := new(YoloTask)
+	*p = x
+	return p
+}
+
+func (x YoloTask) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (YoloTask) Descriptor() protoreflect.EnumDescriptor {
+	return file_api_proto_detection_v1_detection_proto_enumTypes[0].Descriptor()
+}
+
+func (YoloTask) Type() protoreflect.EnumType {
+	return &file_api_proto_detection_v1_detection_proto_enumTypes[0]
+}
+
+func (x YoloTask) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use YoloTask.Descriptor instead.
+func (YoloTask) EnumDescriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{0}
+}
+
+// FrameRequest contains a video frame to be processed (legacy, detection only)
 type FrameRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Camera identifier
@@ -121,6 +180,115 @@ func (x *FrameRequest) GetEnableTracking() bool {
 	return false
 }
 
+// AnalyzeRequest contains a frame for multi-task analysis
+type AnalyzeRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Camera identifier
+	CameraId string `protobuf:"bytes,1,opt,name=camera_id,json=cameraId,proto3" json:"camera_id,omitempty"`
+	// Frame sequence number for ordering validation
+	FrameSeq uint64 `protobuf:"varint,2,opt,name=frame_seq,json=frameSeq,proto3" json:"frame_seq,omitempty"`
+	// Capture timestamp in nanoseconds since epoch
+	TimestampNs int64 `protobuf:"varint,3,opt,name=timestamp_ns,json=timestampNs,proto3" json:"timestamp_ns,omitempty"`
+	// JPEG-encoded frame data
+	JpegData []byte `protobuf:"bytes,4,opt,name=jpeg_data,json=jpegData,proto3" json:"jpeg_data,omitempty"`
+	// Tasks to run on this frame
+	Tasks []YoloTask `protobuf:"varint,5,rep,packed,name=tasks,proto3,enum=orbo.detection.v1.YoloTask" json:"tasks,omitempty"`
+	// Request annotated image with all task annotations drawn
+	ReturnAnnotated bool `protobuf:"varint,6,opt,name=return_annotated,json=returnAnnotated,proto3" json:"return_annotated,omitempty"`
+	// Minimum confidence threshold for detections (0-1)
+	ConfThreshold float32 `protobuf:"fixed32,7,opt,name=conf_threshold,json=confThreshold,proto3" json:"conf_threshold,omitempty"`
+	// Classes to filter for detection (empty = all)
+	ClassesFilter []string `protobuf:"bytes,8,rep,name=classes_filter,json=classesFilter,proto3" json:"classes_filter,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AnalyzeRequest) Reset() {
+	*x = AnalyzeRequest{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AnalyzeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AnalyzeRequest) ProtoMessage() {}
+
+func (x *AnalyzeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AnalyzeRequest.ProtoReflect.Descriptor instead.
+func (*AnalyzeRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AnalyzeRequest) GetCameraId() string {
+	if x != nil {
+		return x.CameraId
+	}
+	return ""
+}
+
+func (x *AnalyzeRequest) GetFrameSeq() uint64 {
+	if x != nil {
+		return x.FrameSeq
+	}
+	return 0
+}
+
+func (x *AnalyzeRequest) GetTimestampNs() int64 {
+	if x != nil {
+		return x.TimestampNs
+	}
+	return 0
+}
+
+func (x *AnalyzeRequest) GetJpegData() []byte {
+	if x != nil {
+		return x.JpegData
+	}
+	return nil
+}
+
+func (x *AnalyzeRequest) GetTasks() []YoloTask {
+	if x != nil {
+		return x.Tasks
+	}
+	return nil
+}
+
+func (x *AnalyzeRequest) GetReturnAnnotated() bool {
+	if x != nil {
+		return x.ReturnAnnotated
+	}
+	return false
+}
+
+func (x *AnalyzeRequest) GetConfThreshold() float32 {
+	if x != nil {
+		return x.ConfThreshold
+	}
+	return 0
+}
+
+func (x *AnalyzeRequest) GetClassesFilter() []string {
+	if x != nil {
+		return x.ClassesFilter
+	}
+	return nil
+}
+
 // DetectionResponse contains detection results for a processed frame
 type DetectionResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -148,7 +316,7 @@ type DetectionResponse struct {
 
 func (x *DetectionResponse) Reset() {
 	*x = DetectionResponse{}
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[1]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -160,7 +328,7 @@ func (x *DetectionResponse) String() string {
 func (*DetectionResponse) ProtoMessage() {}
 
 func (x *DetectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[1]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -173,7 +341,7 @@ func (x *DetectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DetectionResponse.ProtoReflect.Descriptor instead.
 func (*DetectionResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *DetectionResponse) GetCameraId() string {
@@ -263,7 +431,7 @@ type Detection struct {
 
 func (x *Detection) Reset() {
 	*x = Detection{}
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[2]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -275,7 +443,7 @@ func (x *Detection) String() string {
 func (*Detection) ProtoMessage() {}
 
 func (x *Detection) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[2]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -288,7 +456,7 @@ func (x *Detection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Detection.ProtoReflect.Descriptor instead.
 func (*Detection) Descriptor() ([]byte, []int) {
-	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Detection) GetClassName() string {
@@ -360,7 +528,7 @@ type BBox struct {
 
 func (x *BBox) Reset() {
 	*x = BBox{}
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[3]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -372,7 +540,7 @@ func (x *BBox) String() string {
 func (*BBox) ProtoMessage() {}
 
 func (x *BBox) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[3]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -385,7 +553,7 @@ func (x *BBox) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BBox.ProtoReflect.Descriptor instead.
 func (*BBox) Descriptor() ([]byte, []int) {
-	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *BBox) GetX1() float32 {
@@ -435,7 +603,7 @@ type TrackUpdate struct {
 
 func (x *TrackUpdate) Reset() {
 	*x = TrackUpdate{}
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[4]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -447,7 +615,7 @@ func (x *TrackUpdate) String() string {
 func (*TrackUpdate) ProtoMessage() {}
 
 func (x *TrackUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[4]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -460,7 +628,7 @@ func (x *TrackUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrackUpdate.ProtoReflect.Descriptor instead.
 func (*TrackUpdate) Descriptor() ([]byte, []int) {
-	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *TrackUpdate) GetTrackId() int32 {
@@ -498,6 +666,1054 @@ func (x *TrackUpdate) GetTimeSinceUpdate() int32 {
 	return 0
 }
 
+// AnalyzeResponse contains multi-task analysis results
+type AnalyzeResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Camera identifier (echoed from request)
+	CameraId string `protobuf:"bytes,1,opt,name=camera_id,json=cameraId,proto3" json:"camera_id,omitempty"`
+	// Frame sequence number (echoed from request)
+	FrameSeq uint64 `protobuf:"varint,2,opt,name=frame_seq,json=frameSeq,proto3" json:"frame_seq,omitempty"`
+	// Original capture timestamp
+	CaptureTimestampNs int64 `protobuf:"varint,3,opt,name=capture_timestamp_ns,json=captureTimestampNs,proto3" json:"capture_timestamp_ns,omitempty"`
+	// When inference completed
+	InferenceTimestampNs int64 `protobuf:"varint,4,opt,name=inference_timestamp_ns,json=inferenceTimestampNs,proto3" json:"inference_timestamp_ns,omitempty"`
+	// Annotated JPEG image with all task annotations (if requested)
+	AnnotatedJpeg []byte `protobuf:"bytes,5,opt,name=annotated_jpeg,json=annotatedJpeg,proto3" json:"annotated_jpeg,omitempty"`
+	// Total inference time in milliseconds (all tasks)
+	TotalInferenceMs float32 `protobuf:"fixed32,6,opt,name=total_inference_ms,json=totalInferenceMs,proto3" json:"total_inference_ms,omitempty"`
+	// Device used for inference (cuda, cpu, etc.)
+	Device string `protobuf:"bytes,7,opt,name=device,proto3" json:"device,omitempty"`
+	// Per-task results
+	Detect   *TaskResults     `protobuf:"bytes,8,opt,name=detect,proto3" json:"detect,omitempty"`
+	Pose     *PoseResults     `protobuf:"bytes,9,opt,name=pose,proto3" json:"pose,omitempty"`
+	Segment  *SegmentResults  `protobuf:"bytes,10,opt,name=segment,proto3" json:"segment,omitempty"`
+	Obb      *OBBResults      `protobuf:"bytes,11,opt,name=obb,proto3" json:"obb,omitempty"`
+	Classify *ClassifyResults `protobuf:"bytes,12,opt,name=classify,proto3" json:"classify,omitempty"`
+	// Alerts triggered by pose analysis (e.g., fall_detected)
+	Alerts        []string `protobuf:"bytes,13,rep,name=alerts,proto3" json:"alerts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AnalyzeResponse) Reset() {
+	*x = AnalyzeResponse{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AnalyzeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AnalyzeResponse) ProtoMessage() {}
+
+func (x *AnalyzeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AnalyzeResponse.ProtoReflect.Descriptor instead.
+func (*AnalyzeResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *AnalyzeResponse) GetCameraId() string {
+	if x != nil {
+		return x.CameraId
+	}
+	return ""
+}
+
+func (x *AnalyzeResponse) GetFrameSeq() uint64 {
+	if x != nil {
+		return x.FrameSeq
+	}
+	return 0
+}
+
+func (x *AnalyzeResponse) GetCaptureTimestampNs() int64 {
+	if x != nil {
+		return x.CaptureTimestampNs
+	}
+	return 0
+}
+
+func (x *AnalyzeResponse) GetInferenceTimestampNs() int64 {
+	if x != nil {
+		return x.InferenceTimestampNs
+	}
+	return 0
+}
+
+func (x *AnalyzeResponse) GetAnnotatedJpeg() []byte {
+	if x != nil {
+		return x.AnnotatedJpeg
+	}
+	return nil
+}
+
+func (x *AnalyzeResponse) GetTotalInferenceMs() float32 {
+	if x != nil {
+		return x.TotalInferenceMs
+	}
+	return 0
+}
+
+func (x *AnalyzeResponse) GetDevice() string {
+	if x != nil {
+		return x.Device
+	}
+	return ""
+}
+
+func (x *AnalyzeResponse) GetDetect() *TaskResults {
+	if x != nil {
+		return x.Detect
+	}
+	return nil
+}
+
+func (x *AnalyzeResponse) GetPose() *PoseResults {
+	if x != nil {
+		return x.Pose
+	}
+	return nil
+}
+
+func (x *AnalyzeResponse) GetSegment() *SegmentResults {
+	if x != nil {
+		return x.Segment
+	}
+	return nil
+}
+
+func (x *AnalyzeResponse) GetObb() *OBBResults {
+	if x != nil {
+		return x.Obb
+	}
+	return nil
+}
+
+func (x *AnalyzeResponse) GetClassify() *ClassifyResults {
+	if x != nil {
+		return x.Classify
+	}
+	return nil
+}
+
+func (x *AnalyzeResponse) GetAlerts() []string {
+	if x != nil {
+		return x.Alerts
+	}
+	return nil
+}
+
+// TaskResults contains standard detection results
+type TaskResults struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Detections    []*Detection           `protobuf:"bytes,1,rep,name=detections,proto3" json:"detections,omitempty"`
+	InferenceMs   float32                `protobuf:"fixed32,2,opt,name=inference_ms,json=inferenceMs,proto3" json:"inference_ms,omitempty"`
+	Count         int32                  `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskResults) Reset() {
+	*x = TaskResults{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskResults) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskResults) ProtoMessage() {}
+
+func (x *TaskResults) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskResults.ProtoReflect.Descriptor instead.
+func (*TaskResults) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *TaskResults) GetDetections() []*Detection {
+	if x != nil {
+		return x.Detections
+	}
+	return nil
+}
+
+func (x *TaskResults) GetInferenceMs() float32 {
+	if x != nil {
+		return x.InferenceMs
+	}
+	return 0
+}
+
+func (x *TaskResults) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+// PoseResults contains pose estimation results
+type PoseResults struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Poses         []*PoseDetection       `protobuf:"bytes,1,rep,name=poses,proto3" json:"poses,omitempty"`
+	InferenceMs   float32                `protobuf:"fixed32,2,opt,name=inference_ms,json=inferenceMs,proto3" json:"inference_ms,omitempty"`
+	Count         int32                  `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PoseResults) Reset() {
+	*x = PoseResults{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PoseResults) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PoseResults) ProtoMessage() {}
+
+func (x *PoseResults) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PoseResults.ProtoReflect.Descriptor instead.
+func (*PoseResults) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *PoseResults) GetPoses() []*PoseDetection {
+	if x != nil {
+		return x.Poses
+	}
+	return nil
+}
+
+func (x *PoseResults) GetInferenceMs() float32 {
+	if x != nil {
+		return x.InferenceMs
+	}
+	return 0
+}
+
+func (x *PoseResults) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+// PoseDetection represents a detected human pose
+type PoseDetection struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Bounding box of the person
+	Bbox *BBox `protobuf:"bytes,1,opt,name=bbox,proto3" json:"bbox,omitempty"`
+	// Detection confidence
+	Confidence float32 `protobuf:"fixed32,2,opt,name=confidence,proto3" json:"confidence,omitempty"`
+	// COCO 17-keypoint format: [x, y, confidence] for each keypoint
+	// Order: nose, left_eye, right_eye, left_ear, right_ear,
+	//
+	//	left_shoulder, right_shoulder, left_elbow, right_elbow,
+	//	left_wrist, right_wrist, left_hip, right_hip,
+	//	left_knee, right_knee, left_ankle, right_ankle
+	Keypoints []*Keypoint `protobuf:"bytes,3,rep,name=keypoints,proto3" json:"keypoints,omitempty"`
+	// Pose classification (standing, sitting, lying, crouching, etc.)
+	PoseClass string `protobuf:"bytes,4,opt,name=pose_class,json=poseClass,proto3" json:"pose_class,omitempty"`
+	// Track ID from object tracker
+	TrackId       int32 `protobuf:"varint,5,opt,name=track_id,json=trackId,proto3" json:"track_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PoseDetection) Reset() {
+	*x = PoseDetection{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PoseDetection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PoseDetection) ProtoMessage() {}
+
+func (x *PoseDetection) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PoseDetection.ProtoReflect.Descriptor instead.
+func (*PoseDetection) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *PoseDetection) GetBbox() *BBox {
+	if x != nil {
+		return x.Bbox
+	}
+	return nil
+}
+
+func (x *PoseDetection) GetConfidence() float32 {
+	if x != nil {
+		return x.Confidence
+	}
+	return 0
+}
+
+func (x *PoseDetection) GetKeypoints() []*Keypoint {
+	if x != nil {
+		return x.Keypoints
+	}
+	return nil
+}
+
+func (x *PoseDetection) GetPoseClass() string {
+	if x != nil {
+		return x.PoseClass
+	}
+	return ""
+}
+
+func (x *PoseDetection) GetTrackId() int32 {
+	if x != nil {
+		return x.TrackId
+	}
+	return 0
+}
+
+// Keypoint represents a single body joint
+type Keypoint struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	X             float32                `protobuf:"fixed32,1,opt,name=x,proto3" json:"x,omitempty"`
+	Y             float32                `protobuf:"fixed32,2,opt,name=y,proto3" json:"y,omitempty"`
+	Confidence    float32                `protobuf:"fixed32,3,opt,name=confidence,proto3" json:"confidence,omitempty"`
+	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"` // e.g., "nose", "left_shoulder"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Keypoint) Reset() {
+	*x = Keypoint{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Keypoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Keypoint) ProtoMessage() {}
+
+func (x *Keypoint) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Keypoint.ProtoReflect.Descriptor instead.
+func (*Keypoint) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *Keypoint) GetX() float32 {
+	if x != nil {
+		return x.X
+	}
+	return 0
+}
+
+func (x *Keypoint) GetY() float32 {
+	if x != nil {
+		return x.Y
+	}
+	return 0
+}
+
+func (x *Keypoint) GetConfidence() float32 {
+	if x != nil {
+		return x.Confidence
+	}
+	return 0
+}
+
+func (x *Keypoint) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+// SegmentResults contains instance segmentation results
+type SegmentResults struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Segments      []*SegmentDetection    `protobuf:"bytes,1,rep,name=segments,proto3" json:"segments,omitempty"`
+	InferenceMs   float32                `protobuf:"fixed32,2,opt,name=inference_ms,json=inferenceMs,proto3" json:"inference_ms,omitempty"`
+	Count         int32                  `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SegmentResults) Reset() {
+	*x = SegmentResults{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SegmentResults) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SegmentResults) ProtoMessage() {}
+
+func (x *SegmentResults) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SegmentResults.ProtoReflect.Descriptor instead.
+func (*SegmentResults) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *SegmentResults) GetSegments() []*SegmentDetection {
+	if x != nil {
+		return x.Segments
+	}
+	return nil
+}
+
+func (x *SegmentResults) GetInferenceMs() float32 {
+	if x != nil {
+		return x.InferenceMs
+	}
+	return 0
+}
+
+func (x *SegmentResults) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+// SegmentDetection represents a segmented object
+type SegmentDetection struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Class name
+	ClassName string `protobuf:"bytes,1,opt,name=class_name,json=className,proto3" json:"class_name,omitempty"`
+	// Class ID
+	ClassId int32 `protobuf:"varint,2,opt,name=class_id,json=classId,proto3" json:"class_id,omitempty"`
+	// Detection confidence
+	Confidence float32 `protobuf:"fixed32,3,opt,name=confidence,proto3" json:"confidence,omitempty"`
+	// Bounding box
+	Bbox *BBox `protobuf:"bytes,4,opt,name=bbox,proto3" json:"bbox,omitempty"`
+	// Segmentation mask as RLE-encoded bytes (optional)
+	MaskRle []byte `protobuf:"bytes,5,opt,name=mask_rle,json=maskRle,proto3" json:"mask_rle,omitempty"`
+	// Mask polygon points as flattened [x1,y1,x2,y2,...] (optional)
+	MaskPolygon   []float32 `protobuf:"fixed32,6,rep,packed,name=mask_polygon,json=maskPolygon,proto3" json:"mask_polygon,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SegmentDetection) Reset() {
+	*x = SegmentDetection{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SegmentDetection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SegmentDetection) ProtoMessage() {}
+
+func (x *SegmentDetection) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SegmentDetection.ProtoReflect.Descriptor instead.
+func (*SegmentDetection) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *SegmentDetection) GetClassName() string {
+	if x != nil {
+		return x.ClassName
+	}
+	return ""
+}
+
+func (x *SegmentDetection) GetClassId() int32 {
+	if x != nil {
+		return x.ClassId
+	}
+	return 0
+}
+
+func (x *SegmentDetection) GetConfidence() float32 {
+	if x != nil {
+		return x.Confidence
+	}
+	return 0
+}
+
+func (x *SegmentDetection) GetBbox() *BBox {
+	if x != nil {
+		return x.Bbox
+	}
+	return nil
+}
+
+func (x *SegmentDetection) GetMaskRle() []byte {
+	if x != nil {
+		return x.MaskRle
+	}
+	return nil
+}
+
+func (x *SegmentDetection) GetMaskPolygon() []float32 {
+	if x != nil {
+		return x.MaskPolygon
+	}
+	return nil
+}
+
+// OBBResults contains oriented bounding box results
+type OBBResults struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Obbs          []*OBBDetection        `protobuf:"bytes,1,rep,name=obbs,proto3" json:"obbs,omitempty"`
+	InferenceMs   float32                `protobuf:"fixed32,2,opt,name=inference_ms,json=inferenceMs,proto3" json:"inference_ms,omitempty"`
+	Count         int32                  `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OBBResults) Reset() {
+	*x = OBBResults{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OBBResults) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OBBResults) ProtoMessage() {}
+
+func (x *OBBResults) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OBBResults.ProtoReflect.Descriptor instead.
+func (*OBBResults) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *OBBResults) GetObbs() []*OBBDetection {
+	if x != nil {
+		return x.Obbs
+	}
+	return nil
+}
+
+func (x *OBBResults) GetInferenceMs() float32 {
+	if x != nil {
+		return x.InferenceMs
+	}
+	return 0
+}
+
+func (x *OBBResults) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+// OBBDetection represents an oriented bounding box detection
+type OBBDetection struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Class name
+	ClassName string `protobuf:"bytes,1,opt,name=class_name,json=className,proto3" json:"class_name,omitempty"`
+	// Class ID
+	ClassId int32 `protobuf:"varint,2,opt,name=class_id,json=classId,proto3" json:"class_id,omitempty"`
+	// Detection confidence
+	Confidence float32 `protobuf:"fixed32,3,opt,name=confidence,proto3" json:"confidence,omitempty"`
+	// Center point
+	Cx float32 `protobuf:"fixed32,4,opt,name=cx,proto3" json:"cx,omitempty"`
+	Cy float32 `protobuf:"fixed32,5,opt,name=cy,proto3" json:"cy,omitempty"`
+	// Width and height of rotated box
+	Width  float32 `protobuf:"fixed32,6,opt,name=width,proto3" json:"width,omitempty"`
+	Height float32 `protobuf:"fixed32,7,opt,name=height,proto3" json:"height,omitempty"`
+	// Rotation angle in radians
+	Angle float32 `protobuf:"fixed32,8,opt,name=angle,proto3" json:"angle,omitempty"`
+	// 4 corner points as [x1,y1,x2,y2,x3,y3,x4,y4]
+	Corners       []float32 `protobuf:"fixed32,9,rep,packed,name=corners,proto3" json:"corners,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OBBDetection) Reset() {
+	*x = OBBDetection{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OBBDetection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OBBDetection) ProtoMessage() {}
+
+func (x *OBBDetection) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OBBDetection.ProtoReflect.Descriptor instead.
+func (*OBBDetection) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *OBBDetection) GetClassName() string {
+	if x != nil {
+		return x.ClassName
+	}
+	return ""
+}
+
+func (x *OBBDetection) GetClassId() int32 {
+	if x != nil {
+		return x.ClassId
+	}
+	return 0
+}
+
+func (x *OBBDetection) GetConfidence() float32 {
+	if x != nil {
+		return x.Confidence
+	}
+	return 0
+}
+
+func (x *OBBDetection) GetCx() float32 {
+	if x != nil {
+		return x.Cx
+	}
+	return 0
+}
+
+func (x *OBBDetection) GetCy() float32 {
+	if x != nil {
+		return x.Cy
+	}
+	return 0
+}
+
+func (x *OBBDetection) GetWidth() float32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
+func (x *OBBDetection) GetHeight() float32 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *OBBDetection) GetAngle() float32 {
+	if x != nil {
+		return x.Angle
+	}
+	return 0
+}
+
+func (x *OBBDetection) GetCorners() []float32 {
+	if x != nil {
+		return x.Corners
+	}
+	return nil
+}
+
+// ClassifyResults contains image classification results
+type ClassifyResults struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Classifications []*Classification      `protobuf:"bytes,1,rep,name=classifications,proto3" json:"classifications,omitempty"`
+	InferenceMs     float32                `protobuf:"fixed32,2,opt,name=inference_ms,json=inferenceMs,proto3" json:"inference_ms,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ClassifyResults) Reset() {
+	*x = ClassifyResults{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClassifyResults) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClassifyResults) ProtoMessage() {}
+
+func (x *ClassifyResults) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClassifyResults.ProtoReflect.Descriptor instead.
+func (*ClassifyResults) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ClassifyResults) GetClassifications() []*Classification {
+	if x != nil {
+		return x.Classifications
+	}
+	return nil
+}
+
+func (x *ClassifyResults) GetInferenceMs() float32 {
+	if x != nil {
+		return x.InferenceMs
+	}
+	return 0
+}
+
+// Classification represents a single classification result
+type Classification struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Class name
+	ClassName string `protobuf:"bytes,1,opt,name=class_name,json=className,proto3" json:"class_name,omitempty"`
+	// Class ID
+	ClassId int32 `protobuf:"varint,2,opt,name=class_id,json=classId,proto3" json:"class_id,omitempty"`
+	// Classification confidence/probability
+	Confidence    float32 `protobuf:"fixed32,3,opt,name=confidence,proto3" json:"confidence,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Classification) Reset() {
+	*x = Classification{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Classification) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Classification) ProtoMessage() {}
+
+func (x *Classification) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Classification.ProtoReflect.Descriptor instead.
+func (*Classification) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *Classification) GetClassName() string {
+	if x != nil {
+		return x.ClassName
+	}
+	return ""
+}
+
+func (x *Classification) GetClassId() int32 {
+	if x != nil {
+		return x.ClassId
+	}
+	return 0
+}
+
+func (x *Classification) GetConfidence() float32 {
+	if x != nil {
+		return x.Confidence
+	}
+	return 0
+}
+
+// TasksRequest is empty - requests available tasks info
+type TasksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TasksRequest) Reset() {
+	*x = TasksRequest{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TasksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TasksRequest) ProtoMessage() {}
+
+func (x *TasksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TasksRequest.ProtoReflect.Descriptor instead.
+func (*TasksRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{17}
+}
+
+// TasksResponse contains available YOLO tasks and their status
+type TasksResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Available tasks that can be requested
+	AvailableTasks []*TaskInfo `protobuf:"bytes,1,rep,name=available_tasks,json=availableTasks,proto3" json:"available_tasks,omitempty"`
+	// Currently loaded models
+	LoadedModels []string `protobuf:"bytes,2,rep,name=loaded_models,json=loadedModels,proto3" json:"loaded_models,omitempty"`
+	// Maximum models that can be cached
+	MaxCachedModels int32 `protobuf:"varint,3,opt,name=max_cached_models,json=maxCachedModels,proto3" json:"max_cached_models,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *TasksResponse) Reset() {
+	*x = TasksResponse{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TasksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TasksResponse) ProtoMessage() {}
+
+func (x *TasksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TasksResponse.ProtoReflect.Descriptor instead.
+func (*TasksResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *TasksResponse) GetAvailableTasks() []*TaskInfo {
+	if x != nil {
+		return x.AvailableTasks
+	}
+	return nil
+}
+
+func (x *TasksResponse) GetLoadedModels() []string {
+	if x != nil {
+		return x.LoadedModels
+	}
+	return nil
+}
+
+func (x *TasksResponse) GetMaxCachedModels() int32 {
+	if x != nil {
+		return x.MaxCachedModels
+	}
+	return 0
+}
+
+// TaskInfo describes a single YOLO task
+type TaskInfo struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Task type
+	Task YoloTask `protobuf:"varint,1,opt,name=task,proto3,enum=orbo.detection.v1.YoloTask" json:"task,omitempty"`
+	// Human-readable name
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Whether the model is currently loaded
+	Loaded bool `protobuf:"varint,3,opt,name=loaded,proto3" json:"loaded,omitempty"`
+	// Model file name
+	ModelFile     string `protobuf:"bytes,4,opt,name=model_file,json=modelFile,proto3" json:"model_file,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskInfo) Reset() {
+	*x = TaskInfo{}
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskInfo) ProtoMessage() {}
+
+func (x *TaskInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskInfo.ProtoReflect.Descriptor instead.
+func (*TaskInfo) Descriptor() ([]byte, []int) {
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *TaskInfo) GetTask() YoloTask {
+	if x != nil {
+		return x.Task
+	}
+	return YoloTask_YOLO_TASK_UNSPECIFIED
+}
+
+func (x *TaskInfo) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *TaskInfo) GetLoaded() bool {
+	if x != nil {
+		return x.Loaded
+	}
+	return false
+}
+
+func (x *TaskInfo) GetModelFile() string {
+	if x != nil {
+		return x.ModelFile
+	}
+	return ""
+}
+
 // HealthRequest is empty - just checks service availability
 type HealthRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -507,7 +1723,7 @@ type HealthRequest struct {
 
 func (x *HealthRequest) Reset() {
 	*x = HealthRequest{}
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[5]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -519,7 +1735,7 @@ func (x *HealthRequest) String() string {
 func (*HealthRequest) ProtoMessage() {}
 
 func (x *HealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[5]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -532,7 +1748,7 @@ func (x *HealthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthRequest.ProtoReflect.Descriptor instead.
 func (*HealthRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{20}
 }
 
 // HealthResponse contains service health status
@@ -556,7 +1772,7 @@ type HealthResponse struct {
 
 func (x *HealthResponse) Reset() {
 	*x = HealthResponse{}
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[6]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -568,7 +1784,7 @@ func (x *HealthResponse) String() string {
 func (*HealthResponse) ProtoMessage() {}
 
 func (x *HealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[6]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -581,7 +1797,7 @@ func (x *HealthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthResponse.ProtoReflect.Descriptor instead.
 func (*HealthResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *HealthResponse) GetStatus() string {
@@ -638,14 +1854,18 @@ type ConfigureRequest struct {
 	// Tracker type: bytetrack, botsort, or empty to disable
 	TrackerType *string `protobuf:"bytes,4,opt,name=tracker_type,json=trackerType,proto3,oneof" json:"tracker_type,omitempty"`
 	// Classes to detect (empty = all classes)
-	Classes       []string `protobuf:"bytes,5,rep,name=classes,proto3" json:"classes,omitempty"`
+	Classes []string `protobuf:"bytes,5,rep,name=classes,proto3" json:"classes,omitempty"`
+	// Bounding box color in hex format (e.g., "#0066FF")
+	BoxColor *string `protobuf:"bytes,6,opt,name=box_color,json=boxColor,proto3,oneof" json:"box_color,omitempty"`
+	// Bounding box line thickness (1-5)
+	BoxThickness  *int32 `protobuf:"varint,7,opt,name=box_thickness,json=boxThickness,proto3,oneof" json:"box_thickness,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ConfigureRequest) Reset() {
 	*x = ConfigureRequest{}
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[7]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -657,7 +1877,7 @@ func (x *ConfigureRequest) String() string {
 func (*ConfigureRequest) ProtoMessage() {}
 
 func (x *ConfigureRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[7]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -670,7 +1890,7 @@ func (x *ConfigureRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigureRequest.ProtoReflect.Descriptor instead.
 func (*ConfigureRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ConfigureRequest) GetConfThreshold() float32 {
@@ -708,6 +1928,20 @@ func (x *ConfigureRequest) GetClasses() []string {
 	return nil
 }
 
+func (x *ConfigureRequest) GetBoxColor() string {
+	if x != nil && x.BoxColor != nil {
+		return *x.BoxColor
+	}
+	return ""
+}
+
+func (x *ConfigureRequest) GetBoxThickness() int32 {
+	if x != nil && x.BoxThickness != nil {
+		return *x.BoxThickness
+	}
+	return 0
+}
+
 // ConfigureResponse confirms configuration update
 type ConfigureResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
@@ -724,7 +1958,7 @@ type ConfigureResponse struct {
 
 func (x *ConfigureResponse) Reset() {
 	*x = ConfigureResponse{}
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[8]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -736,7 +1970,7 @@ func (x *ConfigureResponse) String() string {
 func (*ConfigureResponse) ProtoMessage() {}
 
 func (x *ConfigureResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[8]
+	mi := &file_api_proto_detection_v1_detection_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -749,7 +1983,7 @@ func (x *ConfigureResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigureResponse.ProtoReflect.Descriptor instead.
 func (*ConfigureResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_detection_v1_detection_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ConfigureResponse) GetSuccess() bool {
@@ -806,7 +2040,16 @@ const file_api_proto_detection_v1_detection_proto_rawDesc = "" +
 	"\tjpeg_data\x18\x04 \x01(\fR\bjpegData\x12)\n" +
 	"\x10return_annotated\x18\x05 \x01(\bR\x0freturnAnnotated\x12%\n" +
 	"\x0econf_threshold\x18\x06 \x01(\x02R\rconfThreshold\x12'\n" +
-	"\x0fenable_tracking\x18\a \x01(\bR\x0eenableTracking\"\x8d\x03\n" +
+	"\x0fenable_tracking\x18\a \x01(\bR\x0eenableTracking\"\xb6\x02\n" +
+	"\x0eAnalyzeRequest\x12\x1b\n" +
+	"\tcamera_id\x18\x01 \x01(\tR\bcameraId\x12\x1b\n" +
+	"\tframe_seq\x18\x02 \x01(\x04R\bframeSeq\x12!\n" +
+	"\ftimestamp_ns\x18\x03 \x01(\x03R\vtimestampNs\x12\x1b\n" +
+	"\tjpeg_data\x18\x04 \x01(\fR\bjpegData\x121\n" +
+	"\x05tasks\x18\x05 \x03(\x0e2\x1b.orbo.detection.v1.YoloTaskR\x05tasks\x12)\n" +
+	"\x10return_annotated\x18\x06 \x01(\bR\x0freturnAnnotated\x12%\n" +
+	"\x0econf_threshold\x18\a \x01(\x02R\rconfThreshold\x12%\n" +
+	"\x0eclasses_filter\x18\b \x03(\tR\rclassesFilter\"\x8d\x03\n" +
 	"\x11DetectionResponse\x12\x1b\n" +
 	"\tcamera_id\x18\x01 \x01(\tR\bcameraId\x12\x1b\n" +
 	"\tframe_seq\x18\x02 \x01(\x04R\bframeSeq\x120\n" +
@@ -843,7 +2086,101 @@ const file_api_proto_detection_v1_detection_proto_rawDesc = "" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12:\n" +
 	"\tdetection\x18\x03 \x01(\v2\x1c.orbo.detection.v1.DetectionR\tdetection\x12\x10\n" +
 	"\x03age\x18\x04 \x01(\x05R\x03age\x12*\n" +
-	"\x11time_since_update\x18\x05 \x01(\x05R\x0ftimeSinceUpdate\"\x0f\n" +
+	"\x11time_since_update\x18\x05 \x01(\x05R\x0ftimeSinceUpdate\"\xd2\x04\n" +
+	"\x0fAnalyzeResponse\x12\x1b\n" +
+	"\tcamera_id\x18\x01 \x01(\tR\bcameraId\x12\x1b\n" +
+	"\tframe_seq\x18\x02 \x01(\x04R\bframeSeq\x120\n" +
+	"\x14capture_timestamp_ns\x18\x03 \x01(\x03R\x12captureTimestampNs\x124\n" +
+	"\x16inference_timestamp_ns\x18\x04 \x01(\x03R\x14inferenceTimestampNs\x12%\n" +
+	"\x0eannotated_jpeg\x18\x05 \x01(\fR\rannotatedJpeg\x12,\n" +
+	"\x12total_inference_ms\x18\x06 \x01(\x02R\x10totalInferenceMs\x12\x16\n" +
+	"\x06device\x18\a \x01(\tR\x06device\x126\n" +
+	"\x06detect\x18\b \x01(\v2\x1e.orbo.detection.v1.TaskResultsR\x06detect\x122\n" +
+	"\x04pose\x18\t \x01(\v2\x1e.orbo.detection.v1.PoseResultsR\x04pose\x12;\n" +
+	"\asegment\x18\n" +
+	" \x01(\v2!.orbo.detection.v1.SegmentResultsR\asegment\x12/\n" +
+	"\x03obb\x18\v \x01(\v2\x1d.orbo.detection.v1.OBBResultsR\x03obb\x12>\n" +
+	"\bclassify\x18\f \x01(\v2\".orbo.detection.v1.ClassifyResultsR\bclassify\x12\x16\n" +
+	"\x06alerts\x18\r \x03(\tR\x06alerts\"\x84\x01\n" +
+	"\vTaskResults\x12<\n" +
+	"\n" +
+	"detections\x18\x01 \x03(\v2\x1c.orbo.detection.v1.DetectionR\n" +
+	"detections\x12!\n" +
+	"\finference_ms\x18\x02 \x01(\x02R\vinferenceMs\x12\x14\n" +
+	"\x05count\x18\x03 \x01(\x05R\x05count\"~\n" +
+	"\vPoseResults\x126\n" +
+	"\x05poses\x18\x01 \x03(\v2 .orbo.detection.v1.PoseDetectionR\x05poses\x12!\n" +
+	"\finference_ms\x18\x02 \x01(\x02R\vinferenceMs\x12\x14\n" +
+	"\x05count\x18\x03 \x01(\x05R\x05count\"\xd1\x01\n" +
+	"\rPoseDetection\x12+\n" +
+	"\x04bbox\x18\x01 \x01(\v2\x17.orbo.detection.v1.BBoxR\x04bbox\x12\x1e\n" +
+	"\n" +
+	"confidence\x18\x02 \x01(\x02R\n" +
+	"confidence\x129\n" +
+	"\tkeypoints\x18\x03 \x03(\v2\x1b.orbo.detection.v1.KeypointR\tkeypoints\x12\x1d\n" +
+	"\n" +
+	"pose_class\x18\x04 \x01(\tR\tposeClass\x12\x19\n" +
+	"\btrack_id\x18\x05 \x01(\x05R\atrackId\"Z\n" +
+	"\bKeypoint\x12\f\n" +
+	"\x01x\x18\x01 \x01(\x02R\x01x\x12\f\n" +
+	"\x01y\x18\x02 \x01(\x02R\x01y\x12\x1e\n" +
+	"\n" +
+	"confidence\x18\x03 \x01(\x02R\n" +
+	"confidence\x12\x12\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\"\x8a\x01\n" +
+	"\x0eSegmentResults\x12?\n" +
+	"\bsegments\x18\x01 \x03(\v2#.orbo.detection.v1.SegmentDetectionR\bsegments\x12!\n" +
+	"\finference_ms\x18\x02 \x01(\x02R\vinferenceMs\x12\x14\n" +
+	"\x05count\x18\x03 \x01(\x05R\x05count\"\xd7\x01\n" +
+	"\x10SegmentDetection\x12\x1d\n" +
+	"\n" +
+	"class_name\x18\x01 \x01(\tR\tclassName\x12\x19\n" +
+	"\bclass_id\x18\x02 \x01(\x05R\aclassId\x12\x1e\n" +
+	"\n" +
+	"confidence\x18\x03 \x01(\x02R\n" +
+	"confidence\x12+\n" +
+	"\x04bbox\x18\x04 \x01(\v2\x17.orbo.detection.v1.BBoxR\x04bbox\x12\x19\n" +
+	"\bmask_rle\x18\x05 \x01(\fR\amaskRle\x12!\n" +
+	"\fmask_polygon\x18\x06 \x03(\x02R\vmaskPolygon\"z\n" +
+	"\n" +
+	"OBBResults\x123\n" +
+	"\x04obbs\x18\x01 \x03(\v2\x1f.orbo.detection.v1.OBBDetectionR\x04obbs\x12!\n" +
+	"\finference_ms\x18\x02 \x01(\x02R\vinferenceMs\x12\x14\n" +
+	"\x05count\x18\x03 \x01(\x05R\x05count\"\xe6\x01\n" +
+	"\fOBBDetection\x12\x1d\n" +
+	"\n" +
+	"class_name\x18\x01 \x01(\tR\tclassName\x12\x19\n" +
+	"\bclass_id\x18\x02 \x01(\x05R\aclassId\x12\x1e\n" +
+	"\n" +
+	"confidence\x18\x03 \x01(\x02R\n" +
+	"confidence\x12\x0e\n" +
+	"\x02cx\x18\x04 \x01(\x02R\x02cx\x12\x0e\n" +
+	"\x02cy\x18\x05 \x01(\x02R\x02cy\x12\x14\n" +
+	"\x05width\x18\x06 \x01(\x02R\x05width\x12\x16\n" +
+	"\x06height\x18\a \x01(\x02R\x06height\x12\x14\n" +
+	"\x05angle\x18\b \x01(\x02R\x05angle\x12\x18\n" +
+	"\acorners\x18\t \x03(\x02R\acorners\"\x81\x01\n" +
+	"\x0fClassifyResults\x12K\n" +
+	"\x0fclassifications\x18\x01 \x03(\v2!.orbo.detection.v1.ClassificationR\x0fclassifications\x12!\n" +
+	"\finference_ms\x18\x02 \x01(\x02R\vinferenceMs\"j\n" +
+	"\x0eClassification\x12\x1d\n" +
+	"\n" +
+	"class_name\x18\x01 \x01(\tR\tclassName\x12\x19\n" +
+	"\bclass_id\x18\x02 \x01(\x05R\aclassId\x12\x1e\n" +
+	"\n" +
+	"confidence\x18\x03 \x01(\x02R\n" +
+	"confidence\"\x0e\n" +
+	"\fTasksRequest\"\xa6\x01\n" +
+	"\rTasksResponse\x12D\n" +
+	"\x0favailable_tasks\x18\x01 \x03(\v2\x1b.orbo.detection.v1.TaskInfoR\x0eavailableTasks\x12#\n" +
+	"\rloaded_models\x18\x02 \x03(\tR\floadedModels\x12*\n" +
+	"\x11max_cached_models\x18\x03 \x01(\x05R\x0fmaxCachedModels\"\x86\x01\n" +
+	"\bTaskInfo\x12/\n" +
+	"\x04task\x18\x01 \x01(\x0e2\x1b.orbo.detection.v1.YoloTaskR\x04task\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
+	"\x06loaded\x18\x03 \x01(\bR\x06loaded\x12\x1d\n" +
+	"\n" +
+	"model_file\x18\x04 \x01(\tR\tmodelFile\"\x0f\n" +
 	"\rHealthRequest\"\xcc\x01\n" +
 	"\x0eHealthResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x16\n" +
@@ -852,28 +2189,42 @@ const file_api_proto_detection_v1_detection_proto_rawDesc = "" +
 	"\ftracker_type\x18\x04 \x01(\tR\vtrackerType\x12\x1d\n" +
 	"\n" +
 	"model_name\x18\x05 \x01(\tR\tmodelName\x12%\n" +
-	"\x0eactive_streams\x18\x06 \x01(\x05R\ractiveStreams\"\xa2\x02\n" +
+	"\x0eactive_streams\x18\x06 \x01(\x05R\ractiveStreams\"\x8e\x03\n" +
 	"\x10ConfigureRequest\x12*\n" +
 	"\x0econf_threshold\x18\x01 \x01(\x02H\x00R\rconfThreshold\x88\x01\x01\x12(\n" +
 	"\riou_threshold\x18\x02 \x01(\x02H\x01R\fiouThreshold\x88\x01\x01\x12,\n" +
 	"\x0fenable_tracking\x18\x03 \x01(\bH\x02R\x0eenableTracking\x88\x01\x01\x12&\n" +
 	"\ftracker_type\x18\x04 \x01(\tH\x03R\vtrackerType\x88\x01\x01\x12\x18\n" +
-	"\aclasses\x18\x05 \x03(\tR\aclassesB\x11\n" +
+	"\aclasses\x18\x05 \x03(\tR\aclasses\x12 \n" +
+	"\tbox_color\x18\x06 \x01(\tH\x04R\bboxColor\x88\x01\x01\x12(\n" +
+	"\rbox_thickness\x18\a \x01(\x05H\x05R\fboxThickness\x88\x01\x01B\x11\n" +
 	"\x0f_conf_thresholdB\x10\n" +
 	"\x0e_iou_thresholdB\x12\n" +
 	"\x10_enable_trackingB\x0f\n" +
-	"\r_tracker_type\"\xe1\x01\n" +
+	"\r_tracker_typeB\f\n" +
+	"\n" +
+	"_box_colorB\x10\n" +
+	"\x0e_box_thickness\"\xe1\x01\n" +
 	"\x11ConfigureResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12%\n" +
 	"\x0econf_threshold\x18\x03 \x01(\x02R\rconfThreshold\x12#\n" +
 	"\riou_threshold\x18\x04 \x01(\x02R\fiouThreshold\x12)\n" +
 	"\x10tracking_enabled\x18\x05 \x01(\bR\x0ftrackingEnabled\x12!\n" +
-	"\ftracker_type\x18\x06 \x01(\tR\vtrackerType2\x99\x02\n" +
+	"\ftracker_type\x18\x06 \x01(\tR\vtrackerType*\x91\x01\n" +
+	"\bYoloTask\x12\x19\n" +
+	"\x15YOLO_TASK_UNSPECIFIED\x10\x00\x12\x14\n" +
+	"\x10YOLO_TASK_DETECT\x10\x01\x12\x12\n" +
+	"\x0eYOLO_TASK_POSE\x10\x02\x12\x15\n" +
+	"\x11YOLO_TASK_SEGMENT\x10\x03\x12\x11\n" +
+	"\rYOLO_TASK_OBB\x10\x04\x12\x16\n" +
+	"\x12YOLO_TASK_CLASSIFY\x10\x052\xc4\x03\n" +
 	"\x10DetectionService\x12Y\n" +
-	"\fDetectStream\x12\x1f.orbo.detection.v1.FrameRequest\x1a$.orbo.detection.v1.DetectionResponse(\x010\x01\x12R\n" +
+	"\fDetectStream\x12\x1f.orbo.detection.v1.FrameRequest\x1a$.orbo.detection.v1.DetectionResponse(\x010\x01\x12Z\n" +
+	"\rAnalyzeStream\x12!.orbo.detection.v1.AnalyzeRequest\x1a\".orbo.detection.v1.AnalyzeResponse(\x010\x01\x12R\n" +
 	"\vHealthCheck\x12 .orbo.detection.v1.HealthRequest\x1a!.orbo.detection.v1.HealthResponse\x12V\n" +
-	"\tConfigure\x12#.orbo.detection.v1.ConfigureRequest\x1a$.orbo.detection.v1.ConfigureResponseB)Z'orbo/api/proto/detection/v1;detectionv1b\x06proto3"
+	"\tConfigure\x12#.orbo.detection.v1.ConfigureRequest\x1a$.orbo.detection.v1.ConfigureResponse\x12M\n" +
+	"\bGetTasks\x12\x1f.orbo.detection.v1.TasksRequest\x1a .orbo.detection.v1.TasksResponseB)Z'orbo/api/proto/detection/v1;detectionv1b\x06proto3"
 
 var (
 	file_api_proto_detection_v1_detection_proto_rawDescOnce sync.Once
@@ -887,34 +2238,71 @@ func file_api_proto_detection_v1_detection_proto_rawDescGZIP() []byte {
 	return file_api_proto_detection_v1_detection_proto_rawDescData
 }
 
-var file_api_proto_detection_v1_detection_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_api_proto_detection_v1_detection_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_api_proto_detection_v1_detection_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_api_proto_detection_v1_detection_proto_goTypes = []any{
-	(*FrameRequest)(nil),      // 0: orbo.detection.v1.FrameRequest
-	(*DetectionResponse)(nil), // 1: orbo.detection.v1.DetectionResponse
-	(*Detection)(nil),         // 2: orbo.detection.v1.Detection
-	(*BBox)(nil),              // 3: orbo.detection.v1.BBox
-	(*TrackUpdate)(nil),       // 4: orbo.detection.v1.TrackUpdate
-	(*HealthRequest)(nil),     // 5: orbo.detection.v1.HealthRequest
-	(*HealthResponse)(nil),    // 6: orbo.detection.v1.HealthResponse
-	(*ConfigureRequest)(nil),  // 7: orbo.detection.v1.ConfigureRequest
-	(*ConfigureResponse)(nil), // 8: orbo.detection.v1.ConfigureResponse
+	(YoloTask)(0),             // 0: orbo.detection.v1.YoloTask
+	(*FrameRequest)(nil),      // 1: orbo.detection.v1.FrameRequest
+	(*AnalyzeRequest)(nil),    // 2: orbo.detection.v1.AnalyzeRequest
+	(*DetectionResponse)(nil), // 3: orbo.detection.v1.DetectionResponse
+	(*Detection)(nil),         // 4: orbo.detection.v1.Detection
+	(*BBox)(nil),              // 5: orbo.detection.v1.BBox
+	(*TrackUpdate)(nil),       // 6: orbo.detection.v1.TrackUpdate
+	(*AnalyzeResponse)(nil),   // 7: orbo.detection.v1.AnalyzeResponse
+	(*TaskResults)(nil),       // 8: orbo.detection.v1.TaskResults
+	(*PoseResults)(nil),       // 9: orbo.detection.v1.PoseResults
+	(*PoseDetection)(nil),     // 10: orbo.detection.v1.PoseDetection
+	(*Keypoint)(nil),          // 11: orbo.detection.v1.Keypoint
+	(*SegmentResults)(nil),    // 12: orbo.detection.v1.SegmentResults
+	(*SegmentDetection)(nil),  // 13: orbo.detection.v1.SegmentDetection
+	(*OBBResults)(nil),        // 14: orbo.detection.v1.OBBResults
+	(*OBBDetection)(nil),      // 15: orbo.detection.v1.OBBDetection
+	(*ClassifyResults)(nil),   // 16: orbo.detection.v1.ClassifyResults
+	(*Classification)(nil),    // 17: orbo.detection.v1.Classification
+	(*TasksRequest)(nil),      // 18: orbo.detection.v1.TasksRequest
+	(*TasksResponse)(nil),     // 19: orbo.detection.v1.TasksResponse
+	(*TaskInfo)(nil),          // 20: orbo.detection.v1.TaskInfo
+	(*HealthRequest)(nil),     // 21: orbo.detection.v1.HealthRequest
+	(*HealthResponse)(nil),    // 22: orbo.detection.v1.HealthResponse
+	(*ConfigureRequest)(nil),  // 23: orbo.detection.v1.ConfigureRequest
+	(*ConfigureResponse)(nil), // 24: orbo.detection.v1.ConfigureResponse
 }
 var file_api_proto_detection_v1_detection_proto_depIdxs = []int32{
-	2, // 0: orbo.detection.v1.DetectionResponse.detections:type_name -> orbo.detection.v1.Detection
-	4, // 1: orbo.detection.v1.DetectionResponse.tracks:type_name -> orbo.detection.v1.TrackUpdate
-	3, // 2: orbo.detection.v1.Detection.bbox:type_name -> orbo.detection.v1.BBox
-	2, // 3: orbo.detection.v1.TrackUpdate.detection:type_name -> orbo.detection.v1.Detection
-	0, // 4: orbo.detection.v1.DetectionService.DetectStream:input_type -> orbo.detection.v1.FrameRequest
-	5, // 5: orbo.detection.v1.DetectionService.HealthCheck:input_type -> orbo.detection.v1.HealthRequest
-	7, // 6: orbo.detection.v1.DetectionService.Configure:input_type -> orbo.detection.v1.ConfigureRequest
-	1, // 7: orbo.detection.v1.DetectionService.DetectStream:output_type -> orbo.detection.v1.DetectionResponse
-	6, // 8: orbo.detection.v1.DetectionService.HealthCheck:output_type -> orbo.detection.v1.HealthResponse
-	8, // 9: orbo.detection.v1.DetectionService.Configure:output_type -> orbo.detection.v1.ConfigureResponse
-	7, // [7:10] is the sub-list for method output_type
-	4, // [4:7] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0,  // 0: orbo.detection.v1.AnalyzeRequest.tasks:type_name -> orbo.detection.v1.YoloTask
+	4,  // 1: orbo.detection.v1.DetectionResponse.detections:type_name -> orbo.detection.v1.Detection
+	6,  // 2: orbo.detection.v1.DetectionResponse.tracks:type_name -> orbo.detection.v1.TrackUpdate
+	5,  // 3: orbo.detection.v1.Detection.bbox:type_name -> orbo.detection.v1.BBox
+	4,  // 4: orbo.detection.v1.TrackUpdate.detection:type_name -> orbo.detection.v1.Detection
+	8,  // 5: orbo.detection.v1.AnalyzeResponse.detect:type_name -> orbo.detection.v1.TaskResults
+	9,  // 6: orbo.detection.v1.AnalyzeResponse.pose:type_name -> orbo.detection.v1.PoseResults
+	12, // 7: orbo.detection.v1.AnalyzeResponse.segment:type_name -> orbo.detection.v1.SegmentResults
+	14, // 8: orbo.detection.v1.AnalyzeResponse.obb:type_name -> orbo.detection.v1.OBBResults
+	16, // 9: orbo.detection.v1.AnalyzeResponse.classify:type_name -> orbo.detection.v1.ClassifyResults
+	4,  // 10: orbo.detection.v1.TaskResults.detections:type_name -> orbo.detection.v1.Detection
+	10, // 11: orbo.detection.v1.PoseResults.poses:type_name -> orbo.detection.v1.PoseDetection
+	5,  // 12: orbo.detection.v1.PoseDetection.bbox:type_name -> orbo.detection.v1.BBox
+	11, // 13: orbo.detection.v1.PoseDetection.keypoints:type_name -> orbo.detection.v1.Keypoint
+	13, // 14: orbo.detection.v1.SegmentResults.segments:type_name -> orbo.detection.v1.SegmentDetection
+	5,  // 15: orbo.detection.v1.SegmentDetection.bbox:type_name -> orbo.detection.v1.BBox
+	15, // 16: orbo.detection.v1.OBBResults.obbs:type_name -> orbo.detection.v1.OBBDetection
+	17, // 17: orbo.detection.v1.ClassifyResults.classifications:type_name -> orbo.detection.v1.Classification
+	20, // 18: orbo.detection.v1.TasksResponse.available_tasks:type_name -> orbo.detection.v1.TaskInfo
+	0,  // 19: orbo.detection.v1.TaskInfo.task:type_name -> orbo.detection.v1.YoloTask
+	1,  // 20: orbo.detection.v1.DetectionService.DetectStream:input_type -> orbo.detection.v1.FrameRequest
+	2,  // 21: orbo.detection.v1.DetectionService.AnalyzeStream:input_type -> orbo.detection.v1.AnalyzeRequest
+	21, // 22: orbo.detection.v1.DetectionService.HealthCheck:input_type -> orbo.detection.v1.HealthRequest
+	23, // 23: orbo.detection.v1.DetectionService.Configure:input_type -> orbo.detection.v1.ConfigureRequest
+	18, // 24: orbo.detection.v1.DetectionService.GetTasks:input_type -> orbo.detection.v1.TasksRequest
+	3,  // 25: orbo.detection.v1.DetectionService.DetectStream:output_type -> orbo.detection.v1.DetectionResponse
+	7,  // 26: orbo.detection.v1.DetectionService.AnalyzeStream:output_type -> orbo.detection.v1.AnalyzeResponse
+	22, // 27: orbo.detection.v1.DetectionService.HealthCheck:output_type -> orbo.detection.v1.HealthResponse
+	24, // 28: orbo.detection.v1.DetectionService.Configure:output_type -> orbo.detection.v1.ConfigureResponse
+	19, // 29: orbo.detection.v1.DetectionService.GetTasks:output_type -> orbo.detection.v1.TasksResponse
+	25, // [25:30] is the sub-list for method output_type
+	20, // [20:25] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_detection_v1_detection_proto_init() }
@@ -922,19 +2310,20 @@ func file_api_proto_detection_v1_detection_proto_init() {
 	if File_api_proto_detection_v1_detection_proto != nil {
 		return
 	}
-	file_api_proto_detection_v1_detection_proto_msgTypes[7].OneofWrappers = []any{}
+	file_api_proto_detection_v1_detection_proto_msgTypes[22].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_detection_v1_detection_proto_rawDesc), len(file_api_proto_detection_v1_detection_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   9,
+			NumEnums:      1,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_api_proto_detection_v1_detection_proto_goTypes,
 		DependencyIndexes: file_api_proto_detection_v1_detection_proto_depIdxs,
+		EnumInfos:         file_api_proto_detection_v1_detection_proto_enumTypes,
 		MessageInfos:      file_api_proto_detection_v1_detection_proto_msgTypes,
 	}.Build()
 	File_api_proto_detection_v1_detection_proto = out.File
