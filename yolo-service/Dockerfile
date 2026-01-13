@@ -1,9 +1,8 @@
 # =============================================================================
-# YOLO Service - Multi-stage Docker Build
+# YOLO Service - CUDA GPU Build (Optimized for GHCR)
 # =============================================================================
-# Optimized for GHCR's 10GB layer limit
-# Builds a CPU-only image by default (small, fast)
-# For GPU support, use Dockerfile.gpu or mount GPU drivers at runtime
+# Uses NVIDIA CUDA runtime image (smaller than dev image)
+# Layers split to stay under GHCR's 10GB per-layer limit
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -13,15 +12,12 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install grpcio-tools for proto compilation
 RUN pip install --no-cache-dir grpcio-tools
 
-# Copy and compile proto file
 COPY detection.proto /build/proto/
 RUN python -m grpc_tools.protoc \
     -I/build/proto \
@@ -30,14 +26,17 @@ RUN python -m grpc_tools.protoc \
     /build/proto/detection.proto
 
 # -----------------------------------------------------------------------------
-# Stage 2: Runtime stage - minimal image
+# Stage 2: Runtime stage - CUDA runtime (smaller than devel)
 # -----------------------------------------------------------------------------
-FROM python:3.11-slim
+FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
 
 WORKDIR /app
 
-# Install runtime dependencies only
+# Install Python and system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-dev \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
@@ -46,27 +45,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     wget \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && ln -s /usr/bin/python3 /usr/bin/python
 
-# Copy requirements
-COPY requirements.txt .
-
-# Install Python dependencies in layers to stay under 10GB limit
-# Layer 1: Core dependencies (small)
+# Layer 1: Core dependencies (small, ~200MB)
 RUN pip install --no-cache-dir \
     flask>=2.0.0 \
     grpcio>=1.50.0 \
     protobuf>=4.21.0 \
     pillow>=9.0.0 \
     numpy>=1.21.0 \
-    requests>=2.28.0 \
-    opencv-python-headless>=4.7.0
+    requests>=2.28.0
 
-# Layer 2: PyTorch CPU-only (smaller than GPU version, ~2GB)
+# Layer 2: OpenCV (headless, ~50MB)
+RUN pip install --no-cache-dir opencv-python-headless>=4.7.0
+
+# Layer 3: PyTorch with CUDA 12.1 (~2.5GB)
+# Using cu121 index for CUDA 12.1 compatibility
 RUN pip install --no-cache-dir \
-    torch torchvision --index-url https://download.pytorch.org/whl/cpu
+    torch --index-url https://download.pytorch.org/whl/cu121
 
-# Layer 3: Ultralytics YOLO
+# Layer 4: TorchVision (~500MB)
+RUN pip install --no-cache-dir \
+    torchvision --index-url https://download.pytorch.org/whl/cu121
+
+# Layer 5: Ultralytics YOLO (~100MB)
 RUN pip install --no-cache-dir ultralytics>=8.0.0
 
 # Copy compiled proto files from builder
@@ -79,12 +81,11 @@ COPY main.py grpc_server.py ./
 RUN mkdir -p /app/models /app/runs /tmp/Ultralytics \
     && chmod 777 /app/runs /tmp/Ultralytics
 
-# Set Ultralytics config directory (writable at runtime)
+# Set Ultralytics config directory
 ENV YOLO_CONFIG_DIR=/tmp/Ultralytics
 ENV ULTRALYTICS_SETTINGS_JSON='{"runs_dir": "/app/runs"}'
 
-# Download YOLO11 model weights (nano models are small, ~6MB each)
-# These are downloaded at build time to avoid runtime delays
+# Download YOLO11 model weights (nano models, ~6MB each)
 RUN python -c "from ultralytics import YOLO; YOLO('yolo11n.pt'); YOLO('yolo11n-seg.pt'); YOLO('yolo11n-pose.pt')"
 
 # Create non-root user
@@ -100,5 +101,4 @@ EXPOSE 8081 50051
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:8081/health')" || exit 1
 
-# Run the application
 CMD ["python", "main.py"]
