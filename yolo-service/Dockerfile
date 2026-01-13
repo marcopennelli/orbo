@@ -1,64 +1,104 @@
-FROM docker.io/rocm/pytorch:rocm6.0_ubuntu20.04_py3.9_pytorch_2.1.1
+# =============================================================================
+# YOLO Service - Multi-stage Docker Build
+# =============================================================================
+# Optimized for GHCR's 10GB layer limit
+# Builds a CPU-only image by default (small, fast)
+# For GPU support, use Dockerfile.gpu or mount GPU drivers at runtime
+# =============================================================================
 
-# Set working directory
+# -----------------------------------------------------------------------------
+# Stage 1: Build stage - compile proto files
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install grpcio-tools for proto compilation
+RUN pip install --no-cache-dir grpcio-tools
+
+# Copy and compile proto file
+COPY detection.proto /build/proto/
+RUN python -m grpc_tools.protoc \
+    -I/build/proto \
+    --python_out=/build \
+    --grpc_python_out=/build \
+    /build/proto/detection.proto
+
+# -----------------------------------------------------------------------------
+# Stage 2: Runtime stage - minimal image
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim
+
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    python3-pip \
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
+    libxrender1 \
     libgomp1 \
     wget \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Set ROCm environment variables
-ENV HSA_OVERRIDE_GFX_VERSION=10.3.0
-ENV PYTORCH_ROCM_ARCH="gfx1030;gfx1031;gfx1032;gfx1100;gfx1101;gfx1102"
-
-# Copy requirements and install Python dependencies
+# Copy requirements
 COPY requirements.txt .
 
-# Install PyTorch with ROCm support first
-RUN pip3 install torch==2.1.0+rocm5.6 torchvision==0.16.0+rocm5.6 \
-    --index-url https://download.pytorch.org/whl/rocm5.6
+# Install Python dependencies in layers to stay under 10GB limit
+# Layer 1: Core dependencies (small)
+RUN pip install --no-cache-dir \
+    flask>=2.0.0 \
+    grpcio>=1.50.0 \
+    protobuf>=4.21.0 \
+    pillow>=9.0.0 \
+    numpy>=1.21.0 \
+    requests>=2.28.0 \
+    opencv-python-headless>=4.7.0
 
-# Install other requirements
-RUN pip3 install -r requirements.txt
+# Layer 2: PyTorch CPU-only (smaller than GPU version, ~2GB)
+RUN pip install --no-cache-dir \
+    torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# Copy proto file from parent context (must be passed via build arg or copied beforehand)
-# Proto generation happens at build time
-COPY detection.proto /app/proto/
-RUN python3 -m grpc_tools.protoc \
-    -I/app/proto \
-    --python_out=/app \
-    --grpc_python_out=/app \
-    /app/proto/detection.proto
+# Layer 3: Ultralytics YOLO
+RUN pip install --no-cache-dir ultralytics>=8.0.0
+
+# Copy compiled proto files from builder
+COPY --from=builder /build/detection_pb2.py /build/detection_pb2_grpc.py /app/
 
 # Copy application code
-COPY main.py .
-COPY grpc_server.py .
+COPY main.py grpc_server.py ./
 
-# Create directories for YOLO models and runtime (runs, settings)
-RUN mkdir -p /app/models /app/runs /tmp/Ultralytics && chmod 777 /app/runs
+# Create directories for YOLO models and runtime
+RUN mkdir -p /app/models /app/runs /tmp/Ultralytics \
+    && chmod 777 /app/runs /tmp/Ultralytics
 
-# Set Ultralytics config and runs directory (writable at runtime)
+# Set Ultralytics config directory (writable at runtime)
 ENV YOLO_CONFIG_DIR=/tmp/Ultralytics
 ENV ULTRALYTICS_SETTINGS_JSON='{"runs_dir": "/app/runs"}'
 
-# Download YOLO11 model weights for all enabled tasks (nano for best speed)
-# detect: yolo11n.pt, segment: yolo11n-seg.pt, pose: yolo11n-pose.pt
-RUN python3 -c "from ultralytics import YOLO; YOLO('yolo11n.pt'); YOLO('yolo11n-seg.pt'); YOLO('yolo11n-pose.pt')"
+# Download YOLO11 model weights (nano models are small, ~6MB each)
+# These are downloaded at build time to avoid runtime delays
+RUN python -c "from ultralytics import YOLO; YOLO('yolo11n.pt'); YOLO('yolo11n-seg.pt'); YOLO('yolo11n-pose.pt')"
+
+# Create non-root user
+RUN groupadd -g 1000 yolo && useradd -u 1000 -g yolo -s /bin/sh -m yolo \
+    && chown -R yolo:yolo /app /tmp/Ultralytics
+
+USER yolo
 
 # Expose ports (HTTP and gRPC)
 EXPOSE 8081 50051
 
-# Health check (HTTP endpoint)
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import requests; requests.get('http://localhost:8081/health')" || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8081/health')" || exit 1
 
 # Run the application
-CMD ["python3", "main.py"]
+CMD ["python", "main.py"]

@@ -1,0 +1,66 @@
+# =============================================================================
+# YOLO Service - ROCm GPU Build
+# =============================================================================
+# This Dockerfile is for local builds with AMD GPU support.
+# NOT suitable for GHCR (exceeds 10GB layer limit).
+#
+# Usage:
+#   docker build -f Dockerfile.rocm -t orbo-yolo:rocm .
+# =============================================================================
+
+FROM docker.io/rocm/pytorch:rocm6.0_ubuntu20.04_py3.9_pytorch_2.1.1
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-pip \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set ROCm environment variables
+ENV HSA_OVERRIDE_GFX_VERSION=10.3.0
+ENV PYTORCH_ROCM_ARCH="gfx1030;gfx1031;gfx1032;gfx1100;gfx1101;gfx1102"
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+
+# Install other requirements (PyTorch already in base image)
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Copy proto file and generate Python code
+COPY detection.proto /app/proto/
+RUN python3 -m grpc_tools.protoc \
+    -I/app/proto \
+    --python_out=/app \
+    --grpc_python_out=/app \
+    /app/proto/detection.proto
+
+# Copy application code
+COPY main.py grpc_server.py ./
+
+# Create directories for YOLO models and runtime
+RUN mkdir -p /app/models /app/runs /tmp/Ultralytics \
+    && chmod 777 /app/runs /tmp/Ultralytics
+
+# Set Ultralytics config directory
+ENV YOLO_CONFIG_DIR=/tmp/Ultralytics
+ENV ULTRALYTICS_SETTINGS_JSON='{"runs_dir": "/app/runs"}'
+
+# Download YOLO11 model weights
+RUN python3 -c "from ultralytics import YOLO; YOLO('yolo11n.pt'); YOLO('yolo11n-seg.pt'); YOLO('yolo11n-pose.pt')"
+
+# Expose ports
+EXPOSE 8081 50051
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python3 -c "import requests; requests.get('http://localhost:8081/health')" || exit 1
+
+CMD ["python3", "main.py"]
