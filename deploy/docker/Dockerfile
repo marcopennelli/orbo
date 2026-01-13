@@ -23,7 +23,7 @@ RUN npm run build
 # -----------------------------------------------------------------------------
 # Stage 2: Build Go Backend
 # -----------------------------------------------------------------------------
-FROM golang:1.23-alpine AS backend-builder
+FROM golang:1.24-alpine AS backend-builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -32,6 +32,9 @@ WORKDIR /app
 
 # Copy go mod files first for better caching
 COPY go.mod go.sum ./
+
+# Allow Go toolchain to auto-download if needed
+ENV GOTOOLCHAIN=auto
 RUN go mod download
 
 # Copy source code
