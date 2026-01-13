@@ -21,6 +21,7 @@ containers:
       - "/dev/video0:/dev/video0"
     environment:
       # Detection Pipeline - full AI profile
+      # Modes: disabled, visual_only, continuous, motion_triggered, scheduled, hybrid
       # Using motion_triggered to save resources on RPi
       DETECTION_MODE: "motion_triggered"
       # Sequential: YOLO first, then Face if person detected
@@ -61,6 +62,9 @@ containers:
       YOLO_MODEL: "yolo11n.pt"
       # Higher threshold = fewer detections = faster
       CONFIDENCE_THRESHOLD: "0.6"
+      # Bounding box customization (hex color format)
+      BOX_COLOR: "#0066FF"
+      BOX_THICKNESS: "2"
     restart_policy: always
     user: "1000:1000"
     read_only: true
@@ -71,9 +75,17 @@ containers:
     ports:
       - "8082:8082"
     volumes:
-      - "/var/lib/orbo/faces:/app/faces:rw"
+      # Persistent storage for face database (faces.pkl) and images
+      - "/var/lib/orbo/faces:/app/data:rw"
     environment:
       SIMILARITY_THRESHOLD: "0.5"
+      # Face database paths (inside container)
+      FACES_DB_PATH: "/app/data/faces.pkl"
+      FACES_IMAGES_PATH: "/app/data/faces"
+      # Bounding box customization (hex color format)
+      KNOWN_FACE_COLOR: "#00FF00"
+      UNKNOWN_FACE_COLOR: "#FF6600"
+      BOX_THICKNESS: "2"
     restart_policy: always
     user: "1000:1000"
     read_only: true

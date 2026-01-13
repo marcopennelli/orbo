@@ -20,6 +20,9 @@ PublishPort=8081:8081
 # Environment variables
 Environment=YOLO_MODEL=yolo11n.pt
 Environment=CONFIDENCE_THRESHOLD=0.5
+# Bounding box customization (hex color format)
+Environment=BOX_COLOR=#0066FF
+Environment=BOX_THICKNESS=2
 
 # GPU support (uncomment for NVIDIA GPU)
 # AddDevice=nvidia.com/gpu=all

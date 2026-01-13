@@ -21,7 +21,13 @@ containers:
       - "/dev/video0:/dev/video0"
     environment:
       # Detection Pipeline Configuration
-      # Mode: disabled, continuous, motion_triggered, scheduled, hybrid
+      # Mode: disabled, visual_only, continuous, motion_triggered, scheduled, hybrid
+      # - disabled: No detection, streaming only
+      # - visual_only: Detection runs (bounding boxes visible) but no alerts sent
+      # - continuous: Run detection on every frame
+      # - motion_triggered: Detect only when motion is detected (default)
+      # - scheduled: Run detection at fixed intervals
+      # - hybrid: Motion-triggered OR scheduled
       DETECTION_MODE: "motion_triggered"
       # Execution: sequential (YOLO → Face → Plate) or parallel
       DETECTION_EXECUTION_MODE: "sequential"
@@ -56,6 +62,9 @@ containers:
     environment:
       YOLO_MODEL: "yolo11n.pt"
       CONFIDENCE_THRESHOLD: "0.5"
+      # Bounding box customization (hex color format)
+      BOX_COLOR: "#0066FF"
+      BOX_THICKNESS: "2"
     restart_policy: always
     user: "1000:1000"
     read_only: true
@@ -66,9 +75,17 @@ containers:
     ports:
       - "8082:8082"
     volumes:
-      - "/var/lib/orbo/faces:/app/faces:rw"
+      # Persistent storage for face database (faces.pkl) and images
+      - "/var/lib/orbo/faces:/app/data:rw"
     environment:
       SIMILARITY_THRESHOLD: "0.5"
+      # Face database paths (inside container)
+      FACES_DB_PATH: "/app/data/faces.pkl"
+      FACES_IMAGES_PATH: "/app/data/faces"
+      # Bounding box customization (hex color format)
+      KNOWN_FACE_COLOR: "#00FF00"
+      UNKNOWN_FACE_COLOR: "#FF6600"
+      BOX_THICKNESS: "2"
     restart_policy: always
     user: "1000:1000"
     read_only: true

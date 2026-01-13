@@ -15,6 +15,7 @@ containers:
       - "/dev/video0:/dev/video0"
     environment:
       # Detection Pipeline - motion only for basic profile
+      # Modes: disabled, visual_only, continuous, motion_triggered, scheduled, hybrid
       DETECTION_MODE: "motion_triggered"
       DETECTION_EXECUTION_MODE: "sequential"
       # No AI detectors for basic profile - just motion detection

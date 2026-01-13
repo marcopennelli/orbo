@@ -147,7 +147,8 @@ Configure via Quadlet `Environment=` directives or manifest `environment:` secti
 
 | Mode | Description | Use Case |
 |------|-------------|----------|
-| `disabled` | Streaming only, no detection | Low resource viewing |
+| `disabled` | No detection, streaming only | Low resource viewing |
+| `visual_only` | Detection runs (bounding boxes visible) but no alerts | Testing, monitoring without notifications |
 | `continuous` | Run detection on every frame | High security areas |
 | `motion_triggered` | Detect only when motion is detected (default) | Static scenes |
 | `scheduled` | Run detection at fixed intervals | Periodic sampling |
@@ -169,6 +170,26 @@ Configure via Quadlet `Environment=` directives or manifest `environment:` secti
 | `RECOGNITION_ENABLED` | false | Enable face recognition |
 | `RECOGNITION_SERVICE_ENDPOINT` | http://localhost:8082 | Recognition service URL |
 
+#### YOLO Service Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `YOLO_MODEL` | yolo11n.pt | YOLO model file (nano/small/medium/large) |
+| `CONFIDENCE_THRESHOLD` | 0.5 | Detection confidence threshold (0.0-1.0) |
+| `BOX_COLOR` | #0066FF | Bounding box color (hex format) |
+| `BOX_THICKNESS` | 2 | Bounding box line thickness (1-5 pixels) |
+
+#### Face Recognition Service Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SIMILARITY_THRESHOLD` | 0.5 | Face matching threshold (0.0-1.0) |
+| `FACES_DB_PATH` | /app/data/faces.pkl | Path to face database file |
+| `FACES_IMAGES_PATH` | /app/data/faces | Path to face images directory |
+| `KNOWN_FACE_COLOR` | #00FF00 | Bounding box color for known faces (hex) |
+| `UNKNOWN_FACE_COLOR` | #FF6600 | Bounding box color for unknown faces (hex) |
+| `BOX_THICKNESS` | 2 | Bounding box line thickness (1-5 pixels) |
+
 #### Notifications
 
 | Variable | Default | Description |
@@ -189,7 +210,9 @@ Configure via Quadlet `Environment=` directives or manifest `environment:` secti
 | Host Path | Container Path | Purpose |
 |-----------|----------------|---------|
 | `/var/lib/orbo/frames` | `/app/frames` | Frame storage & SQLite DB |
-| `/var/lib/orbo/faces` | `/app/faces` | Face recognition database |
+| `/var/lib/orbo/faces` | `/app/data` | Face database (faces.pkl) & face images |
+
+**Note:** The face recognition volume changed from `/app/faces` to `/app/data` to align with the service's internal structure.
 
 ### Devices
 

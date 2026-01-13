@@ -17,11 +17,18 @@ ContainerName=recognition
 # Internal port (accessed by orbo container via pod network)
 PublishPort=8082:8082
 
-# Persistent storage for face database
-Volume=/var/lib/orbo/faces:/app/faces:Z
+# Persistent storage for face database (faces.pkl) and images
+Volume=/var/lib/orbo/faces:/app/data:Z
 
 # Environment variables
 Environment=SIMILARITY_THRESHOLD=0.5
+# Face database paths (inside container)
+Environment=FACES_DB_PATH=/app/data/faces.pkl
+Environment=FACES_IMAGES_PATH=/app/data/faces
+# Bounding box customization (hex color format)
+Environment=KNOWN_FACE_COLOR=#00FF00
+Environment=UNKNOWN_FACE_COLOR=#FF6600
+Environment=BOX_THICKNESS=2
 
 # Security: run as non-root
 User=1000

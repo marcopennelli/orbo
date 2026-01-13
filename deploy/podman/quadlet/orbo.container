@@ -27,7 +27,13 @@ Volume=/var/lib/orbo/frames:/app/frames:Z
 # ==========================================================================
 # Detection Pipeline Configuration
 # ==========================================================================
-# Detection mode: disabled, continuous, motion_triggered, scheduled, hybrid
+# Detection mode: disabled, visual_only, continuous, motion_triggered, scheduled, hybrid
+# - disabled: No detection, streaming only
+# - visual_only: Detection runs (bounding boxes visible) but no alerts sent
+# - continuous: Run detection on every frame
+# - motion_triggered: Detect only when motion is detected (default)
+# - scheduled: Run detection at fixed intervals
+# - hybrid: Motion-triggered OR scheduled
 Environment=DETECTION_MODE=motion_triggered
 # Execution mode: sequential (YOLO → Face → Plate chain) or parallel
 Environment=DETECTION_EXECUTION_MODE=sequential
