@@ -41,6 +41,7 @@ RUN go mod download
 COPY cmd/ ./cmd/
 COPY internal/ ./internal/
 COPY api/ ./api/
+COPY gen/ ./gen/
 COPY *.go ./
 
 # Copy built frontend from previous stage
