@@ -16,8 +16,8 @@ import {
   useDeleteCamera,
   useActivateCamera,
   useDeactivateCamera,
-  useEnableDetection,
-  useDisableDetection,
+  useEnableAlerts,
+  useDisableAlerts,
 } from './hooks/useCameras';
 import { useEvents } from './hooks/useEvents';
 import {
@@ -34,6 +34,9 @@ import {
   useTestYolo,
   usePipelineConfig,
   useUpdatePipelineConfig,
+  useRecognitionConfig,
+  useUpdateRecognitionConfig,
+  useTestRecognition,
 } from './hooks/useConfig';
 import { useAuth } from './hooks/useAuth';
 import type { Camera, CameraCreatePayload, CameraUpdatePayload } from './types';
@@ -73,6 +76,7 @@ function AppContent() {
   const { data: telegramConfig } = useTelegramConfig();
   const { data: yoloConfig } = useYoloConfig();
   const { data: pipelineConfig } = usePipelineConfig();
+  const { data: recognitionConfig } = useRecognitionConfig();
 
   // Mutations
   const createCamera = useCreateCamera();
@@ -80,8 +84,8 @@ function AppContent() {
   const deleteCamera = useDeleteCamera();
   const activateCamera = useActivateCamera();
   const deactivateCamera = useDeactivateCamera();
-  const enableDetection = useEnableDetection();
-  const disableDetection = useDisableDetection();
+  const enableAlerts = useEnableAlerts();
+  const disableAlerts = useDisableAlerts();
   const startDetection = useStartDetection();
   const stopDetection = useStopDetection();
   const updateTelegram = useUpdateTelegramConfig();
@@ -89,6 +93,8 @@ function AppContent() {
   const updateYolo = useUpdateYoloConfig();
   const testYolo = useTestYolo();
   const updatePipeline = useUpdatePipelineConfig();
+  const updateRecognition = useUpdateRecognitionConfig();
+  const testRecognition = useTestRecognition();
 
   // Handlers
   const handleAddCamera = useCallback(() => {
@@ -142,20 +148,20 @@ function AppContent() {
     [activateCamera, deactivateCamera]
   );
 
-  const handleToggleCameraDetection = useCallback(
+  const handleToggleCameraAlerts = useCallback(
     async (camera: Camera) => {
       setLoadingCameraId(camera.id);
       try {
-        if (camera.detection_enabled) {
-          await disableDetection.mutateAsync(camera.id);
+        if (camera.alerts_enabled) {
+          await disableAlerts.mutateAsync(camera.id);
         } else {
-          await enableDetection.mutateAsync(camera.id);
+          await enableAlerts.mutateAsync(camera.id);
         }
       } finally {
         setLoadingCameraId(undefined);
       }
     },
-    [enableDetection, disableDetection]
+    [enableAlerts, disableAlerts]
   );
 
   const handleToggleDetection = useCallback(async () => {
@@ -218,6 +224,15 @@ function AppContent() {
     motion_cooldown_seconds: 2,
   };
 
+  const defaultRecognitionConfig = recognitionConfig || {
+    enabled: false,
+    service_endpoint: 'recognition-service:50052',
+    similarity_threshold: 0.5,
+    known_face_color: '#00FF00',
+    unknown_face_color: '#FF0000',
+    box_thickness: 2,
+  };
+
   // Compute camera counts from system status
   const activeCameras = systemStatus?.cameras?.filter(c => c.status === 'active').length ?? 0;
   const totalCameras = systemStatus?.cameras?.length ?? cameras.length;
@@ -266,7 +281,7 @@ function AppContent() {
                   onEditCamera={handleEditCamera}
                   onDeleteCamera={handleDeleteCamera}
                   onToggleCameraActive={handleToggleCameraActive}
-                  onToggleCameraDetection={handleToggleCameraDetection}
+                  onToggleCameraAlerts={handleToggleCameraAlerts}
                   isLoading={camerasLoading}
                   loadingCameraId={loadingCameraId}
                 />
@@ -338,14 +353,18 @@ function AppContent() {
         telegramConfig={defaultTelegramConfig}
         yoloConfig={defaultYoloConfig}
         pipelineConfig={defaultPipelineConfig}
+        recognitionConfig={defaultRecognitionConfig}
         onSaveTelegram={(config) => updateTelegram.mutate(config)}
         onSaveYolo={(config) => updateYolo.mutate(config)}
         onSavePipeline={(config) => updatePipeline.mutate(config)}
+        onSaveRecognition={(config) => updateRecognition.mutate(config)}
         onTestTelegram={() => testTelegram.mutateAsync()}
         onTestYolo={() => testYolo.mutateAsync()}
+        onTestRecognition={() => testRecognition.mutateAsync()}
         isSavingTelegram={updateTelegram.isPending}
         isSavingYolo={updateYolo.isPending}
         isSavingPipeline={updatePipeline.isPending}
+        isSavingRecognition={updateRecognition.isPending}
       />
 
       <EventModal

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Maximize2, Wifi, WifiOff, Video, VideoOff, Zap, Image, Eye, EyeOff } from 'lucide-react';
+import { Maximize2, Wifi, WifiOff, Video, VideoOff, Zap, Image, Bell, BellOff } from 'lucide-react';
 import type { Camera } from '../../types';
 import { Button, Spinner } from '../ui';
 import WebCodecsPlayer from './WebCodecsPlayer';
@@ -123,7 +123,7 @@ export default function CameraFeed({
           cameraId={camera.id}
           cameraName={camera.name}
           enabled={isActive}
-          detectionEnabled={camera.detection_enabled}
+          alertsEnabled={camera.alerts_enabled}
           onFullscreen={onFullscreen}
           className="h-full"
         />
@@ -161,12 +161,12 @@ export default function CameraFeed({
                   <VideoOff className="w-3 h-3 text-accent-red" />
                 </>
               )}
-              {/* Detection status indicator */}
-              <span title={camera.detection_enabled ? 'AI detection enabled' : 'AI detection disabled (streaming only)'}>
-                {camera.detection_enabled ? (
-                  <Eye className="w-3 h-3 text-accent-green" />
+              {/* Alerts status indicator */}
+              <span title={camera.alerts_enabled ? 'Alerts enabled' : 'Alerts disabled (bounding boxes only)'}>
+                {camera.alerts_enabled ? (
+                  <Bell className="w-3 h-3 text-accent-green" />
                 ) : (
-                  <EyeOff className="w-3 h-3 text-text-muted" />
+                  <BellOff className="w-3 h-3 text-text-muted" />
                 )}
               </span>
             </span>

@@ -60,6 +60,10 @@ type UpdateYoloRequestBody struct {
 	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
 	// Draw bounding boxes on images (for Telegram, API)
 	DrawBoxes *bool `form:"draw_boxes,omitempty" json:"draw_boxes,omitempty" xml:"draw_boxes,omitempty"`
+	// Bounding box color in hex format (e.g., '#0066FF')
+	BoxColor *string `form:"box_color,omitempty" json:"box_color,omitempty" xml:"box_color,omitempty"`
+	// Bounding box line thickness (1-5)
+	BoxThickness *int `form:"box_thickness,omitempty" json:"box_thickness,omitempty" xml:"box_thickness,omitempty"`
 }
 
 // UpdateDetectionRequestBody is the type of the "config" service
@@ -91,6 +95,23 @@ type UpdatePipelineRequestBody struct {
 	MotionSensitivity *float32 `form:"motion_sensitivity,omitempty" json:"motion_sensitivity,omitempty" xml:"motion_sensitivity,omitempty"`
 	// Seconds to wait after motion ends before stopping detection
 	MotionCooldownSeconds *int `form:"motion_cooldown_seconds,omitempty" json:"motion_cooldown_seconds,omitempty" xml:"motion_cooldown_seconds,omitempty"`
+}
+
+// UpdateRecognitionRequestBody is the type of the "config" service
+// "update_recognition" endpoint HTTP request body.
+type UpdateRecognitionRequestBody struct {
+	// Enable face recognition
+	Enabled *bool `form:"enabled,omitempty" json:"enabled,omitempty" xml:"enabled,omitempty"`
+	// Face recognition service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Similarity threshold for face matching (0-1)
+	SimilarityThreshold *float32 `form:"similarity_threshold,omitempty" json:"similarity_threshold,omitempty" xml:"similarity_threshold,omitempty"`
+	// Color for known/recognized faces in hex format (e.g., '#00FF00')
+	KnownFaceColor *string `form:"known_face_color,omitempty" json:"known_face_color,omitempty" xml:"known_face_color,omitempty"`
+	// Color for unknown faces in hex format (e.g., '#FF0000')
+	UnknownFaceColor *string `form:"unknown_face_color,omitempty" json:"unknown_face_color,omitempty" xml:"unknown_face_color,omitempty"`
+	// Bounding box line thickness (1-5)
+	BoxThickness *int `form:"box_thickness,omitempty" json:"box_thickness,omitempty" xml:"box_thickness,omitempty"`
 }
 
 // GetResponseBody is the type of the "config" service "get" endpoint HTTP
@@ -196,6 +217,10 @@ type GetYoloResponseBody struct {
 	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
 	// Draw bounding boxes on images (for Telegram, API)
 	DrawBoxes bool `form:"draw_boxes" json:"draw_boxes" xml:"draw_boxes"`
+	// Bounding box color in hex format (e.g., '#0066FF')
+	BoxColor *string `form:"box_color,omitempty" json:"box_color,omitempty" xml:"box_color,omitempty"`
+	// Bounding box line thickness (1-5)
+	BoxThickness int `form:"box_thickness" json:"box_thickness" xml:"box_thickness"`
 }
 
 // UpdateYoloResponseBody is the type of the "config" service "update_yolo"
@@ -213,6 +238,10 @@ type UpdateYoloResponseBody struct {
 	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
 	// Draw bounding boxes on images (for Telegram, API)
 	DrawBoxes bool `form:"draw_boxes" json:"draw_boxes" xml:"draw_boxes"`
+	// Bounding box color in hex format (e.g., '#0066FF')
+	BoxColor *string `form:"box_color,omitempty" json:"box_color,omitempty" xml:"box_color,omitempty"`
+	// Bounding box line thickness (1-5)
+	BoxThickness int `form:"box_thickness" json:"box_thickness" xml:"box_thickness"`
 }
 
 // TestYoloResponseBody is the type of the "config" service "test_yolo"
@@ -294,6 +323,59 @@ type UpdatePipelineResponseBody struct {
 	MotionCooldownSeconds int `form:"motion_cooldown_seconds" json:"motion_cooldown_seconds" xml:"motion_cooldown_seconds"`
 }
 
+// GetRecognitionResponseBody is the type of the "config" service
+// "get_recognition" endpoint HTTP response body.
+type GetRecognitionResponseBody struct {
+	// Enable face recognition
+	Enabled bool `form:"enabled" json:"enabled" xml:"enabled"`
+	// Face recognition service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Similarity threshold for face matching (0-1)
+	SimilarityThreshold float32 `form:"similarity_threshold" json:"similarity_threshold" xml:"similarity_threshold"`
+	// Color for known/recognized faces in hex format (e.g., '#00FF00')
+	KnownFaceColor *string `form:"known_face_color,omitempty" json:"known_face_color,omitempty" xml:"known_face_color,omitempty"`
+	// Color for unknown faces in hex format (e.g., '#FF0000')
+	UnknownFaceColor *string `form:"unknown_face_color,omitempty" json:"unknown_face_color,omitempty" xml:"unknown_face_color,omitempty"`
+	// Bounding box line thickness (1-5)
+	BoxThickness int `form:"box_thickness" json:"box_thickness" xml:"box_thickness"`
+}
+
+// UpdateRecognitionResponseBody is the type of the "config" service
+// "update_recognition" endpoint HTTP response body.
+type UpdateRecognitionResponseBody struct {
+	// Enable face recognition
+	Enabled bool `form:"enabled" json:"enabled" xml:"enabled"`
+	// Face recognition service endpoint URL
+	ServiceEndpoint *string `form:"service_endpoint,omitempty" json:"service_endpoint,omitempty" xml:"service_endpoint,omitempty"`
+	// Similarity threshold for face matching (0-1)
+	SimilarityThreshold float32 `form:"similarity_threshold" json:"similarity_threshold" xml:"similarity_threshold"`
+	// Color for known/recognized faces in hex format (e.g., '#00FF00')
+	KnownFaceColor *string `form:"known_face_color,omitempty" json:"known_face_color,omitempty" xml:"known_face_color,omitempty"`
+	// Color for unknown faces in hex format (e.g., '#FF0000')
+	UnknownFaceColor *string `form:"unknown_face_color,omitempty" json:"unknown_face_color,omitempty" xml:"unknown_face_color,omitempty"`
+	// Bounding box line thickness (1-5)
+	BoxThickness int `form:"box_thickness" json:"box_thickness" xml:"box_thickness"`
+}
+
+// TestRecognitionResponseBody is the type of the "config" service
+// "test_recognition" endpoint HTTP response body.
+type TestRecognitionResponseBody struct {
+	// Service health status
+	Healthy bool `form:"healthy" json:"healthy" xml:"healthy"`
+	// Service endpoint
+	Endpoint *string `form:"endpoint,omitempty" json:"endpoint,omitempty" xml:"endpoint,omitempty"`
+	// Response time in milliseconds
+	ResponseTimeMs *float32 `form:"response_time_ms,omitempty" json:"response_time_ms,omitempty" xml:"response_time_ms,omitempty"`
+	// Detection device
+	Device *string `form:"device,omitempty" json:"device,omitempty" xml:"device,omitempty"`
+	// Model loaded status
+	ModelLoaded *bool `form:"model_loaded,omitempty" json:"model_loaded,omitempty" xml:"model_loaded,omitempty"`
+	// Number of registered faces
+	KnownFacesCount *int `form:"known_faces_count,omitempty" json:"known_faces_count,omitempty" xml:"known_faces_count,omitempty"`
+	// Status message
+	Message string `form:"message" json:"message" xml:"message"`
+}
+
 // UpdateBadRequestResponseBody is the type of the "config" service "update"
 // endpoint HTTP response body for the "bad_request" error.
 type UpdateBadRequestResponseBody struct {
@@ -360,6 +442,22 @@ type UpdatePipelineBadRequestResponseBody struct {
 	Details *string `form:"details,omitempty" json:"details,omitempty" xml:"details,omitempty"`
 }
 
+// UpdateRecognitionBadRequestResponseBody is the type of the "config" service
+// "update_recognition" endpoint HTTP response body for the "bad_request" error.
+type UpdateRecognitionBadRequestResponseBody struct {
+	// Error message
+	Message string `form:"message" json:"message" xml:"message"`
+	// Error details
+	Details *string `form:"details,omitempty" json:"details,omitempty" xml:"details,omitempty"`
+}
+
+// TestRecognitionInternalResponseBody is the type of the "config" service
+// "test_recognition" endpoint HTTP response body for the "internal" error.
+type TestRecognitionInternalResponseBody struct {
+	// Error message
+	Message string `form:"message" json:"message" xml:"message"`
+}
+
 // YOLOConfigResponseBody is used to define fields on response body types.
 type YOLOConfigResponseBody struct {
 	// Enable YOLO object detection
@@ -374,6 +472,10 @@ type YOLOConfigResponseBody struct {
 	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
 	// Draw bounding boxes on images (for Telegram, API)
 	DrawBoxes bool `form:"draw_boxes" json:"draw_boxes" xml:"draw_boxes"`
+	// Bounding box color in hex format (e.g., '#0066FF')
+	BoxColor *string `form:"box_color,omitempty" json:"box_color,omitempty" xml:"box_color,omitempty"`
+	// Bounding box line thickness (1-5)
+	BoxThickness int `form:"box_thickness" json:"box_thickness" xml:"box_thickness"`
 }
 
 // DINOv3ConfigResponseBody is used to define fields on response body types.
@@ -406,6 +508,10 @@ type YOLOConfigRequestBody struct {
 	ClassesFilter *string `form:"classes_filter,omitempty" json:"classes_filter,omitempty" xml:"classes_filter,omitempty"`
 	// Draw bounding boxes on images (for Telegram, API)
 	DrawBoxes *bool `form:"draw_boxes,omitempty" json:"draw_boxes,omitempty" xml:"draw_boxes,omitempty"`
+	// Bounding box color in hex format (e.g., '#0066FF')
+	BoxColor *string `form:"box_color,omitempty" json:"box_color,omitempty" xml:"box_color,omitempty"`
+	// Bounding box line thickness (1-5)
+	BoxThickness *int `form:"box_thickness,omitempty" json:"box_thickness,omitempty" xml:"box_thickness,omitempty"`
 }
 
 // DINOv3ConfigRequestBody is used to define fields on request body types.
@@ -559,6 +665,8 @@ func NewGetYoloResponseBody(res *config.YOLOConfig) *GetYoloResponseBody {
 		SecurityMode:        res.SecurityMode,
 		ClassesFilter:       res.ClassesFilter,
 		DrawBoxes:           res.DrawBoxes,
+		BoxColor:            res.BoxColor,
+		BoxThickness:        res.BoxThickness,
 	}
 	{
 		var zero float32
@@ -576,6 +684,12 @@ func NewGetYoloResponseBody(res *config.YOLOConfig) *GetYoloResponseBody {
 		var zero bool
 		if body.DrawBoxes == zero {
 			body.DrawBoxes = false
+		}
+	}
+	{
+		var zero int
+		if body.BoxThickness == zero {
+			body.BoxThickness = 2
 		}
 	}
 	return body
@@ -591,6 +705,8 @@ func NewUpdateYoloResponseBody(res *config.YOLOConfig) *UpdateYoloResponseBody {
 		SecurityMode:        res.SecurityMode,
 		ClassesFilter:       res.ClassesFilter,
 		DrawBoxes:           res.DrawBoxes,
+		BoxColor:            res.BoxColor,
+		BoxThickness:        res.BoxThickness,
 	}
 	{
 		var zero float32
@@ -608,6 +724,12 @@ func NewUpdateYoloResponseBody(res *config.YOLOConfig) *UpdateYoloResponseBody {
 		var zero bool
 		if body.DrawBoxes == zero {
 			body.DrawBoxes = false
+		}
+	}
+	{
+		var zero int
+		if body.BoxThickness == zero {
+			body.BoxThickness = 2
 		}
 	}
 	return body
@@ -745,6 +867,73 @@ func NewUpdatePipelineResponseBody(res *config.PipelineConfig) *UpdatePipelineRe
 	return body
 }
 
+// NewGetRecognitionResponseBody builds the HTTP response body from the result
+// of the "get_recognition" endpoint of the "config" service.
+func NewGetRecognitionResponseBody(res *config.RecognitionConfig) *GetRecognitionResponseBody {
+	body := &GetRecognitionResponseBody{
+		Enabled:             res.Enabled,
+		ServiceEndpoint:     res.ServiceEndpoint,
+		SimilarityThreshold: res.SimilarityThreshold,
+		KnownFaceColor:      res.KnownFaceColor,
+		UnknownFaceColor:    res.UnknownFaceColor,
+		BoxThickness:        res.BoxThickness,
+	}
+	{
+		var zero float32
+		if body.SimilarityThreshold == zero {
+			body.SimilarityThreshold = 0.5
+		}
+	}
+	{
+		var zero int
+		if body.BoxThickness == zero {
+			body.BoxThickness = 2
+		}
+	}
+	return body
+}
+
+// NewUpdateRecognitionResponseBody builds the HTTP response body from the
+// result of the "update_recognition" endpoint of the "config" service.
+func NewUpdateRecognitionResponseBody(res *config.RecognitionConfig) *UpdateRecognitionResponseBody {
+	body := &UpdateRecognitionResponseBody{
+		Enabled:             res.Enabled,
+		ServiceEndpoint:     res.ServiceEndpoint,
+		SimilarityThreshold: res.SimilarityThreshold,
+		KnownFaceColor:      res.KnownFaceColor,
+		UnknownFaceColor:    res.UnknownFaceColor,
+		BoxThickness:        res.BoxThickness,
+	}
+	{
+		var zero float32
+		if body.SimilarityThreshold == zero {
+			body.SimilarityThreshold = 0.5
+		}
+	}
+	{
+		var zero int
+		if body.BoxThickness == zero {
+			body.BoxThickness = 2
+		}
+	}
+	return body
+}
+
+// NewTestRecognitionResponseBody builds the HTTP response body from the result
+// of the "test_recognition" endpoint of the "config" service.
+func NewTestRecognitionResponseBody(res *config.TestRecognitionResult) *TestRecognitionResponseBody {
+	body := &TestRecognitionResponseBody{
+		Healthy:         res.Healthy,
+		Endpoint:        res.Endpoint,
+		ResponseTimeMs:  res.ResponseTimeMs,
+		Device:          res.Device,
+		ModelLoaded:     res.ModelLoaded,
+		KnownFacesCount: res.KnownFacesCount,
+		Message:         res.Message,
+	}
+	return body
+}
+
 // NewUpdateBadRequestResponseBody builds the HTTP response body from the
 // result of the "update" endpoint of the "config" service.
 func NewUpdateBadRequestResponseBody(res *config.BadRequestError) *UpdateBadRequestResponseBody {
@@ -822,6 +1011,25 @@ func NewUpdatePipelineBadRequestResponseBody(res *config.BadRequestError) *Updat
 	return body
 }
 
+// NewUpdateRecognitionBadRequestResponseBody builds the HTTP response body
+// from the result of the "update_recognition" endpoint of the "config" service.
+func NewUpdateRecognitionBadRequestResponseBody(res *config.BadRequestError) *UpdateRecognitionBadRequestResponseBody {
+	body := &UpdateRecognitionBadRequestResponseBody{
+		Message: res.Message,
+		Details: res.Details,
+	}
+	return body
+}
+
+// NewTestRecognitionInternalResponseBody builds the HTTP response body from
+// the result of the "test_recognition" endpoint of the "config" service.
+func NewTestRecognitionInternalResponseBody(res *config.InternalError) *TestRecognitionInternalResponseBody {
+	body := &TestRecognitionInternalResponseBody{
+		Message: res.Message,
+	}
+	return body
+}
+
 // NewUpdateNotificationConfig builds a config service update endpoint payload.
 func NewUpdateNotificationConfig(body *UpdateRequestBody) *config.NotificationConfig {
 	v := &config.NotificationConfig{
@@ -876,6 +1084,7 @@ func NewUpdateYoloYOLOConfig(body *UpdateYoloRequestBody) *config.YOLOConfig {
 		Enabled:         *body.Enabled,
 		ServiceEndpoint: body.ServiceEndpoint,
 		ClassesFilter:   body.ClassesFilter,
+		BoxColor:        body.BoxColor,
 	}
 	if body.ConfidenceThreshold != nil {
 		v.ConfidenceThreshold = *body.ConfidenceThreshold
@@ -886,6 +1095,9 @@ func NewUpdateYoloYOLOConfig(body *UpdateYoloRequestBody) *config.YOLOConfig {
 	if body.DrawBoxes != nil {
 		v.DrawBoxes = *body.DrawBoxes
 	}
+	if body.BoxThickness != nil {
+		v.BoxThickness = *body.BoxThickness
+	}
 	if body.ConfidenceThreshold == nil {
 		v.ConfidenceThreshold = 0.5
 	}
@@ -894,6 +1106,9 @@ func NewUpdateYoloYOLOConfig(body *UpdateYoloRequestBody) *config.YOLOConfig {
 	}
 	if body.DrawBoxes == nil {
 		v.DrawBoxes = false
+	}
+	if body.BoxThickness == nil {
+		v.BoxThickness = 2
 	}
 
 	return v
@@ -951,6 +1166,31 @@ func NewUpdatePipelinePipelineConfig(body *UpdatePipelineRequestBody) *config.Pi
 	}
 	if body.MotionCooldownSeconds == nil {
 		v.MotionCooldownSeconds = 2
+	}
+
+	return v
+}
+
+// NewUpdateRecognitionRecognitionConfig builds a config service
+// update_recognition endpoint payload.
+func NewUpdateRecognitionRecognitionConfig(body *UpdateRecognitionRequestBody) *config.RecognitionConfig {
+	v := &config.RecognitionConfig{
+		Enabled:          *body.Enabled,
+		ServiceEndpoint:  body.ServiceEndpoint,
+		KnownFaceColor:   body.KnownFaceColor,
+		UnknownFaceColor: body.UnknownFaceColor,
+	}
+	if body.SimilarityThreshold != nil {
+		v.SimilarityThreshold = *body.SimilarityThreshold
+	}
+	if body.BoxThickness != nil {
+		v.BoxThickness = *body.BoxThickness
+	}
+	if body.SimilarityThreshold == nil {
+		v.SimilarityThreshold = 0.5
+	}
+	if body.BoxThickness == nil {
+		v.BoxThickness = 2
 	}
 
 	return v
@@ -1039,6 +1279,15 @@ func ValidateUpdatePipelineRequestBody(body *UpdatePipelineRequestBody) (err err
 		if *body.MotionCooldownSeconds < 0 {
 			err = goa.MergeErrors(err, goa.InvalidRangeError("body.motion_cooldown_seconds", *body.MotionCooldownSeconds, 0, true))
 		}
+	}
+	return
+}
+
+// ValidateUpdateRecognitionRequestBody runs the validations defined on
+// update_recognition_request_body
+func ValidateUpdateRecognitionRequestBody(body *UpdateRecognitionRequestBody) (err error) {
+	if body.Enabled == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("enabled", "body"))
 	}
 	return
 }

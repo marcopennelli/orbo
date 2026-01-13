@@ -204,14 +204,14 @@ func DecodeStopDetectionResponse(decoder func(*http.Response) goahttp.Decoder, r
 // *system.CameraInfo from a value of type *CameraInfoResponseBody.
 func unmarshalCameraInfoResponseBodyToSystemCameraInfo(v *CameraInfoResponseBody) *system.CameraInfo {
 	res := &system.CameraInfo{
-		ID:               *v.ID,
-		Name:             *v.Name,
-		Device:           *v.Device,
-		Status:           *v.Status,
-		Resolution:       v.Resolution,
-		Fps:              v.Fps,
-		CreatedAt:        v.CreatedAt,
-		DetectionEnabled: v.DetectionEnabled,
+		ID:            *v.ID,
+		Name:          *v.Name,
+		Device:        *v.Device,
+		Status:        *v.Status,
+		Resolution:    v.Resolution,
+		Fps:           v.Fps,
+		CreatedAt:     v.CreatedAt,
+		AlertsEnabled: v.AlertsEnabled,
 	}
 
 	return res

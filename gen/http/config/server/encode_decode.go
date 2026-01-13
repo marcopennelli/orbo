@@ -531,6 +531,125 @@ func EncodeUpdatePipelineError(encoder func(context.Context, http.ResponseWriter
 	}
 }
 
+// EncodeGetRecognitionResponse returns an encoder for responses returned by
+// the config get_recognition endpoint.
+func EncodeGetRecognitionResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.RecognitionConfig)
+		enc := encoder(ctx, w)
+		body := NewGetRecognitionResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// EncodeUpdateRecognitionResponse returns an encoder for responses returned by
+// the config update_recognition endpoint.
+func EncodeUpdateRecognitionResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.RecognitionConfig)
+		enc := encoder(ctx, w)
+		body := NewUpdateRecognitionResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// DecodeUpdateRecognitionRequest returns a decoder for requests sent to the
+// config update_recognition endpoint.
+func DecodeUpdateRecognitionRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
+	return func(r *http.Request) (any, error) {
+		var (
+			body UpdateRecognitionRequestBody
+			err  error
+		)
+		err = decoder(r).Decode(&body)
+		if err != nil {
+			if err == io.EOF {
+				return nil, goa.MissingPayloadError()
+			}
+			return nil, goa.DecodePayloadError(err.Error())
+		}
+		err = ValidateUpdateRecognitionRequestBody(&body)
+		if err != nil {
+			return nil, err
+		}
+		payload := NewUpdateRecognitionRecognitionConfig(&body)
+
+		return payload, nil
+	}
+}
+
+// EncodeUpdateRecognitionError returns an encoder for errors returned by the
+// update_recognition config endpoint.
+func EncodeUpdateRecognitionError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+	encodeError := goahttp.ErrorEncoder(encoder, formatter)
+	return func(ctx context.Context, w http.ResponseWriter, v error) error {
+		var en goa.GoaErrorNamer
+		if !errors.As(v, &en) {
+			return encodeError(ctx, w, v)
+		}
+		switch en.GoaErrorName() {
+		case "bad_request":
+			var res *config.BadRequestError
+			errors.As(v, &res)
+			enc := encoder(ctx, w)
+			var body any
+			if formatter != nil {
+				body = formatter(ctx, res)
+			} else {
+				body = NewUpdateRecognitionBadRequestResponseBody(res)
+			}
+			w.Header().Set("goa-error", res.GoaErrorName())
+			w.WriteHeader(http.StatusBadRequest)
+			return enc.Encode(body)
+		default:
+			return encodeError(ctx, w, v)
+		}
+	}
+}
+
+// EncodeTestRecognitionResponse returns an encoder for responses returned by
+// the config test_recognition endpoint.
+func EncodeTestRecognitionResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+	return func(ctx context.Context, w http.ResponseWriter, v any) error {
+		res, _ := v.(*config.TestRecognitionResult)
+		enc := encoder(ctx, w)
+		body := NewTestRecognitionResponseBody(res)
+		w.WriteHeader(http.StatusOK)
+		return enc.Encode(body)
+	}
+}
+
+// EncodeTestRecognitionError returns an encoder for errors returned by the
+// test_recognition config endpoint.
+func EncodeTestRecognitionError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+	encodeError := goahttp.ErrorEncoder(encoder, formatter)
+	return func(ctx context.Context, w http.ResponseWriter, v error) error {
+		var en goa.GoaErrorNamer
+		if !errors.As(v, &en) {
+			return encodeError(ctx, w, v)
+		}
+		switch en.GoaErrorName() {
+		case "internal":
+			var res *config.InternalError
+			errors.As(v, &res)
+			enc := encoder(ctx, w)
+			var body any
+			if formatter != nil {
+				body = formatter(ctx, res)
+			} else {
+				body = NewTestRecognitionInternalResponseBody(res)
+			}
+			w.Header().Set("goa-error", res.GoaErrorName())
+			w.WriteHeader(http.StatusInternalServerError)
+			return enc.Encode(body)
+		default:
+			return encodeError(ctx, w, v)
+		}
+	}
+}
+
 // marshalConfigYOLOConfigToYOLOConfigResponseBody builds a value of type
 // *YOLOConfigResponseBody from a value of type *config.YOLOConfig.
 func marshalConfigYOLOConfigToYOLOConfigResponseBody(v *config.YOLOConfig) *YOLOConfigResponseBody {
@@ -544,6 +663,8 @@ func marshalConfigYOLOConfigToYOLOConfigResponseBody(v *config.YOLOConfig) *YOLO
 		SecurityMode:        v.SecurityMode,
 		ClassesFilter:       v.ClassesFilter,
 		DrawBoxes:           v.DrawBoxes,
+		BoxColor:            v.BoxColor,
+		BoxThickness:        v.BoxThickness,
 	}
 	{
 		var zero float32
@@ -561,6 +682,12 @@ func marshalConfigYOLOConfigToYOLOConfigResponseBody(v *config.YOLOConfig) *YOLO
 		var zero bool
 		if res.DrawBoxes == zero {
 			res.DrawBoxes = false
+		}
+	}
+	{
+		var zero int
+		if res.BoxThickness == zero {
+			res.BoxThickness = 2
 		}
 	}
 
@@ -619,6 +746,7 @@ func unmarshalYOLOConfigRequestBodyToConfigYOLOConfig(v *YOLOConfigRequestBody) 
 		Enabled:         *v.Enabled,
 		ServiceEndpoint: v.ServiceEndpoint,
 		ClassesFilter:   v.ClassesFilter,
+		BoxColor:        v.BoxColor,
 	}
 	if v.ConfidenceThreshold != nil {
 		res.ConfidenceThreshold = *v.ConfidenceThreshold
@@ -629,6 +757,9 @@ func unmarshalYOLOConfigRequestBodyToConfigYOLOConfig(v *YOLOConfigRequestBody) 
 	if v.DrawBoxes != nil {
 		res.DrawBoxes = *v.DrawBoxes
 	}
+	if v.BoxThickness != nil {
+		res.BoxThickness = *v.BoxThickness
+	}
 	if v.ConfidenceThreshold == nil {
 		res.ConfidenceThreshold = 0.5
 	}
@@ -637,6 +768,9 @@ func unmarshalYOLOConfigRequestBodyToConfigYOLOConfig(v *YOLOConfigRequestBody) 
 	}
 	if v.DrawBoxes == nil {
 		res.DrawBoxes = false
+	}
+	if v.BoxThickness == nil {
+		res.BoxThickness = 2
 	}
 
 	return res

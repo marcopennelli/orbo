@@ -7,7 +7,7 @@ export interface Camera {
   resolution?: string;
   fps?: number;
   created_at?: string;
-  detection_enabled: boolean;  // Whether AI detection is enabled for this camera
+  alerts_enabled: boolean;  // Whether events/alerts are enabled (detection still runs for bounding boxes)
 }
 
 export interface CameraCreatePayload {
@@ -85,6 +85,18 @@ export interface YoloConfig {
   security_mode?: boolean;
   classes_filter?: string;  // Comma-separated class names
   draw_boxes?: boolean;
+  box_color?: string;  // Hex color for bounding boxes (e.g., '#0066FF')
+  box_thickness?: number;  // Bounding box line thickness (1-5)
+}
+
+// Recognition config - matches RecognitionConfig from design.go
+export interface RecognitionConfig {
+  enabled: boolean;
+  service_endpoint?: string;
+  similarity_threshold?: number;  // Face matching threshold (0-1)
+  known_face_color?: string;  // Hex color for known faces (e.g., '#00FF00')
+  unknown_face_color?: string;  // Hex color for unknown faces (e.g., '#FF0000')
+  box_thickness?: number;  // Bounding box line thickness (1-5)
 }
 
 // DINOv3 config - matches DINOv3Config from design.go
@@ -106,7 +118,7 @@ export interface DetectionConfig {
 }
 
 // Pipeline config - matches PipelineConfig from design.go
-export type DetectionMode = 'disabled' | 'continuous' | 'motion_triggered' | 'scheduled' | 'hybrid';
+export type DetectionMode = 'disabled' | 'visual_only' | 'continuous' | 'motion_triggered' | 'scheduled' | 'hybrid';
 export type ExecutionMode = 'sequential' | 'parallel';
 export type DetectorType = 'yolo' | 'face' | 'plate';
 
@@ -132,6 +144,17 @@ export interface TestServiceResult {
   response_time_ms?: number;
   device?: string;
   model_loaded?: boolean;
+  message: string;
+}
+
+// Test Recognition response
+export interface TestRecognitionResult {
+  healthy: boolean;
+  endpoint?: string;
+  response_time_ms?: number;
+  device?: string;
+  model_loaded?: boolean;
+  known_faces_count?: number;
   message: string;
 }
 

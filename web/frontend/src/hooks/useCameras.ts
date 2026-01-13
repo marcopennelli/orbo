@@ -75,22 +75,22 @@ export function useDeactivateCamera() {
   });
 }
 
-export function useEnableDetection() {
+export function useEnableAlerts() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => camerasApi.enableDetection(id),
+    mutationFn: (id: string) => camerasApi.enableAlerts(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cameras'] });
     },
   });
 }
 
-export function useDisableDetection() {
+export function useDisableAlerts() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => camerasApi.disableDetection(id),
+    mutationFn: (id: string) => camerasApi.disableAlerts(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cameras'] });
     },

@@ -708,23 +708,23 @@ func DecodeCaptureResponse(decoder func(*http.Response) goahttp.Decoder, restore
 	}
 }
 
-// BuildEnableDetectionRequest instantiates a HTTP request object with method
-// and path set to call the "camera" service "enable_detection" endpoint
-func (c *Client) BuildEnableDetectionRequest(ctx context.Context, v any) (*http.Request, error) {
+// BuildEnableAlertsRequest instantiates a HTTP request object with method and
+// path set to call the "camera" service "enable_alerts" endpoint
+func (c *Client) BuildEnableAlertsRequest(ctx context.Context, v any) (*http.Request, error) {
 	var (
 		id string
 	)
 	{
-		p, ok := v.(*camera.EnableDetectionPayload)
+		p, ok := v.(*camera.EnableAlertsPayload)
 		if !ok {
-			return nil, goahttp.ErrInvalidType("camera", "enable_detection", "*camera.EnableDetectionPayload", v)
+			return nil, goahttp.ErrInvalidType("camera", "enable_alerts", "*camera.EnableAlertsPayload", v)
 		}
 		id = p.ID
 	}
-	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: EnableDetectionCameraPath(id)}
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: EnableAlertsCameraPath(id)}
 	req, err := http.NewRequest("POST", u.String(), nil)
 	if err != nil {
-		return nil, goahttp.ErrInvalidURL("camera", "enable_detection", u.String(), err)
+		return nil, goahttp.ErrInvalidURL("camera", "enable_alerts", u.String(), err)
 	}
 	if ctx != nil {
 		req = req.WithContext(ctx)
@@ -733,13 +733,13 @@ func (c *Client) BuildEnableDetectionRequest(ctx context.Context, v any) (*http.
 	return req, nil
 }
 
-// DecodeEnableDetectionResponse returns a decoder for responses returned by
-// the camera enable_detection endpoint. restoreBody controls whether the
-// response body should be restored after having been read.
-// DecodeEnableDetectionResponse may return the following errors:
+// DecodeEnableAlertsResponse returns a decoder for responses returned by the
+// camera enable_alerts endpoint. restoreBody controls whether the response
+// body should be restored after having been read.
+// DecodeEnableAlertsResponse may return the following errors:
 //   - "not_found" (type *camera.NotFoundError): http.StatusNotFound
 //   - error: internal error
-func DecodeEnableDetectionResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+func DecodeEnableAlertsResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
 	return func(resp *http.Response) (any, error) {
 		if restoreBody {
 			b, err := io.ReadAll(resp.Body)
@@ -756,57 +756,57 @@ func DecodeEnableDetectionResponse(decoder func(*http.Response) goahttp.Decoder,
 		switch resp.StatusCode {
 		case http.StatusOK:
 			var (
-				body EnableDetectionResponseBody
+				body EnableAlertsResponseBody
 				err  error
 			)
 			err = decoder(resp).Decode(&body)
 			if err != nil {
-				return nil, goahttp.ErrDecodingError("camera", "enable_detection", err)
+				return nil, goahttp.ErrDecodingError("camera", "enable_alerts", err)
 			}
-			err = ValidateEnableDetectionResponseBody(&body)
+			err = ValidateEnableAlertsResponseBody(&body)
 			if err != nil {
-				return nil, goahttp.ErrValidationError("camera", "enable_detection", err)
+				return nil, goahttp.ErrValidationError("camera", "enable_alerts", err)
 			}
-			res := NewEnableDetectionCameraInfoOK(&body)
+			res := NewEnableAlertsCameraInfoOK(&body)
 			return res, nil
 		case http.StatusNotFound:
 			var (
-				body EnableDetectionNotFoundResponseBody
+				body EnableAlertsNotFoundResponseBody
 				err  error
 			)
 			err = decoder(resp).Decode(&body)
 			if err != nil {
-				return nil, goahttp.ErrDecodingError("camera", "enable_detection", err)
+				return nil, goahttp.ErrDecodingError("camera", "enable_alerts", err)
 			}
-			err = ValidateEnableDetectionNotFoundResponseBody(&body)
+			err = ValidateEnableAlertsNotFoundResponseBody(&body)
 			if err != nil {
-				return nil, goahttp.ErrValidationError("camera", "enable_detection", err)
+				return nil, goahttp.ErrValidationError("camera", "enable_alerts", err)
 			}
-			return nil, NewEnableDetectionNotFound(&body)
+			return nil, NewEnableAlertsNotFound(&body)
 		default:
 			body, _ := io.ReadAll(resp.Body)
-			return nil, goahttp.ErrInvalidResponse("camera", "enable_detection", resp.StatusCode, string(body))
+			return nil, goahttp.ErrInvalidResponse("camera", "enable_alerts", resp.StatusCode, string(body))
 		}
 	}
 }
 
-// BuildDisableDetectionRequest instantiates a HTTP request object with method
-// and path set to call the "camera" service "disable_detection" endpoint
-func (c *Client) BuildDisableDetectionRequest(ctx context.Context, v any) (*http.Request, error) {
+// BuildDisableAlertsRequest instantiates a HTTP request object with method and
+// path set to call the "camera" service "disable_alerts" endpoint
+func (c *Client) BuildDisableAlertsRequest(ctx context.Context, v any) (*http.Request, error) {
 	var (
 		id string
 	)
 	{
-		p, ok := v.(*camera.DisableDetectionPayload)
+		p, ok := v.(*camera.DisableAlertsPayload)
 		if !ok {
-			return nil, goahttp.ErrInvalidType("camera", "disable_detection", "*camera.DisableDetectionPayload", v)
+			return nil, goahttp.ErrInvalidType("camera", "disable_alerts", "*camera.DisableAlertsPayload", v)
 		}
 		id = p.ID
 	}
-	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: DisableDetectionCameraPath(id)}
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: DisableAlertsCameraPath(id)}
 	req, err := http.NewRequest("POST", u.String(), nil)
 	if err != nil {
-		return nil, goahttp.ErrInvalidURL("camera", "disable_detection", u.String(), err)
+		return nil, goahttp.ErrInvalidURL("camera", "disable_alerts", u.String(), err)
 	}
 	if ctx != nil {
 		req = req.WithContext(ctx)
@@ -815,13 +815,13 @@ func (c *Client) BuildDisableDetectionRequest(ctx context.Context, v any) (*http
 	return req, nil
 }
 
-// DecodeDisableDetectionResponse returns a decoder for responses returned by
-// the camera disable_detection endpoint. restoreBody controls whether the
-// response body should be restored after having been read.
-// DecodeDisableDetectionResponse may return the following errors:
+// DecodeDisableAlertsResponse returns a decoder for responses returned by the
+// camera disable_alerts endpoint. restoreBody controls whether the response
+// body should be restored after having been read.
+// DecodeDisableAlertsResponse may return the following errors:
 //   - "not_found" (type *camera.NotFoundError): http.StatusNotFound
 //   - error: internal error
-func DecodeDisableDetectionResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+func DecodeDisableAlertsResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
 	return func(resp *http.Response) (any, error) {
 		if restoreBody {
 			b, err := io.ReadAll(resp.Body)
@@ -838,36 +838,36 @@ func DecodeDisableDetectionResponse(decoder func(*http.Response) goahttp.Decoder
 		switch resp.StatusCode {
 		case http.StatusOK:
 			var (
-				body DisableDetectionResponseBody
+				body DisableAlertsResponseBody
 				err  error
 			)
 			err = decoder(resp).Decode(&body)
 			if err != nil {
-				return nil, goahttp.ErrDecodingError("camera", "disable_detection", err)
+				return nil, goahttp.ErrDecodingError("camera", "disable_alerts", err)
 			}
-			err = ValidateDisableDetectionResponseBody(&body)
+			err = ValidateDisableAlertsResponseBody(&body)
 			if err != nil {
-				return nil, goahttp.ErrValidationError("camera", "disable_detection", err)
+				return nil, goahttp.ErrValidationError("camera", "disable_alerts", err)
 			}
-			res := NewDisableDetectionCameraInfoOK(&body)
+			res := NewDisableAlertsCameraInfoOK(&body)
 			return res, nil
 		case http.StatusNotFound:
 			var (
-				body DisableDetectionNotFoundResponseBody
+				body DisableAlertsNotFoundResponseBody
 				err  error
 			)
 			err = decoder(resp).Decode(&body)
 			if err != nil {
-				return nil, goahttp.ErrDecodingError("camera", "disable_detection", err)
+				return nil, goahttp.ErrDecodingError("camera", "disable_alerts", err)
 			}
-			err = ValidateDisableDetectionNotFoundResponseBody(&body)
+			err = ValidateDisableAlertsNotFoundResponseBody(&body)
 			if err != nil {
-				return nil, goahttp.ErrValidationError("camera", "disable_detection", err)
+				return nil, goahttp.ErrValidationError("camera", "disable_alerts", err)
 			}
-			return nil, NewDisableDetectionNotFound(&body)
+			return nil, NewDisableAlertsNotFound(&body)
 		default:
 			body, _ := io.ReadAll(resp.Body)
-			return nil, goahttp.ErrInvalidResponse("camera", "disable_detection", resp.StatusCode, string(body))
+			return nil, goahttp.ErrInvalidResponse("camera", "disable_alerts", resp.StatusCode, string(body))
 		}
 	}
 }
@@ -876,14 +876,14 @@ func DecodeDisableDetectionResponse(decoder func(*http.Response) goahttp.Decoder
 // *camera.CameraInfo from a value of type *CameraInfoResponse.
 func unmarshalCameraInfoResponseToCameraCameraInfo(v *CameraInfoResponse) *camera.CameraInfo {
 	res := &camera.CameraInfo{
-		ID:               *v.ID,
-		Name:             *v.Name,
-		Device:           *v.Device,
-		Status:           *v.Status,
-		Resolution:       v.Resolution,
-		Fps:              v.Fps,
-		CreatedAt:        v.CreatedAt,
-		DetectionEnabled: v.DetectionEnabled,
+		ID:            *v.ID,
+		Name:          *v.Name,
+		Device:        *v.Device,
+		Status:        *v.Status,
+		Resolution:    v.Resolution,
+		Fps:           v.Fps,
+		CreatedAt:     v.CreatedAt,
+		AlertsEnabled: v.AlertsEnabled,
 	}
 
 	return res

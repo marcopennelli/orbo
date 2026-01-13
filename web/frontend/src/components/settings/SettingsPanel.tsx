@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { MessageSquare, Sliders, X } from 'lucide-react';
-import type { TelegramConfig, YoloConfig, PipelineConfig } from '../../types';
+import { MessageSquare, Sliders, X, ScanFace, Box } from 'lucide-react';
+import type { TelegramConfig, YoloConfig, PipelineConfig, RecognitionConfig, TestRecognitionResult } from '../../types';
 import { Button } from '../ui';
 import TelegramSettings from './TelegramSettings';
 import PipelineSettings from './PipelineSettings';
+import RecognitionSettings from './RecognitionSettings';
+import YoloSettings from './YoloSettings';
 
-type SettingsTab = 'pipeline' | 'telegram';
+type SettingsTab = 'pipeline' | 'yolo' | 'recognition' | 'telegram';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -13,18 +15,24 @@ interface SettingsPanelProps {
   telegramConfig: TelegramConfig;
   yoloConfig: YoloConfig;
   pipelineConfig: PipelineConfig;
+  recognitionConfig: RecognitionConfig;
   onSaveTelegram: (config: TelegramConfig) => void;
   onSaveYolo: (config: YoloConfig) => void;
   onSavePipeline: (config: PipelineConfig) => void;
+  onSaveRecognition: (config: RecognitionConfig) => void;
   onTestTelegram: () => Promise<{ success: boolean; message: string }>;
   onTestYolo: () => Promise<{ success: boolean; message: string }>;
+  onTestRecognition: () => Promise<TestRecognitionResult>;
   isSavingTelegram?: boolean;
   isSavingYolo?: boolean;
   isSavingPipeline?: boolean;
+  isSavingRecognition?: boolean;
 }
 
 const tabs: { id: SettingsTab; label: string; icon: typeof MessageSquare }[] = [
   { id: 'pipeline', label: 'Pipeline', icon: Sliders },
+  { id: 'yolo', label: 'YOLO', icon: Box },
+  { id: 'recognition', label: 'Faces', icon: ScanFace },
   { id: 'telegram', label: 'Telegram', icon: MessageSquare },
 ];
 
@@ -34,14 +42,18 @@ export default function SettingsPanel({
   telegramConfig,
   yoloConfig,
   pipelineConfig,
+  recognitionConfig,
   onSaveTelegram,
   onSaveYolo,
   onSavePipeline,
+  onSaveRecognition,
   onTestTelegram,
   onTestYolo,
+  onTestRecognition,
   isSavingTelegram,
   isSavingYolo,
   isSavingPipeline,
+  isSavingRecognition,
 }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('pipeline');
 
@@ -91,10 +103,22 @@ export default function SettingsPanel({
               config={pipelineConfig}
               onSave={onSavePipeline}
               isSaving={isSavingPipeline}
-              yoloConfig={yoloConfig}
-              onSaveYolo={onSaveYolo}
-              onTestYolo={onTestYolo}
-              isSavingYolo={isSavingYolo}
+            />
+          )}
+          {activeTab === 'yolo' && (
+            <YoloSettings
+              config={yoloConfig}
+              onSave={onSaveYolo}
+              onTest={onTestYolo}
+              isSaving={isSavingYolo}
+            />
+          )}
+          {activeTab === 'recognition' && (
+            <RecognitionSettings
+              config={recognitionConfig}
+              onSave={onSaveRecognition}
+              onTest={onTestRecognition}
+              isSaving={isSavingRecognition}
             />
           )}
           {activeTab === 'telegram' && (

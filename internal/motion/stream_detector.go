@@ -1464,6 +1464,15 @@ func (sd *StreamDetector) saveFrame(img image.Image, path string) error {
 }
 
 func (sd *StreamDetector) addEvent(event *MotionEvent) {
+	// Check if alerts are enabled for this camera
+	// If not, skip event storage and notifications (pipeline still runs for bounding boxes)
+	if sd.db != nil {
+		if cam, err := sd.db.GetCamera(event.CameraID); err == nil && cam != nil && !cam.AlertsEnabled {
+			// Alerts disabled for this camera - skip event storage and notifications
+			return
+		}
+	}
+
 	sd.mu.Lock()
 	defer sd.mu.Unlock()
 

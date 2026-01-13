@@ -47,16 +47,16 @@ func (s *SystemImplementation) Status(ctx context.Context) (*system_service.Syst
 	cameraInfos := make([]*system_service.CameraInfo, len(cameras))
 	for i, cam := range cameras {
 		createdAtStr := cam.CreatedAt.Format(time.RFC3339)
-		detectionEnabled := cam.DetectionEnabled
+		alertsEnabled := cam.AlertsEnabled
 		cameraInfos[i] = &system_service.CameraInfo{
-			ID:               cam.ID,
-			Name:             cam.Name,
-			Device:           cam.Device,
-			Status:           cam.Status,
-			Resolution:       &cam.Resolution,
-			Fps:              &cam.FPS,
-			CreatedAt:        &createdAtStr,
-			DetectionEnabled: &detectionEnabled,
+			ID:            cam.ID,
+			Name:          cam.Name,
+			Device:        cam.Device,
+			Status:        cam.Status,
+			Resolution:    &cam.Resolution,
+			Fps:           &cam.FPS,
+			CreatedAt:     &createdAtStr,
+			AlertsEnabled: &alertsEnabled,
 		}
 	}
 
@@ -107,9 +107,9 @@ func (s *SystemImplementation) Status(ctx context.Context) (*system_service.Syst
 }
 
 // StartDetection starts motion detection on all active cameras
-// NOTE: This respects the pipeline mode - if mode is "disabled", detection starts
-// but YOLO/Face analysis will be skipped (streaming only). The UI should warn users
-// about this state via the PipelineDetectionEnabled status field.
+// NOTE: Detection runs for all cameras (for bounding box overlays on stream).
+// Per-camera alerts_enabled setting controls whether events are saved and notifications sent.
+// If pipeline mode is "disabled", YOLO/Face analysis is skipped.
 func (s *SystemImplementation) StartDetection(ctx context.Context) (*system_service.SystemStatus, error) {
 	cameras := s.cameraManager.ListCameras()
 
@@ -130,14 +130,14 @@ func (s *SystemImplementation) StartDetection(ctx context.Context) (*system_serv
 
 	for _, cam := range cameras {
 		if cam.Status == "active" {
-			// Check if detection is enabled for this camera
-			if !cam.DetectionEnabled {
-				fmt.Printf("[SystemService] Skipping detection for camera %s (detection_enabled=false)\n", cam.ID)
-				continue
-			}
-
-			// Start motion detection for this camera
+			// Detection runs for all active cameras (for bounding boxes on stream)
+			// alerts_enabled only controls whether events are saved and notifications sent
 			if !s.motionDetector.IsDetectionRunning(cam.ID) {
+				alertsNote := ""
+				if !cam.AlertsEnabled {
+					alertsNote = " (alerts disabled - bounding boxes only)"
+				}
+				fmt.Printf("[SystemService] Starting detection for camera %s%s\n", cam.ID, alertsNote)
 				err := s.motionDetector.StartDetection(cam.ID, cam.Device)
 				if err != nil {
 					return nil, &system_service.InternalError{

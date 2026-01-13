@@ -71,16 +71,16 @@ func (s *camerasrvc) Capture(ctx context.Context, p *camera.CapturePayload) (res
 	return
 }
 
-// EnableDetection enables AI detection for this camera
-func (s *camerasrvc) EnableDetection(ctx context.Context, p *camera.EnableDetectionPayload) (res *camera.CameraInfo, err error) {
+// EnableAlerts enables alerts (events and notifications) for this camera
+func (s *camerasrvc) EnableAlerts(ctx context.Context, p *camera.EnableAlertsPayload) (res *camera.CameraInfo, err error) {
 	res = &camera.CameraInfo{}
-	s.logger.Print("camera.enable_detection")
+	s.logger.Print("camera.enable_alerts")
 	return
 }
 
-// DisableDetection disables AI detection for this camera
-func (s *camerasrvc) DisableDetection(ctx context.Context, p *camera.DisableDetectionPayload) (res *camera.CameraInfo, err error) {
+// DisableAlerts disables alerts for this camera (detection still runs for bounding boxes)
+func (s *camerasrvc) DisableAlerts(ctx context.Context, p *camera.DisableAlertsPayload) (res *camera.CameraInfo, err error) {
 	res = &camera.CameraInfo{}
-	s.logger.Print("camera.disable_detection")
+	s.logger.Print("camera.disable_alerts")
 	return
 }

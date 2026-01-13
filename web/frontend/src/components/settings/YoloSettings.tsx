@@ -44,7 +44,9 @@ export default function YoloSettings({ config, onSave, onTest, isLoading, isSavi
       localConfig.confidence_threshold !== config.confidence_threshold ||
       localConfig.security_mode !== config.security_mode ||
       localConfig.draw_boxes !== config.draw_boxes ||
-      localConfig.classes_filter !== config.classes_filter
+      localConfig.classes_filter !== config.classes_filter ||
+      localConfig.box_color !== config.box_color ||
+      localConfig.box_thickness !== config.box_thickness
     );
   }, [localConfig, config]);
 
@@ -149,6 +151,38 @@ export default function YoloSettings({ config, onSave, onTest, isLoading, isSavi
                 onChange={(draw_boxes) => updateLocal({ draw_boxes })}
                 disabled={isLoading || isSaving}
               />
+            </div>
+
+            {/* Box Appearance Settings */}
+            <div className="border border-border rounded-lg p-3 space-y-3 bg-bg-card/50">
+              <h4 className="text-sm font-medium text-text-secondary">Box Appearance</h4>
+
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-text-muted whitespace-nowrap">Box Color:</label>
+                <input
+                  type="color"
+                  value={localConfig.box_color || '#0066FF'}
+                  onChange={(e) => updateLocal({ box_color: e.target.value })}
+                  className="w-10 h-8 rounded border border-border cursor-pointer bg-transparent"
+                  disabled={isLoading || isSaving}
+                />
+                <span className="text-xs text-text-muted font-mono">{localConfig.box_color || '#0066FF'}</span>
+              </div>
+
+              <div>
+                <label className="block text-sm text-text-muted mb-1">
+                  Line Thickness: {localConfig.box_thickness || 2}px
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="5"
+                  value={localConfig.box_thickness || 2}
+                  onChange={(e) => updateLocal({ box_thickness: parseInt(e.target.value) })}
+                  className="w-full h-2 bg-bg-hover rounded-lg appearance-none cursor-pointer accent-accent"
+                  disabled={isLoading || isSaving}
+                />
+              </div>
             </div>
 
             <div>

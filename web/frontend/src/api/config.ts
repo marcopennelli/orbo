@@ -1,5 +1,5 @@
 import { get, put, post } from './client';
-import type { TelegramConfig, YoloConfig, DetectionConfig, Dinov3Config, PipelineConfig } from '../types';
+import type { TelegramConfig, YoloConfig, DetectionConfig, Dinov3Config, PipelineConfig, RecognitionConfig, TestRecognitionResult } from '../types';
 
 // Telegram configuration
 export async function getTelegramConfig(): Promise<TelegramConfig> {
@@ -52,4 +52,17 @@ export async function getPipelineConfig(): Promise<PipelineConfig> {
 
 export async function updatePipelineConfig(config: Partial<PipelineConfig>): Promise<PipelineConfig> {
   return put<PipelineConfig>('/config/pipeline', config);
+}
+
+// Face Recognition configuration
+export async function getRecognitionConfig(): Promise<RecognitionConfig> {
+  return get<RecognitionConfig>('/config/recognition');
+}
+
+export async function updateRecognitionConfig(config: Partial<RecognitionConfig>): Promise<RecognitionConfig> {
+  return put<RecognitionConfig>('/config/recognition', config);
+}
+
+export async function testRecognitionService(): Promise<TestRecognitionResult> {
+  return post<TestRecognitionResult>('/config/recognition/test');
 }

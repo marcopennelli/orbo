@@ -39,6 +39,12 @@ type Service interface {
 	GetPipeline(context.Context) (res *PipelineConfig, err error)
 	// Update detection pipeline configuration
 	UpdatePipeline(context.Context, *PipelineConfig) (res *PipelineConfig, err error)
+	// Get face recognition configuration
+	GetRecognition(context.Context) (res *RecognitionConfig, err error)
+	// Update face recognition configuration
+	UpdateRecognition(context.Context, *RecognitionConfig) (res *RecognitionConfig, err error)
+	// Test face recognition service connectivity
+	TestRecognition(context.Context) (res *TestRecognitionResult, err error)
 }
 
 // ServiceName is the name of the service as defined in the design. This is the
@@ -49,7 +55,7 @@ const ServiceName = "config"
 // MethodNames lists the service method names as defined in the design. These
 // are the same values that are set in the endpoint request contexts under the
 // MethodKey key.
-var MethodNames = [13]string{"get", "update", "test_notification", "get_dinov3", "update_dinov3", "test_dinov3", "get_yolo", "update_yolo", "test_yolo", "get_detection", "update_detection", "get_pipeline", "update_pipeline"}
+var MethodNames = [16]string{"get", "update", "test_notification", "get_dinov3", "update_dinov3", "test_dinov3", "get_yolo", "update_yolo", "test_yolo", "get_detection", "update_detection", "get_pipeline", "update_pipeline", "get_recognition", "update_recognition", "test_recognition"}
 
 // Bad request error
 type BadRequestError struct {
@@ -125,6 +131,23 @@ type PipelineConfig struct {
 	MotionCooldownSeconds int
 }
 
+// RecognitionConfig is the result type of the config service get_recognition
+// method.
+type RecognitionConfig struct {
+	// Enable face recognition
+	Enabled bool
+	// Face recognition service endpoint URL
+	ServiceEndpoint *string
+	// Similarity threshold for face matching (0-1)
+	SimilarityThreshold float32
+	// Color for known/recognized faces in hex format (e.g., '#00FF00')
+	KnownFaceColor *string
+	// Color for unknown faces in hex format (e.g., '#FF0000')
+	UnknownFaceColor *string
+	// Bounding box line thickness (1-5)
+	BoxThickness int
+}
+
 // TestDinov3Result is the result type of the config service test_dinov3 method.
 type TestDinov3Result struct {
 	// Service health status
@@ -145,6 +168,25 @@ type TestNotificationResult struct {
 	// Test result
 	Success bool
 	// Result message
+	Message string
+}
+
+// TestRecognitionResult is the result type of the config service
+// test_recognition method.
+type TestRecognitionResult struct {
+	// Service health status
+	Healthy bool
+	// Service endpoint
+	Endpoint *string
+	// Response time in milliseconds
+	ResponseTimeMs *float32
+	// Detection device
+	Device *string
+	// Model loaded status
+	ModelLoaded *bool
+	// Number of registered faces
+	KnownFacesCount *int
+	// Status message
 	Message string
 }
 
@@ -178,6 +220,10 @@ type YOLOConfig struct {
 	ClassesFilter *string
 	// Draw bounding boxes on images (for Telegram, API)
 	DrawBoxes bool
+	// Bounding box color in hex format (e.g., '#0066FF')
+	BoxColor *string
+	// Bounding box line thickness (1-5)
+	BoxThickness int
 }
 
 // Error returns an error description.

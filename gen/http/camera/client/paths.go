@@ -51,12 +51,12 @@ func CaptureCameraPath(id string) string {
 	return fmt.Sprintf("/api/v1/cameras/%v/frame", id)
 }
 
-// EnableDetectionCameraPath returns the URL path to the camera service enable_detection HTTP endpoint.
-func EnableDetectionCameraPath(id string) string {
-	return fmt.Sprintf("/api/v1/cameras/%v/detection/enable", id)
+// EnableAlertsCameraPath returns the URL path to the camera service enable_alerts HTTP endpoint.
+func EnableAlertsCameraPath(id string) string {
+	return fmt.Sprintf("/api/v1/cameras/%v/alerts/enable", id)
 }
 
-// DisableDetectionCameraPath returns the URL path to the camera service disable_detection HTTP endpoint.
-func DisableDetectionCameraPath(id string) string {
-	return fmt.Sprintf("/api/v1/cameras/%v/detection/disable", id)
+// DisableAlertsCameraPath returns the URL path to the camera service disable_alerts HTTP endpoint.
+func DisableAlertsCameraPath(id string) string {
+	return fmt.Sprintf("/api/v1/cameras/%v/alerts/disable", id)
 }

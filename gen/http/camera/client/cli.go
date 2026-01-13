@@ -41,7 +41,7 @@ func BuildCreatePayload(cameraCreateBody string) (*camera.CreatePayload, error) 
 	{
 		err = json.Unmarshal([]byte(cameraCreateBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Ad eligendi.\",\n      \"fps\": 8101873989605169975,\n      \"name\": \"Sapiente nobis iusto quis esse quis sapiente.\",\n      \"resolution\": \"Cupiditate atque.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Et corporis.\",\n      \"fps\": 6590396382631310600,\n      \"name\": \"In molestiae iste.\",\n      \"resolution\": \"Ipsa delectus.\"\n   }'")
 		}
 	}
 	v := &camera.CreatePayload{
@@ -74,7 +74,7 @@ func BuildUpdatePayload(cameraUpdateBody string, cameraUpdateID string) (*camera
 	{
 		err = json.Unmarshal([]byte(cameraUpdateBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Excepturi iure omnis.\",\n      \"fps\": 7788107982347300633,\n      \"name\": \"Dolorem quis odio.\",\n      \"resolution\": \"Quis cum et doloremque esse autem qui.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Dolor sed voluptates ad rem dolores quia.\",\n      \"fps\": 8833264999851994961,\n      \"name\": \"Qui rerum quia hic repellat rem.\",\n      \"resolution\": \"Ut illo atque pariatur eaque eos quidem.\"\n   }'")
 		}
 	}
 	var id string
@@ -168,37 +168,37 @@ func BuildCapturePayload(cameraCaptureID string) (*camera.CapturePayload, error)
 	return v, nil
 }
 
-// BuildEnableDetectionPayload builds the payload for the camera
-// enable_detection endpoint from CLI flags.
-func BuildEnableDetectionPayload(cameraEnableDetectionID string) (*camera.EnableDetectionPayload, error) {
+// BuildEnableAlertsPayload builds the payload for the camera enable_alerts
+// endpoint from CLI flags.
+func BuildEnableAlertsPayload(cameraEnableAlertsID string) (*camera.EnableAlertsPayload, error) {
 	var err error
 	var id string
 	{
-		id = cameraEnableDetectionID
+		id = cameraEnableAlertsID
 		err = goa.MergeErrors(err, goa.ValidateFormat("id", id, goa.FormatUUID))
 		if err != nil {
 			return nil, err
 		}
 	}
-	v := &camera.EnableDetectionPayload{}
+	v := &camera.EnableAlertsPayload{}
 	v.ID = id
 
 	return v, nil
 }
 
-// BuildDisableDetectionPayload builds the payload for the camera
-// disable_detection endpoint from CLI flags.
-func BuildDisableDetectionPayload(cameraDisableDetectionID string) (*camera.DisableDetectionPayload, error) {
+// BuildDisableAlertsPayload builds the payload for the camera disable_alerts
+// endpoint from CLI flags.
+func BuildDisableAlertsPayload(cameraDisableAlertsID string) (*camera.DisableAlertsPayload, error) {
 	var err error
 	var id string
 	{
-		id = cameraDisableDetectionID
+		id = cameraDisableAlertsID
 		err = goa.MergeErrors(err, goa.ValidateFormat("id", id, goa.FormatUUID))
 		if err != nil {
 			return nil, err
 		}
 	}
-	v := &camera.DisableDetectionPayload{}
+	v := &camera.DisableAlertsPayload{}
 	v.ID = id
 
 	return v, nil

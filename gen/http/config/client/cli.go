@@ -23,7 +23,7 @@ func BuildUpdatePayload(configUpdateBody string) (*config.NotificationConfig, er
 	{
 		err = json.Unmarshal([]byte(configUpdateBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"cooldown_seconds\": 4140290001883044554,\n      \"min_confidence\": 0.7715329,\n      \"telegram_bot_token\": \"Nam minima dolorum modi commodi.\",\n      \"telegram_chat_id\": \"Adipisci delectus.\",\n      \"telegram_enabled\": true\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"cooldown_seconds\": 8847911415795252102,\n      \"min_confidence\": 0.0048802625,\n      \"telegram_bot_token\": \"Porro sed eius ut eum voluptatem modi.\",\n      \"telegram_chat_id\": \"Incidunt dolor cupiditate velit consequatur.\",\n      \"telegram_enabled\": true\n   }'")
 		}
 	}
 	v := &config.NotificationConfig{
@@ -45,7 +45,7 @@ func BuildUpdateDinov3Payload(configUpdateDinov3Body string) (*config.DINOv3Conf
 	{
 		err = json.Unmarshal([]byte(configUpdateDinov3Body), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"confidence_threshold\": 0.3935828,\n      \"enable_scene_analysis\": false,\n      \"enabled\": false,\n      \"fallback_to_basic\": true,\n      \"motion_threshold\": 0.245757,\n      \"service_endpoint\": \"Tenetur mollitia in.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"confidence_threshold\": 0.69612443,\n      \"enable_scene_analysis\": false,\n      \"enabled\": true,\n      \"fallback_to_basic\": true,\n      \"motion_threshold\": 0.12781343,\n      \"service_endpoint\": \"Aut eligendi.\"\n   }'")
 		}
 	}
 	v := &config.DINOv3Config{
@@ -92,7 +92,7 @@ func BuildUpdateYoloPayload(configUpdateYoloBody string) (*config.YOLOConfig, er
 	{
 		err = json.Unmarshal([]byte(configUpdateYoloBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"classes_filter\": \"Nisi aspernatur beatae laborum necessitatibus ipsum.\",\n      \"confidence_threshold\": 0.3803266,\n      \"draw_boxes\": false,\n      \"enabled\": true,\n      \"security_mode\": false,\n      \"service_endpoint\": \"Minima et voluptate rerum sint.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"box_color\": \"Expedita aut minima perspiciatis.\",\n      \"box_thickness\": 322002139192709832,\n      \"classes_filter\": \"Aut quisquam sequi velit nihil.\",\n      \"confidence_threshold\": 0.10458655,\n      \"draw_boxes\": true,\n      \"enabled\": true,\n      \"security_mode\": false,\n      \"service_endpoint\": \"At quis.\"\n   }'")
 		}
 	}
 	v := &config.YOLOConfig{
@@ -102,6 +102,8 @@ func BuildUpdateYoloPayload(configUpdateYoloBody string) (*config.YOLOConfig, er
 		SecurityMode:        body.SecurityMode,
 		ClassesFilter:       body.ClassesFilter,
 		DrawBoxes:           body.DrawBoxes,
+		BoxColor:            body.BoxColor,
+		BoxThickness:        body.BoxThickness,
 	}
 	{
 		var zero float32
@@ -121,6 +123,12 @@ func BuildUpdateYoloPayload(configUpdateYoloBody string) (*config.YOLOConfig, er
 			v.DrawBoxes = false
 		}
 	}
+	{
+		var zero int
+		if v.BoxThickness == zero {
+			v.BoxThickness = 2
+		}
+	}
 
 	return v, nil
 }
@@ -133,7 +141,7 @@ func BuildUpdateDetectionPayload(configUpdateDetectionBody string) (*config.Dete
 	{
 		err = json.Unmarshal([]byte(configUpdateDetectionBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"dinov3\": {\n         \"confidence_threshold\": 0.995641,\n         \"enable_scene_analysis\": true,\n         \"enabled\": true,\n         \"fallback_to_basic\": true,\n         \"motion_threshold\": 0.56711036,\n         \"service_endpoint\": \"Incidunt et.\"\n      },\n      \"fallback_enabled\": false,\n      \"primary_detector\": \"basic\",\n      \"yolo\": {\n         \"classes_filter\": \"Doloremque beatae deleniti commodi velit commodi.\",\n         \"confidence_threshold\": 0.2053725,\n         \"draw_boxes\": true,\n         \"enabled\": true,\n         \"security_mode\": false,\n         \"service_endpoint\": \"Eius distinctio ipsum porro.\"\n      }\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"dinov3\": {\n         \"confidence_threshold\": 0.82597387,\n         \"enable_scene_analysis\": true,\n         \"enabled\": false,\n         \"fallback_to_basic\": true,\n         \"motion_threshold\": 0.04976495,\n         \"service_endpoint\": \"Tempore consequatur asperiores.\"\n      },\n      \"fallback_enabled\": false,\n      \"primary_detector\": \"dinov3\",\n      \"yolo\": {\n         \"box_color\": \"In dolores rem voluptas eum incidunt.\",\n         \"box_thickness\": 8712871376137544995,\n         \"classes_filter\": \"Harum occaecati omnis rem dolor.\",\n         \"confidence_threshold\": 0.32154036,\n         \"draw_boxes\": false,\n         \"enabled\": true,\n         \"security_mode\": false,\n         \"service_endpoint\": \"Soluta delectus non perspiciatis blanditiis.\"\n      }\n   }'")
 		}
 		if !(body.PrimaryDetector == "basic" || body.PrimaryDetector == "yolo" || body.PrimaryDetector == "dinov3") {
 			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.primary_detector", body.PrimaryDetector, []any{"basic", "yolo", "dinov3"}))
@@ -170,7 +178,7 @@ func BuildUpdatePipelinePayload(configUpdatePipelineBody string) (*config.Pipeli
 	{
 		err = json.Unmarshal([]byte(configUpdatePipelineBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"detectors\": [\n         \"yolo\",\n         \"face\"\n      ],\n      \"execution_mode\": \"sequential\",\n      \"mode\": \"hybrid\",\n      \"motion_cooldown_seconds\": 8133219637353987660,\n      \"motion_sensitivity\": 0.5485527,\n      \"schedule_interval\": \"Culpa similique ea ratione quisquam alias.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"detectors\": [\n         \"yolo\",\n         \"face\"\n      ],\n      \"execution_mode\": \"sequential\",\n      \"mode\": \"continuous\",\n      \"motion_cooldown_seconds\": 29525455477767673,\n      \"motion_sensitivity\": 0.7234474,\n      \"schedule_interval\": \"Aut nisi quibusdam id et et ex.\"\n   }'")
 		}
 		if !(body.Mode == "disabled" || body.Mode == "continuous" || body.Mode == "motion_triggered" || body.Mode == "scheduled" || body.Mode == "hybrid") {
 			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.mode", body.Mode, []any{"disabled", "continuous", "motion_triggered", "scheduled", "hybrid"}))
@@ -220,6 +228,41 @@ func BuildUpdatePipelinePayload(configUpdatePipelineBody string) (*config.Pipeli
 		var zero int
 		if v.MotionCooldownSeconds == zero {
 			v.MotionCooldownSeconds = 2
+		}
+	}
+
+	return v, nil
+}
+
+// BuildUpdateRecognitionPayload builds the payload for the config
+// update_recognition endpoint from CLI flags.
+func BuildUpdateRecognitionPayload(configUpdateRecognitionBody string) (*config.RecognitionConfig, error) {
+	var err error
+	var body UpdateRecognitionRequestBody
+	{
+		err = json.Unmarshal([]byte(configUpdateRecognitionBody), &body)
+		if err != nil {
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"box_thickness\": 473801709441388807,\n      \"enabled\": true,\n      \"known_face_color\": \"Occaecati deserunt.\",\n      \"service_endpoint\": \"Qui impedit aut.\",\n      \"similarity_threshold\": 0.31017613,\n      \"unknown_face_color\": \"Velit aperiam.\"\n   }'")
+		}
+	}
+	v := &config.RecognitionConfig{
+		Enabled:             body.Enabled,
+		ServiceEndpoint:     body.ServiceEndpoint,
+		SimilarityThreshold: body.SimilarityThreshold,
+		KnownFaceColor:      body.KnownFaceColor,
+		UnknownFaceColor:    body.UnknownFaceColor,
+		BoxThickness:        body.BoxThickness,
+	}
+	{
+		var zero float32
+		if v.SimilarityThreshold == zero {
+			v.SimilarityThreshold = 0.5
+		}
+	}
+	{
+		var zero int
+		if v.BoxThickness == zero {
+			v.BoxThickness = 2
 		}
 	}
 

@@ -949,6 +949,221 @@ func DecodeUpdatePipelineResponse(decoder func(*http.Response) goahttp.Decoder, 
 	}
 }
 
+// BuildGetRecognitionRequest instantiates a HTTP request object with method
+// and path set to call the "config" service "get_recognition" endpoint
+func (c *Client) BuildGetRecognitionRequest(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: GetRecognitionConfigPath()}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "get_recognition", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeGetRecognitionResponse returns a decoder for responses returned by the
+// config get_recognition endpoint. restoreBody controls whether the response
+// body should be restored after having been read.
+func DecodeGetRecognitionResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body GetRecognitionResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "get_recognition", err)
+			}
+			err = ValidateGetRecognitionResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "get_recognition", err)
+			}
+			res := NewGetRecognitionRecognitionConfigOK(&body)
+			return res, nil
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "get_recognition", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildUpdateRecognitionRequest instantiates a HTTP request object with method
+// and path set to call the "config" service "update_recognition" endpoint
+func (c *Client) BuildUpdateRecognitionRequest(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: UpdateRecognitionConfigPath()}
+	req, err := http.NewRequest("PUT", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "update_recognition", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// EncodeUpdateRecognitionRequest returns an encoder for requests sent to the
+// config update_recognition server.
+func EncodeUpdateRecognitionRequest(encoder func(*http.Request) goahttp.Encoder) func(*http.Request, any) error {
+	return func(req *http.Request, v any) error {
+		p, ok := v.(*config.RecognitionConfig)
+		if !ok {
+			return goahttp.ErrInvalidType("config", "update_recognition", "*config.RecognitionConfig", v)
+		}
+		body := NewUpdateRecognitionRequestBody(p)
+		if err := encoder(req).Encode(&body); err != nil {
+			return goahttp.ErrEncodingError("config", "update_recognition", err)
+		}
+		return nil
+	}
+}
+
+// DecodeUpdateRecognitionResponse returns a decoder for responses returned by
+// the config update_recognition endpoint. restoreBody controls whether the
+// response body should be restored after having been read.
+// DecodeUpdateRecognitionResponse may return the following errors:
+//   - "bad_request" (type *config.BadRequestError): http.StatusBadRequest
+//   - error: internal error
+func DecodeUpdateRecognitionResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body UpdateRecognitionResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "update_recognition", err)
+			}
+			err = ValidateUpdateRecognitionResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "update_recognition", err)
+			}
+			res := NewUpdateRecognitionRecognitionConfigOK(&body)
+			return res, nil
+		case http.StatusBadRequest:
+			var (
+				body UpdateRecognitionBadRequestResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "update_recognition", err)
+			}
+			err = ValidateUpdateRecognitionBadRequestResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "update_recognition", err)
+			}
+			return nil, NewUpdateRecognitionBadRequest(&body)
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "update_recognition", resp.StatusCode, string(body))
+		}
+	}
+}
+
+// BuildTestRecognitionRequest instantiates a HTTP request object with method
+// and path set to call the "config" service "test_recognition" endpoint
+func (c *Client) BuildTestRecognitionRequest(ctx context.Context, v any) (*http.Request, error) {
+	u := &url.URL{Scheme: c.scheme, Host: c.host, Path: TestRecognitionConfigPath()}
+	req, err := http.NewRequest("POST", u.String(), nil)
+	if err != nil {
+		return nil, goahttp.ErrInvalidURL("config", "test_recognition", u.String(), err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+
+	return req, nil
+}
+
+// DecodeTestRecognitionResponse returns a decoder for responses returned by
+// the config test_recognition endpoint. restoreBody controls whether the
+// response body should be restored after having been read.
+// DecodeTestRecognitionResponse may return the following errors:
+//   - "internal" (type *config.InternalError): http.StatusInternalServerError
+//   - error: internal error
+func DecodeTestRecognitionResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (any, error) {
+	return func(resp *http.Response) (any, error) {
+		if restoreBody {
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			defer func() {
+				resp.Body = io.NopCloser(bytes.NewBuffer(b))
+			}()
+		} else {
+			defer resp.Body.Close()
+		}
+		switch resp.StatusCode {
+		case http.StatusOK:
+			var (
+				body TestRecognitionResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "test_recognition", err)
+			}
+			err = ValidateTestRecognitionResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "test_recognition", err)
+			}
+			res := NewTestRecognitionResultOK(&body)
+			return res, nil
+		case http.StatusInternalServerError:
+			var (
+				body TestRecognitionInternalResponseBody
+				err  error
+			)
+			err = decoder(resp).Decode(&body)
+			if err != nil {
+				return nil, goahttp.ErrDecodingError("config", "test_recognition", err)
+			}
+			err = ValidateTestRecognitionInternalResponseBody(&body)
+			if err != nil {
+				return nil, goahttp.ErrValidationError("config", "test_recognition", err)
+			}
+			return nil, NewTestRecognitionInternal(&body)
+		default:
+			body, _ := io.ReadAll(resp.Body)
+			return nil, goahttp.ErrInvalidResponse("config", "test_recognition", resp.StatusCode, string(body))
+		}
+	}
+}
+
 // unmarshalYOLOConfigResponseBodyToConfigYOLOConfig builds a value of type
 // *config.YOLOConfig from a value of type *YOLOConfigResponseBody.
 func unmarshalYOLOConfigResponseBodyToConfigYOLOConfig(v *YOLOConfigResponseBody) *config.YOLOConfig {
@@ -959,6 +1174,7 @@ func unmarshalYOLOConfigResponseBodyToConfigYOLOConfig(v *YOLOConfigResponseBody
 		Enabled:         *v.Enabled,
 		ServiceEndpoint: v.ServiceEndpoint,
 		ClassesFilter:   v.ClassesFilter,
+		BoxColor:        v.BoxColor,
 	}
 	if v.ConfidenceThreshold != nil {
 		res.ConfidenceThreshold = *v.ConfidenceThreshold
@@ -969,6 +1185,9 @@ func unmarshalYOLOConfigResponseBodyToConfigYOLOConfig(v *YOLOConfigResponseBody
 	if v.DrawBoxes != nil {
 		res.DrawBoxes = *v.DrawBoxes
 	}
+	if v.BoxThickness != nil {
+		res.BoxThickness = *v.BoxThickness
+	}
 	if v.ConfidenceThreshold == nil {
 		res.ConfidenceThreshold = 0.5
 	}
@@ -977,6 +1196,9 @@ func unmarshalYOLOConfigResponseBodyToConfigYOLOConfig(v *YOLOConfigResponseBody
 	}
 	if v.DrawBoxes == nil {
 		res.DrawBoxes = false
+	}
+	if v.BoxThickness == nil {
+		res.BoxThickness = 2
 	}
 
 	return res
@@ -1033,6 +1255,8 @@ func marshalConfigYOLOConfigToYOLOConfigRequestBody(v *config.YOLOConfig) *YOLOC
 		SecurityMode:        v.SecurityMode,
 		ClassesFilter:       v.ClassesFilter,
 		DrawBoxes:           v.DrawBoxes,
+		BoxColor:            v.BoxColor,
+		BoxThickness:        v.BoxThickness,
 	}
 	{
 		var zero float32
@@ -1050,6 +1274,12 @@ func marshalConfigYOLOConfigToYOLOConfigRequestBody(v *config.YOLOConfig) *YOLOC
 		var zero bool
 		if res.DrawBoxes == zero {
 			res.DrawBoxes = false
+		}
+	}
+	{
+		var zero int
+		if res.BoxThickness == zero {
+			res.BoxThickness = 2
 		}
 	}
 
@@ -1111,6 +1341,8 @@ func marshalYOLOConfigRequestBodyToConfigYOLOConfig(v *YOLOConfigRequestBody) *c
 		SecurityMode:        v.SecurityMode,
 		ClassesFilter:       v.ClassesFilter,
 		DrawBoxes:           v.DrawBoxes,
+		BoxColor:            v.BoxColor,
+		BoxThickness:        v.BoxThickness,
 	}
 	{
 		var zero float32
@@ -1128,6 +1360,12 @@ func marshalYOLOConfigRequestBodyToConfigYOLOConfig(v *YOLOConfigRequestBody) *c
 		var zero bool
 		if res.DrawBoxes == zero {
 			res.DrawBoxes = false
+		}
+	}
+	{
+		var zero int
+		if res.BoxThickness == zero {
+			res.BoxThickness = 2
 		}
 	}
 

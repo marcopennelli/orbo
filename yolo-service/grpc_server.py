@@ -203,6 +203,12 @@ class DetectionServicer(detection_pb2_grpc.DetectionServiceServicer):
                 self.classes_filter = None
                 logger.info("[gRPC] Classes filter cleared (detecting all classes)")
 
+            # Handle bounding box color configuration
+            if request.HasField('box_color'):
+                self.service.set_box_color(request.box_color)
+            if request.HasField('box_thickness'):
+                self.service.set_box_thickness(request.box_thickness)
+
             logger.info(f"[gRPC] Configuration updated: conf={self.conf_threshold}, "
                        f"tracking={self.tracking_enabled}, tracker={self.tracker_type}, "
                        f"classes={self.classes_filter}")

@@ -67,6 +67,18 @@ type Client struct {
 	// update_pipeline endpoint.
 	UpdatePipelineDoer goahttp.Doer
 
+	// GetRecognition Doer is the HTTP client used to make requests to the
+	// get_recognition endpoint.
+	GetRecognitionDoer goahttp.Doer
+
+	// UpdateRecognition Doer is the HTTP client used to make requests to the
+	// update_recognition endpoint.
+	UpdateRecognitionDoer goahttp.Doer
+
+	// TestRecognition Doer is the HTTP client used to make requests to the
+	// test_recognition endpoint.
+	TestRecognitionDoer goahttp.Doer
+
 	// RestoreResponseBody controls whether the response bodies are reset after
 	// decoding so they can be read again.
 	RestoreResponseBody bool
@@ -87,24 +99,27 @@ func NewClient(
 	restoreBody bool,
 ) *Client {
 	return &Client{
-		GetDoer:              doer,
-		UpdateDoer:           doer,
-		TestNotificationDoer: doer,
-		GetDinov3Doer:        doer,
-		UpdateDinov3Doer:     doer,
-		TestDinov3Doer:       doer,
-		GetYoloDoer:          doer,
-		UpdateYoloDoer:       doer,
-		TestYoloDoer:         doer,
-		GetDetectionDoer:     doer,
-		UpdateDetectionDoer:  doer,
-		GetPipelineDoer:      doer,
-		UpdatePipelineDoer:   doer,
-		RestoreResponseBody:  restoreBody,
-		scheme:               scheme,
-		host:                 host,
-		decoder:              dec,
-		encoder:              enc,
+		GetDoer:               doer,
+		UpdateDoer:            doer,
+		TestNotificationDoer:  doer,
+		GetDinov3Doer:         doer,
+		UpdateDinov3Doer:      doer,
+		TestDinov3Doer:        doer,
+		GetYoloDoer:           doer,
+		UpdateYoloDoer:        doer,
+		TestYoloDoer:          doer,
+		GetDetectionDoer:      doer,
+		UpdateDetectionDoer:   doer,
+		GetPipelineDoer:       doer,
+		UpdatePipelineDoer:    doer,
+		GetRecognitionDoer:    doer,
+		UpdateRecognitionDoer: doer,
+		TestRecognitionDoer:   doer,
+		RestoreResponseBody:   restoreBody,
+		scheme:                scheme,
+		host:                  host,
+		decoder:               dec,
+		encoder:               enc,
 	}
 }
 
@@ -375,6 +390,68 @@ func (c *Client) UpdatePipeline() goa.Endpoint {
 		resp, err := c.UpdatePipelineDoer.Do(req)
 		if err != nil {
 			return nil, goahttp.ErrRequestError("config", "update_pipeline", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// GetRecognition returns an endpoint that makes HTTP requests to the config
+// service get_recognition server.
+func (c *Client) GetRecognition() goa.Endpoint {
+	var (
+		decodeResponse = DecodeGetRecognitionResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildGetRecognitionRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.GetRecognitionDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "get_recognition", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// UpdateRecognition returns an endpoint that makes HTTP requests to the config
+// service update_recognition server.
+func (c *Client) UpdateRecognition() goa.Endpoint {
+	var (
+		encodeRequest  = EncodeUpdateRecognitionRequest(c.encoder)
+		decodeResponse = DecodeUpdateRecognitionResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildUpdateRecognitionRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		err = encodeRequest(req, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.UpdateRecognitionDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "update_recognition", err)
+		}
+		return decodeResponse(resp)
+	}
+}
+
+// TestRecognition returns an endpoint that makes HTTP requests to the config
+// service test_recognition server.
+func (c *Client) TestRecognition() goa.Endpoint {
+	var (
+		decodeResponse = DecodeTestRecognitionResponse(c.decoder, c.RestoreResponseBody)
+	)
+	return func(ctx context.Context, v any) (any, error) {
+		req, err := c.BuildTestRecognitionRequest(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := c.TestRecognitionDoer.Do(req)
+		if err != nil {
+			return nil, goahttp.ErrRequestError("config", "test_recognition", err)
 		}
 		return decodeResponse(resp)
 	}

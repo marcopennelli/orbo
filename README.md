@@ -9,13 +9,14 @@ Orbo is a modern, open-source video alarm system built with Go and OpenCV. It fe
 ## Features
 
 - **React Web UI**: Modern dashboard with camera management, multi-camera grid layouts, and unified settings panel
-- **Per-Camera Detection Toggle**: Enable/disable AI detection per camera independently from streaming
+- **Per-Camera Alerts Toggle**: Enable/disable events and notifications per camera (detection runs for bounding boxes)
 - **Real-Time Streaming**: Low-latency WebSocket streaming with gRPC-based detection pipeline
 - **Dual Streaming Modes**: MJPEG (traditional) and WebCodecs (low-latency WebSocket) streaming
 - **Camera Support**: USB cameras (`/dev/video*`), HTTP endpoints, and RTSP streams
 - **Motion Detection**: OpenCV-based with configurable sensitivity
 - **AI Object Detection**: YOLO11 integration via gRPC for real-time detection of persons, vehicles, and 80+ COCO classes
-- **Face Recognition**: InsightFace-based gRPC face detection and identity matching
+- **Face Recognition**: InsightFace-based gRPC face detection and identity matching with persistent face database
+- **Configurable Bounding Box Colors**: Customize colors for YOLO detections and face recognition (known/unknown faces)
 - **Sequential Detection Pipeline**: Optimized detector chain (YOLO → Face) with proper annotation stacking
 - **Telegram Integration**: Instant alerts with captured frames + bot commands for remote control
 - **REST API**: Complete HTTP API for camera management and system control
@@ -75,10 +76,10 @@ helm upgrade orbo deploy/helm/orbo --set recognition.enabled=true
 The React-based web UI provides:
 
 - **Camera Management**: Add, edit, delete cameras with live preview
-- **Per-Camera Detection Control**: Toggle AI detection on/off per camera independently
+- **Per-Camera Alerts Control**: Toggle event/notification generation per camera (bounding boxes always visible)
 - **Multi-Camera Grid**: Configurable layouts (1x1, 2x1, 2x2, 3x3) with detection status indicators
 - **Motion Events**: Browse and filter detection events with thumbnails
-- **Settings Panel**: Configure Telegram, YOLO, and detection settings
+- **Settings Panel**: Configure Pipeline, YOLO (with color picker), Face Recognition, and Telegram settings
 - **System Controls**: Start/stop detection, view system status
 
 ### Frontend Development
@@ -115,7 +116,7 @@ make -C deploy full-build     # Build frontend + backend
 | `TELEGRAM_CHAT_ID` | Telegram chat ID | - |
 | `TELEGRAM_COOLDOWN` | Notification cooldown (seconds) | 30 |
 | **Detection Pipeline** | | |
-| `DETECTION_MODE` | Detection mode: `disabled`, `continuous`, `motion_triggered`, `scheduled`, `hybrid` | motion_triggered |
+| `DETECTION_MODE` | Detection mode: `disabled`, `visual_only`, `continuous`, `motion_triggered`, `scheduled`, `hybrid` | motion_triggered |
 | `DETECTION_EXECUTION_MODE` | Execution mode: `sequential` (parallel removed for stability) | sequential |
 | `DETECTION_DETECTORS` | Comma-separated detector list (e.g., "yolo,face") | yolo |
 | `DETECTION_SCHEDULE_INTERVAL` | Interval for scheduled/hybrid modes | 5s |
@@ -126,9 +127,13 @@ make -C deploy full-build     # Build frontend + backend
 | `YOLO_ENDPOINT` | YOLO service URL | `http://yolo-service:8081` |
 | `YOLO_DRAW_BOXES` | Draw bounding boxes | false |
 | `YOLO_CLASSES_FILTER` | Classes to detect (e.g., "person,car") | all |
+| `YOLO_BOX_COLOR` | Bounding box color (hex) | `#0066FF` |
+| `YOLO_BOX_THICKNESS` | Bounding box line thickness (1-5) | 2 |
 | `RECOGNITION_ENABLED` | Enable face recognition | false |
 | `RECOGNITION_SERVICE_ENDPOINT` | Face recognition service URL | `http://recognition:8082` |
 | `RECOGNITION_SIMILARITY_THRESHOLD` | Face match threshold (0.0-1.0) | 0.5 |
+| `RECOGNITION_KNOWN_FACE_COLOR` | Known face box color (hex) | `#00FF00` |
+| `RECOGNITION_UNKNOWN_FACE_COLOR` | Unknown face box color (hex) | `#FF0000` |
 | **Storage** | | |
 | `DATABASE_PATH` | SQLite database path | `/app/frames/orbo.db` |
 | `FRAME_DIR` | Frame storage directory | `/app/frames` |
@@ -165,6 +170,7 @@ The modular detection pipeline supports:
 | Mode | Description |
 |------|-------------|
 | `disabled` | Streaming only, no detection |
+| `visual_only` | Run detection for bounding boxes but don't send alerts (useful for testing) |
 | `continuous` | Run detection on every frame |
 | `motion_triggered` | Detect only when motion is detected (default) |
 | `scheduled` | Run detection at fixed intervals |
@@ -207,21 +213,21 @@ Once configured, control Orbo directly from Telegram:
 |---------|-------------|
 | `/enable <name>` | Activate camera (start streaming) |
 | `/disable <name>` | Deactivate camera |
-| `/detect_on <name>` | Enable AI detection for a camera |
-| `/detect_off <name>` | Disable AI detection (streaming only) |
+| `/alerts_on <name>` | Enable alerts (events & notifications) for a camera |
+| `/alerts_off <name>` | Disable alerts (bounding boxes only) |
 
 **Detection:**
 | Command | Description |
 |---------|-------------|
-| `/start_detection` | Start detection on all detection-enabled cameras |
+| `/start_detection` | Start detection on all active cameras |
 | `/stop_detection` | Stop all detection |
 | `/snapshot <name>` | Capture and send a frame from a camera |
 | `/events [limit]` | Show recent detection events (default: 5) |
 
 **Camera Status Icons:**
 - 👁️ Currently detecting
-- 🔍 Detection enabled (not running)
-- 📺 Streaming only (detection disabled)
+- 🔔 Alerts enabled
+- 👁️🔔 Detecting with alerts
 
 ## API Reference
 
@@ -238,7 +244,7 @@ Once configured, control Orbo directly from Telegram:
 - `POST /api/v1/cameras` - Add camera
 - `GET|PUT|DELETE /api/v1/cameras/{id}` - Manage camera
 - `POST /api/v1/cameras/{id}/activate|deactivate` - Control camera streaming
-- `POST /api/v1/cameras/{id}/detection/enable|disable` - Toggle AI detection per camera
+- `POST /api/v1/cameras/{id}/alerts/enable|disable` - Toggle alerts (events/notifications) per camera
 - `GET /api/v1/cameras/{id}/frame` - Get current frame
 
 ### Motion Events
@@ -249,8 +255,11 @@ Once configured, control Orbo directly from Telegram:
 ### Configuration
 - `GET|PUT /api/v1/config/notifications` - Telegram settings
 - `POST /api/v1/config/notifications/test` - Test notification
-- `GET|PUT /api/v1/config/yolo` - YOLO settings
+- `GET|PUT /api/v1/config/yolo` - YOLO settings (includes box_color, box_thickness)
+- `GET|PUT /api/v1/config/recognition` - Face recognition settings (includes known/unknown face colors)
+- `POST /api/v1/config/recognition/test` - Test face recognition service
 - `GET|PUT /api/v1/config/detection` - Detection settings
+- `GET|PUT /api/v1/config/pipeline` - Pipeline configuration (mode, detectors, motion settings)
 
 ### System
 - `GET /api/v1/system/status` - System status
@@ -258,18 +267,28 @@ Once configured, control Orbo directly from Telegram:
 
 ### YOLO Service
 - `POST /detect` - Detect objects (JSON response)
-- `POST /detect/annotated` - Detect with annotated image
+- `POST /detect/annotated` - Detect with annotated image (configurable colors)
 - `POST /detect/security` - Security-focused detection
 - `GET /classes` - List supported classes
+
+**Configurable YOLO Bounding Box Colors:**
+Configure via the web UI (Settings → YOLO) or API:
+```bash
+curl -X PUT http://orbo/api/v1/config/yolo \
+  -H "Content-Type: application/json" \
+  -d '{"box_color": "#0066FF", "box_thickness": 2}'
+```
 
 ### Face Recognition Service
 - `POST /detect` - Detect faces with age/gender estimation
 - `POST /recognize` - Detect and identify known faces
-- `POST /recognize/annotated` - Recognize with annotated image
+- `POST /recognize/annotated` - Recognize with annotated image (configurable colors)
 - `POST /faces/register` - Register a new face identity
-- `GET /faces` - List registered identities
+- `POST /faces/{name}/add-image` - Add additional image to existing identity
+- `GET /faces` - List registered identities with image counts
+- `GET /faces/{name}/images` - Get all images for an identity
+- `GET /faces/{name}/image` - Get specific registered face image
 - `DELETE /faces/{name}` - Remove a registered identity
-- `GET /faces/{name}/image` - Get registered face image
 
 ## Architecture
 
@@ -455,6 +474,37 @@ Orbo includes integrated face recognition powered by [InsightFace](https://githu
 3. **Updates threat level** to "high" for unknown faces
 4. **Enhances notifications** with face recognition results
 
+### Data Persistence
+
+Face data is stored in a persistent volume to survive pod restarts:
+- **Face embeddings**: `/app/data/faces.pkl` (pickle database)
+- **Face images**: `/app/data/faces/` (JPEG images)
+
+Enable persistence in Helm values:
+```yaml
+recognition:
+  persistence:
+    enabled: true
+    size: 1Gi
+```
+
+### Configurable Bounding Box Colors
+
+Customize the appearance of face detection boxes:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `known_face_color` | `#00FF00` (green) | Color for recognized/known faces |
+| `unknown_face_color` | `#FF0000` (red) | Color for unknown faces |
+| `box_thickness` | 2 | Line thickness (1-5 pixels) |
+
+Configure via the web UI (Settings → Faces) or API:
+```bash
+curl -X PUT http://orbo/api/v1/config/recognition \
+  -H "Content-Type: application/json" \
+  -d '{"known_face_color": "#00FF00", "unknown_face_color": "#FF0000", "box_thickness": 3}'
+```
+
 ### Setup
 
 1. **Register faces** via the web UI (Settings → Face Management) or API
@@ -466,6 +516,7 @@ Orbo includes integrated face recognition powered by [InsightFace](https://githu
 - **Event Cards**: Show face badges (✅ known, ⚠️ unknown)
 - **Event Details**: Display identified names and unknown face count
 - **Face Management**: Register, view, and delete face identities
+- **Color Picker**: Configure bounding box colors in Settings → Faces
 
 ### Recognition API
 
@@ -474,7 +525,11 @@ Orbo includes integrated face recognition powered by [InsightFace](https://githu
 curl -X POST http://orbo/recognition/faces/register \
   -F "name=John" -F "file=@photo.jpg"
 
-# List registered faces
+# Add additional image to existing identity (improves matching)
+curl -X POST http://orbo/recognition/faces/John/add-image \
+  -F "file=@another_photo.jpg"
+
+# List registered faces with image counts
 curl http://orbo/recognition/faces
 
 # Recognize faces in an image

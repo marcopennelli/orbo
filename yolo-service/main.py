@@ -52,6 +52,11 @@ class YOLODetectionService:
         # Key: camera_id, Value: last tracking results
         self.track_history: Dict[str, Dict] = {}
 
+        # Bounding box appearance configuration
+        # Default blue color in BGR format (OpenCV uses BGR)
+        self.box_color: Tuple[int, int, int] = (255, 102, 0)  # BGR for #0066FF
+        self.box_thickness: int = 2
+
         self.initialize_model()
         self._load_default_classes_filter()
 
@@ -102,6 +107,30 @@ class YOLODetectionService:
         else:
             self.default_classes_filter = None
             logger.info("No default class filter set - detecting all classes")
+
+    def _hex_to_bgr(self, hex_color: str) -> Tuple[int, int, int]:
+        """Convert hex color string to BGR tuple for OpenCV"""
+        # Remove # if present
+        hex_color = hex_color.lstrip('#')
+        # Parse RGB values
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        # Return as BGR (OpenCV format)
+        return (b, g, r)
+
+    def set_box_color(self, hex_color: str):
+        """Set bounding box color from hex string (e.g., '#0066FF')"""
+        try:
+            self.box_color = self._hex_to_bgr(hex_color)
+            logger.info(f"Box color set to {hex_color} -> BGR {self.box_color}")
+        except Exception as e:
+            logger.warning(f"Invalid color {hex_color}: {e}, keeping current color")
+
+    def set_box_thickness(self, thickness: int):
+        """Set bounding box line thickness (1-5)"""
+        self.box_thickness = max(1, min(5, thickness))
+        logger.info(f"Box thickness set to {self.box_thickness}")
 
     def _get_class_ids(self, class_names: Optional[List[str]]) -> Optional[List[int]]:
         """Convert class names to YOLO class IDs for inference-time filtering"""
@@ -387,16 +416,20 @@ class YOLODetectionService:
         image_data: bytes,
         conf_threshold: float = 0.5,
         classes_filter: Optional[List[str]] = None,
-        box_color: Tuple[int, int, int] = (0, 255, 0),
-        box_thickness: int = 2,
+        box_color: Optional[Tuple[int, int, int]] = None,
+        box_thickness: Optional[int] = None,
         show_labels: bool = True,
         show_confidence: bool = True
     ) -> Tuple[bytes, Dict[str, Any]]:
-        """Run YOLOv8 inference and return annotated image with bounding boxes using YOLO built-in plotting"""
+        """Run YOLOv8 inference and return annotated image with bounding boxes using custom OpenCV drawing"""
         if not self.model_loaded:
             raise HTTPException(status_code=503, detail="Model not loaded")
 
         start_time = time.time()
+
+        # Use instance defaults if not provided
+        color = box_color if box_color is not None else self.box_color
+        thickness = box_thickness if box_thickness is not None else self.box_thickness
 
         try:
             # Preprocess image
@@ -409,8 +442,10 @@ class YOLODetectionService:
             # Run inference with class filtering at model level (faster than post-filtering)
             results = self.model(image, device=self.device, conf=conf_threshold, classes=class_ids, verbose=False)
 
-            # Parse detections for metadata
+            # Parse detections for metadata and draw bounding boxes
             detections = []
+            annotated_frame = image.copy()
+
             for r in results:
                 boxes = r.boxes
                 if boxes is not None and len(boxes) > 0:
@@ -433,19 +468,52 @@ class YOLODetectionService:
                         }
                         detections.append(detection)
 
-            # Use YOLO's built-in plot() for faster annotation
-            # This returns a numpy array with bounding boxes already drawn
-            annotated_frame = results[0].plot(
-                conf=show_confidence,
-                labels=show_labels,
-                line_width=box_thickness
-            )
+                        # Draw bounding box with custom color
+                        x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+                        cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, thickness)
+
+                        # Draw label if requested
+                        if show_labels or show_confidence:
+                            label_parts = []
+                            if show_labels:
+                                label_parts.append(class_name)
+                            if show_confidence:
+                                label_parts.append(f"{confidence:.0%}")
+                            label_text = " ".join(label_parts)
+
+                            # Calculate label background size
+                            font = cv2.FONT_HERSHEY_SIMPLEX
+                            font_scale = 0.5
+                            font_thickness = 1
+                            (text_width, text_height), baseline = cv2.getTextSize(
+                                label_text, font, font_scale, font_thickness
+                            )
+
+                            # Draw label background
+                            label_y1 = max(0, y1 - text_height - 8)
+                            cv2.rectangle(
+                                annotated_frame,
+                                (x1, label_y1),
+                                (x1 + text_width + 4, y1),
+                                color,
+                                -1  # Filled
+                            )
+
+                            # Draw label text (white on colored background)
+                            cv2.putText(
+                                annotated_frame,
+                                label_text,
+                                (x1 + 2, y1 - 4),
+                                font,
+                                font_scale,
+                                (255, 255, 255),
+                                font_thickness,
+                                cv2.LINE_AA
+                            )
 
             inference_time = time.time() - start_time
 
             # Convert annotated image to JPEG bytes
-            # plot() returns BGR format (OpenCV convention), cv2.imencode expects BGR
-            # so we encode directly without conversion
             _, jpeg_data = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
 
             result_info = {
@@ -473,11 +541,12 @@ class YOLODetectionService:
         camera_id: str = "default",
         conf_threshold: float = 0.5,
         classes_filter: Optional[List[str]] = None,
-        box_thickness: int = 2,
+        box_color: Optional[Tuple[int, int, int]] = None,
+        box_thickness: Optional[int] = None,
         show_labels: bool = True,
         show_confidence: bool = True
     ) -> Tuple[bytes, Dict[str, Any]]:
-        """Run YOLOv8 with tracking and return annotated image with track IDs"""
+        """Run YOLOv8 with tracking and return annotated image with track IDs using custom OpenCV drawing"""
         if not self.model_loaded:
             raise HTTPException(status_code=503, detail="Model not loaded")
 
@@ -485,11 +554,15 @@ class YOLODetectionService:
             # Fall back to regular annotated detection
             return self.detect_and_annotate(
                 image_data, conf_threshold, classes_filter,
-                box_thickness=box_thickness, show_labels=show_labels,
-                show_confidence=show_confidence
+                box_color=box_color, box_thickness=box_thickness,
+                show_labels=show_labels, show_confidence=show_confidence
             )
 
         start_time = time.time()
+
+        # Use instance defaults if not provided
+        color = box_color if box_color is not None else self.box_color
+        thickness = box_thickness if box_thickness is not None else self.box_thickness
 
         try:
             # Preprocess image
@@ -510,15 +583,17 @@ class YOLODetectionService:
                 verbose=False
             )
 
-            # Parse results with track IDs
+            # Parse results with track IDs and draw bounding boxes
             detections = []
             tracks = []
+            annotated_frame = image.copy()
 
             for r in results:
                 boxes = r.boxes
                 if boxes is not None and len(boxes) > 0:
                     for i in range(len(boxes)):
                         cls_id = int(boxes.cls[i])
+                        class_name = r.names[cls_id]
                         confidence = float(boxes.conf[i])
                         bbox = boxes.xyxy[i].tolist()
 
@@ -527,7 +602,7 @@ class YOLODetectionService:
                             track_id = int(boxes.id[i])
 
                         detection = {
-                            "class": r.names[cls_id],
+                            "class": class_name,
                             "class_id": cls_id,
                             "confidence": confidence,
                             "bbox": bbox,
@@ -554,15 +629,53 @@ class YOLODetectionService:
                             "time_since_update": 0
                         })
 
+                        # Draw bounding box with custom color
+                        x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+                        cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, thickness)
+
+                        # Draw label if requested
+                        if show_labels or show_confidence or track_id > 0:
+                            label_parts = []
+                            if show_labels:
+                                label_parts.append(class_name)
+                            if track_id > 0:
+                                label_parts.append(f"#{track_id}")
+                            if show_confidence:
+                                label_parts.append(f"{confidence:.0%}")
+                            label_text = " ".join(label_parts)
+
+                            # Calculate label background size
+                            font = cv2.FONT_HERSHEY_SIMPLEX
+                            font_scale = 0.5
+                            font_thickness = 1
+                            (text_width, text_height), baseline = cv2.getTextSize(
+                                label_text, font, font_scale, font_thickness
+                            )
+
+                            # Draw label background
+                            label_y1 = max(0, y1 - text_height - 8)
+                            cv2.rectangle(
+                                annotated_frame,
+                                (x1, label_y1),
+                                (x1 + text_width + 4, y1),
+                                color,
+                                -1  # Filled
+                            )
+
+                            # Draw label text (white on colored background)
+                            cv2.putText(
+                                annotated_frame,
+                                label_text,
+                                (x1 + 2, y1 - 4),
+                                font,
+                                font_scale,
+                                (255, 255, 255),
+                                font_thickness,
+                                cv2.LINE_AA
+                            )
+
             # Update track history
             self._update_track_history(camera_id, detections)
-
-            # Use YOLO's built-in plot() - it includes track IDs when available
-            annotated_frame = results[0].plot(
-                conf=show_confidence,
-                labels=show_labels,
-                line_width=box_thickness
-            )
 
             inference_time = time.time() - start_time
 

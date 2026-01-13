@@ -359,6 +359,14 @@ class FaceRecognitionServicer(recognition_pb2_grpc.FaceRecognitionServiceService
                 self.similarity_threshold = request.similarity_threshold
                 self.service.similarity_threshold = request.similarity_threshold
 
+            # Handle bounding box color configuration
+            if request.HasField('known_face_color'):
+                self.service.set_known_face_color(request.known_face_color)
+            if request.HasField('unknown_face_color'):
+                self.service.set_unknown_face_color(request.unknown_face_color)
+            if request.HasField('box_thickness'):
+                self.service.set_box_thickness(request.box_thickness)
+
             logger.info(f"[gRPC] Configuration updated: similarity_threshold={self.similarity_threshold}")
 
             return recognition_pb2.ConfigureResponse(

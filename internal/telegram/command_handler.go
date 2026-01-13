@@ -243,10 +243,10 @@ func (ch *CommandHandler) handleMessage(ctx context.Context, update Update, auth
 		response = ch.handleEnableCamera(args)
 	case "/disable":
 		response = ch.handleDisableCamera(args)
-	case "/detect_on":
-		response = ch.handleDetectOn(args)
-	case "/detect_off":
-		response = ch.handleDetectOff(args)
+	case "/alerts_on":
+		response = ch.handleAlertsOn(args)
+	case "/alerts_off":
+		response = ch.handleAlertsOff(args)
 	default:
 		response = fmt.Sprintf("Unknown command: %s\nUse /help to see available commands.", command)
 	}
@@ -293,10 +293,10 @@ func (ch *CommandHandler) handleHelp() string {
 		"<b>Camera Control</b>\n" +
 		"/enable &lt;name&gt; - Activate camera (start streaming)\n" +
 		"/disable &lt;name&gt; - Deactivate camera\n" +
-		"/detect_on &lt;name&gt; - Enable AI detection for camera\n" +
-		"/detect_off &lt;name&gt; - Disable AI detection (streaming only)\n\n" +
+		"/alerts_on &lt;name&gt; - Enable alerts (events &amp; notifications)\n" +
+		"/alerts_off &lt;name&gt; - Disable alerts (bounding boxes only)\n\n" +
 		"<b>Detection</b>\n" +
-		"/start_detection - Start detection on all enabled cameras\n" +
+		"/start_detection - Start detection on all active cameras\n" +
 		"/stop_detection - Stop all detection\n" +
 		"/snapshot &lt;name&gt; - Capture frame from camera\n" +
 		"/events [limit] - Show recent detection events\n\n" +
@@ -308,12 +308,12 @@ func (ch *CommandHandler) handleStatus() string {
 
 	activeCount := 0
 	detectingCount := 0
-	detectionEnabledCount := 0
+	alertsEnabledCount := 0
 	for _, cam := range cameras {
 		if cam.Status == "active" {
 			activeCount++
-			if cam.DetectionEnabled {
-				detectionEnabledCount++
+			if cam.AlertsEnabled {
+				alertsEnabledCount++
 			}
 		}
 		if ch.motionDetector.IsDetectionRunning(cam.ID) {
@@ -332,11 +332,11 @@ func (ch *CommandHandler) handleStatus() string {
 	return fmt.Sprintf(
 		"📊 <b>System Status</b>\n\n"+
 			"📹 Cameras: %d total, %d active\n"+
-			"🔍 Detection: %d/%d cameras (running/enabled)\n"+
+			"🔍 Detection: %d running, %d with alerts\n"+
 			"📱 Telegram: %s\n"+
 			"⏱️ Uptime: %s",
 		len(cameras), activeCount,
-		detectingCount, detectionEnabledCount,
+		detectingCount, alertsEnabledCount,
 		telegramStatus,
 		uptimeStr,
 	)
@@ -361,23 +361,25 @@ func (ch *CommandHandler) handleCameras() string {
 			statusIcon = "🔴"
 		}
 
-		// Detection status indicators
-		detectionStatus := ""
+		// Detection and alerts status indicators
+		statusSuffix := ""
 		if cam.Status == "active" {
 			if ch.motionDetector.IsDetectionRunning(cam.ID) {
-				detectionStatus = " 👁️" // Currently detecting
-			} else if cam.DetectionEnabled {
-				detectionStatus = " 🔍" // Detection enabled but not running
-			} else {
-				detectionStatus = " 📺" // Streaming only
+				if cam.AlertsEnabled {
+					statusSuffix = " 👁️🔔" // Detecting with alerts
+				} else {
+					statusSuffix = " 👁️" // Detecting, no alerts
+				}
+			} else if cam.AlertsEnabled {
+				statusSuffix = " 🔔" // Alerts enabled but not detecting
 			}
 		}
 
-		sb.WriteString(fmt.Sprintf("%s <b>%s</b>%s\n", statusIcon, cam.Name, detectionStatus))
+		sb.WriteString(fmt.Sprintf("%s <b>%s</b>%s\n", statusIcon, cam.Name, statusSuffix))
 		sb.WriteString(fmt.Sprintf("   Device: %s\n", cam.Device))
 	}
 
-	sb.WriteString("\n👁️ = detecting | 🔍 = detection enabled | 📺 = streaming only")
+	sb.WriteString("\n👁️ = detecting | 🔔 = alerts on")
 
 	return sb.String()
 }
@@ -387,17 +389,11 @@ func (ch *CommandHandler) handleStartDetection() string {
 
 	started := 0
 	alreadyRunning := 0
-	skippedDisabled := 0
+	alertsOff := 0
 	errors := 0
 
 	for _, cam := range cameras {
 		if cam.Status != "active" {
-			continue
-		}
-
-		// Skip cameras with detection disabled
-		if !cam.DetectionEnabled {
-			skippedDisabled++
 			continue
 		}
 
@@ -406,15 +402,19 @@ func (ch *CommandHandler) handleStartDetection() string {
 			continue
 		}
 
+		// Start detection for all active cameras (alerts_enabled controls events/notifications)
 		if err := ch.motionDetector.StartDetection(cam.ID, cam.Device); err != nil {
 			fmt.Printf("Failed to start detection on %s: %v\n", cam.Name, err)
 			errors++
 		} else {
 			started++
+			if !cam.AlertsEnabled {
+				alertsOff++
+			}
 		}
 	}
 
-	if started == 0 && alreadyRunning == 0 && skippedDisabled == 0 {
+	if started == 0 && alreadyRunning == 0 {
 		return "⚠️ No active cameras to start detection on."
 	}
 
@@ -425,8 +425,8 @@ func (ch *CommandHandler) handleStartDetection() string {
 		started, alreadyRunning,
 	)
 
-	if skippedDisabled > 0 {
-		response += fmt.Sprintf("\n📺 Streaming only: %d", skippedDisabled)
+	if alertsOff > 0 {
+		response += fmt.Sprintf("\n🔕 Alerts disabled: %d (bounding boxes only)", alertsOff)
 	}
 
 	if errors > 0 {
@@ -584,9 +584,9 @@ func (ch *CommandHandler) handleDisableCamera(args []string) string {
 	return fmt.Sprintf("🛑 Camera '%s' disabled.", targetCamera.Name)
 }
 
-func (ch *CommandHandler) handleDetectOn(args []string) string {
+func (ch *CommandHandler) handleAlertsOn(args []string) string {
 	if len(args) == 0 {
-		return "⚠️ Usage: /detect_on &lt;camera_name&gt;\n\nUse /cameras to see available cameras."
+		return "⚠️ Usage: /alerts_on &lt;camera_name&gt;\n\nUse /cameras to see available cameras."
 	}
 
 	cameraName := strings.Join(args, " ")
@@ -595,44 +595,25 @@ func (ch *CommandHandler) handleDetectOn(args []string) string {
 		return err.Error()
 	}
 
-	if targetCamera.Status != "active" {
-		return fmt.Sprintf("⚠️ Camera '%s' must be active first. Use /enable %s", targetCamera.Name, targetCamera.Name)
+	if targetCamera.AlertsEnabled {
+		return fmt.Sprintf("ℹ️ Alerts are already enabled for '%s'.", targetCamera.Name)
 	}
 
-	if targetCamera.DetectionEnabled {
-		return fmt.Sprintf("ℹ️ Detection is already enabled for '%s'.", targetCamera.Name)
+	if err := ch.cameraManager.SetAlertsEnabled(targetCamera.ID, true); err != nil {
+		return fmt.Sprintf("❌ Failed to enable alerts: %v", err)
 	}
 
-	if err := ch.cameraManager.SetDetectionEnabled(targetCamera.ID, true); err != nil {
-		return fmt.Sprintf("❌ Failed to enable detection: %v", err)
-	}
-
-	// Start detection immediately if any detection is already running
-	response := fmt.Sprintf("👁️ Detection enabled for '%s'.", targetCamera.Name)
-
-	// Check if we should auto-start detection (if detection is running on other cameras)
-	anyRunning := false
-	for _, cam := range ch.cameraManager.ListCameras() {
-		if ch.motionDetector.IsDetectionRunning(cam.ID) {
-			anyRunning = true
-			break
-		}
-	}
-
-	if anyRunning && !ch.motionDetector.IsDetectionRunning(targetCamera.ID) {
-		if err := ch.motionDetector.StartDetection(targetCamera.ID, targetCamera.Device); err != nil {
-			response += fmt.Sprintf("\n⚠️ Auto-start failed: %v", err)
-		} else {
-			response += "\n✅ Detection started automatically."
-		}
+	response := fmt.Sprintf("🔔 Alerts enabled for '%s'.", targetCamera.Name)
+	if ch.motionDetector.IsDetectionRunning(targetCamera.ID) {
+		response += "\n✅ Events and notifications will now be sent."
 	}
 
 	return response
 }
 
-func (ch *CommandHandler) handleDetectOff(args []string) string {
+func (ch *CommandHandler) handleAlertsOff(args []string) string {
 	if len(args) == 0 {
-		return "⚠️ Usage: /detect_off &lt;camera_name&gt;\n\nUse /cameras to see available cameras."
+		return "⚠️ Usage: /alerts_off &lt;camera_name&gt;\n\nUse /cameras to see available cameras."
 	}
 
 	cameraName := strings.Join(args, " ")
@@ -641,23 +622,17 @@ func (ch *CommandHandler) handleDetectOff(args []string) string {
 		return err.Error()
 	}
 
-	if !targetCamera.DetectionEnabled {
-		return fmt.Sprintf("ℹ️ Detection is already disabled for '%s'.", targetCamera.Name)
+	if !targetCamera.AlertsEnabled {
+		return fmt.Sprintf("ℹ️ Alerts are already disabled for '%s'.", targetCamera.Name)
 	}
 
-	// Stop detection if running
-	wasRunning := ch.motionDetector.IsDetectionRunning(targetCamera.ID)
-	if wasRunning {
-		ch.motionDetector.StopDetection(targetCamera.ID)
+	if err := ch.cameraManager.SetAlertsEnabled(targetCamera.ID, false); err != nil {
+		return fmt.Sprintf("❌ Failed to disable alerts: %v", err)
 	}
 
-	if err := ch.cameraManager.SetDetectionEnabled(targetCamera.ID, false); err != nil {
-		return fmt.Sprintf("❌ Failed to disable detection: %v", err)
-	}
-
-	response := fmt.Sprintf("📺 Detection disabled for '%s' (streaming only).", targetCamera.Name)
-	if wasRunning {
-		response += "\n🛑 Detection stopped."
+	response := fmt.Sprintf("🔕 Alerts disabled for '%s'.", targetCamera.Name)
+	if ch.motionDetector.IsDetectionRunning(targetCamera.ID) {
+		response += "\n👁️ Detection continues for bounding boxes."
 	}
 
 	return response

@@ -15,31 +15,31 @@ import (
 
 // Endpoints wraps the "camera" service endpoints.
 type Endpoints struct {
-	List             goa.Endpoint
-	Get              goa.Endpoint
-	Create           goa.Endpoint
-	Update           goa.Endpoint
-	Delete           goa.Endpoint
-	Activate         goa.Endpoint
-	Deactivate       goa.Endpoint
-	Capture          goa.Endpoint
-	EnableDetection  goa.Endpoint
-	DisableDetection goa.Endpoint
+	List          goa.Endpoint
+	Get           goa.Endpoint
+	Create        goa.Endpoint
+	Update        goa.Endpoint
+	Delete        goa.Endpoint
+	Activate      goa.Endpoint
+	Deactivate    goa.Endpoint
+	Capture       goa.Endpoint
+	EnableAlerts  goa.Endpoint
+	DisableAlerts goa.Endpoint
 }
 
 // NewEndpoints wraps the methods of the "camera" service with endpoints.
 func NewEndpoints(s Service) *Endpoints {
 	return &Endpoints{
-		List:             NewListEndpoint(s),
-		Get:              NewGetEndpoint(s),
-		Create:           NewCreateEndpoint(s),
-		Update:           NewUpdateEndpoint(s),
-		Delete:           NewDeleteEndpoint(s),
-		Activate:         NewActivateEndpoint(s),
-		Deactivate:       NewDeactivateEndpoint(s),
-		Capture:          NewCaptureEndpoint(s),
-		EnableDetection:  NewEnableDetectionEndpoint(s),
-		DisableDetection: NewDisableDetectionEndpoint(s),
+		List:          NewListEndpoint(s),
+		Get:           NewGetEndpoint(s),
+		Create:        NewCreateEndpoint(s),
+		Update:        NewUpdateEndpoint(s),
+		Delete:        NewDeleteEndpoint(s),
+		Activate:      NewActivateEndpoint(s),
+		Deactivate:    NewDeactivateEndpoint(s),
+		Capture:       NewCaptureEndpoint(s),
+		EnableAlerts:  NewEnableAlertsEndpoint(s),
+		DisableAlerts: NewDisableAlertsEndpoint(s),
 	}
 }
 
@@ -53,8 +53,8 @@ func (e *Endpoints) Use(m func(goa.Endpoint) goa.Endpoint) {
 	e.Activate = m(e.Activate)
 	e.Deactivate = m(e.Deactivate)
 	e.Capture = m(e.Capture)
-	e.EnableDetection = m(e.EnableDetection)
-	e.DisableDetection = m(e.DisableDetection)
+	e.EnableAlerts = m(e.EnableAlerts)
+	e.DisableAlerts = m(e.DisableAlerts)
 }
 
 // NewListEndpoint returns an endpoint function that calls the method "list" of
@@ -128,20 +128,20 @@ func NewCaptureEndpoint(s Service) goa.Endpoint {
 	}
 }
 
-// NewEnableDetectionEndpoint returns an endpoint function that calls the
-// method "enable_detection" of service "camera".
-func NewEnableDetectionEndpoint(s Service) goa.Endpoint {
+// NewEnableAlertsEndpoint returns an endpoint function that calls the method
+// "enable_alerts" of service "camera".
+func NewEnableAlertsEndpoint(s Service) goa.Endpoint {
 	return func(ctx context.Context, req any) (any, error) {
-		p := req.(*EnableDetectionPayload)
-		return s.EnableDetection(ctx, p)
+		p := req.(*EnableAlertsPayload)
+		return s.EnableAlerts(ctx, p)
 	}
 }
 
-// NewDisableDetectionEndpoint returns an endpoint function that calls the
-// method "disable_detection" of service "camera".
-func NewDisableDetectionEndpoint(s Service) goa.Endpoint {
+// NewDisableAlertsEndpoint returns an endpoint function that calls the method
+// "disable_alerts" of service "camera".
+func NewDisableAlertsEndpoint(s Service) goa.Endpoint {
 	return func(ctx context.Context, req any) (any, error) {
-		p := req.(*DisableDetectionPayload)
-		return s.DisableDetection(ctx, p)
+		p := req.(*DisableAlertsPayload)
+		return s.DisableAlerts(ctx, p)
 	}
 }

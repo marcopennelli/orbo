@@ -15,37 +15,43 @@ import (
 
 // Endpoints wraps the "config" service endpoints.
 type Endpoints struct {
-	Get              goa.Endpoint
-	Update           goa.Endpoint
-	TestNotification goa.Endpoint
-	GetDinov3        goa.Endpoint
-	UpdateDinov3     goa.Endpoint
-	TestDinov3       goa.Endpoint
-	GetYolo          goa.Endpoint
-	UpdateYolo       goa.Endpoint
-	TestYolo         goa.Endpoint
-	GetDetection     goa.Endpoint
-	UpdateDetection  goa.Endpoint
-	GetPipeline      goa.Endpoint
-	UpdatePipeline   goa.Endpoint
+	Get               goa.Endpoint
+	Update            goa.Endpoint
+	TestNotification  goa.Endpoint
+	GetDinov3         goa.Endpoint
+	UpdateDinov3      goa.Endpoint
+	TestDinov3        goa.Endpoint
+	GetYolo           goa.Endpoint
+	UpdateYolo        goa.Endpoint
+	TestYolo          goa.Endpoint
+	GetDetection      goa.Endpoint
+	UpdateDetection   goa.Endpoint
+	GetPipeline       goa.Endpoint
+	UpdatePipeline    goa.Endpoint
+	GetRecognition    goa.Endpoint
+	UpdateRecognition goa.Endpoint
+	TestRecognition   goa.Endpoint
 }
 
 // NewEndpoints wraps the methods of the "config" service with endpoints.
 func NewEndpoints(s Service) *Endpoints {
 	return &Endpoints{
-		Get:              NewGetEndpoint(s),
-		Update:           NewUpdateEndpoint(s),
-		TestNotification: NewTestNotificationEndpoint(s),
-		GetDinov3:        NewGetDinov3Endpoint(s),
-		UpdateDinov3:     NewUpdateDinov3Endpoint(s),
-		TestDinov3:       NewTestDinov3Endpoint(s),
-		GetYolo:          NewGetYoloEndpoint(s),
-		UpdateYolo:       NewUpdateYoloEndpoint(s),
-		TestYolo:         NewTestYoloEndpoint(s),
-		GetDetection:     NewGetDetectionEndpoint(s),
-		UpdateDetection:  NewUpdateDetectionEndpoint(s),
-		GetPipeline:      NewGetPipelineEndpoint(s),
-		UpdatePipeline:   NewUpdatePipelineEndpoint(s),
+		Get:               NewGetEndpoint(s),
+		Update:            NewUpdateEndpoint(s),
+		TestNotification:  NewTestNotificationEndpoint(s),
+		GetDinov3:         NewGetDinov3Endpoint(s),
+		UpdateDinov3:      NewUpdateDinov3Endpoint(s),
+		TestDinov3:        NewTestDinov3Endpoint(s),
+		GetYolo:           NewGetYoloEndpoint(s),
+		UpdateYolo:        NewUpdateYoloEndpoint(s),
+		TestYolo:          NewTestYoloEndpoint(s),
+		GetDetection:      NewGetDetectionEndpoint(s),
+		UpdateDetection:   NewUpdateDetectionEndpoint(s),
+		GetPipeline:       NewGetPipelineEndpoint(s),
+		UpdatePipeline:    NewUpdatePipelineEndpoint(s),
+		GetRecognition:    NewGetRecognitionEndpoint(s),
+		UpdateRecognition: NewUpdateRecognitionEndpoint(s),
+		TestRecognition:   NewTestRecognitionEndpoint(s),
 	}
 }
 
@@ -64,6 +70,9 @@ func (e *Endpoints) Use(m func(goa.Endpoint) goa.Endpoint) {
 	e.UpdateDetection = m(e.UpdateDetection)
 	e.GetPipeline = m(e.GetPipeline)
 	e.UpdatePipeline = m(e.UpdatePipeline)
+	e.GetRecognition = m(e.GetRecognition)
+	e.UpdateRecognition = m(e.UpdateRecognition)
+	e.TestRecognition = m(e.TestRecognition)
 }
 
 // NewGetEndpoint returns an endpoint function that calls the method "get" of
@@ -172,5 +181,30 @@ func NewUpdatePipelineEndpoint(s Service) goa.Endpoint {
 	return func(ctx context.Context, req any) (any, error) {
 		p := req.(*PipelineConfig)
 		return s.UpdatePipeline(ctx, p)
+	}
+}
+
+// NewGetRecognitionEndpoint returns an endpoint function that calls the method
+// "get_recognition" of service "config".
+func NewGetRecognitionEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		return s.GetRecognition(ctx)
+	}
+}
+
+// NewUpdateRecognitionEndpoint returns an endpoint function that calls the
+// method "update_recognition" of service "config".
+func NewUpdateRecognitionEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		p := req.(*RecognitionConfig)
+		return s.UpdateRecognition(ctx, p)
+	}
+}
+
+// NewTestRecognitionEndpoint returns an endpoint function that calls the
+// method "test_recognition" of service "config".
+func NewTestRecognitionEndpoint(s Service) goa.Endpoint {
+	return func(ctx context.Context, req any) (any, error) {
+		return s.TestRecognition(ctx)
 	}
 }

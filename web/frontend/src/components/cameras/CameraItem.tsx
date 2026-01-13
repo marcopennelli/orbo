@@ -1,4 +1,4 @@
-import { Camera, Power, PowerOff, Edit, Trash2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Camera, Power, PowerOff, Edit, Trash2, AlertCircle, Bell, BellOff } from 'lucide-react';
 import type { Camera as CameraType } from '../../types';
 import { Badge, Button } from '../ui';
 
@@ -9,7 +9,7 @@ interface CameraItemProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onToggleActive?: () => void;
-  onToggleDetection?: () => void;
+  onToggleAlerts?: () => void;
   isLoading?: boolean;
 }
 
@@ -42,12 +42,12 @@ export default function CameraItem({
   onEdit,
   onDelete,
   onToggleActive,
-  onToggleDetection,
+  onToggleAlerts,
   isLoading,
 }: CameraItemProps) {
   const isActive = camera.status === 'active';
   const isError = camera.status === 'error';
-  const detectionEnabled = camera.detection_enabled;
+  const alertsEnabled = camera.alerts_enabled;
 
   return (
     <div
@@ -83,11 +83,11 @@ export default function CameraItem({
           </Badge>
           {isActive && (
             <Badge
-              variant={detectionEnabled ? 'success' : 'default'}
+              variant={alertsEnabled ? 'success' : 'default'}
               className="text-xs"
-              title={detectionEnabled ? 'Detection enabled' : 'Detection disabled (streaming only)'}
+              title={alertsEnabled ? 'Alerts enabled' : 'Alerts disabled (bounding boxes only)'}
             >
-              {detectionEnabled ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+              {alertsEnabled ? <Bell className="w-3 h-3" /> : <BellOff className="w-3 h-3" />}
             </Badge>
           )}
         </div>
@@ -113,13 +113,13 @@ export default function CameraItem({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              onToggleDetection?.();
+              onToggleAlerts?.();
             }}
             disabled={isLoading}
-            title={detectionEnabled ? 'Disable AI detection' : 'Enable AI detection'}
-            className={detectionEnabled ? 'text-accent-green' : 'text-text-muted'}
+            title={alertsEnabled ? 'Disable alerts' : 'Enable alerts'}
+            className={alertsEnabled ? 'text-accent-green' : 'text-text-muted'}
           >
-            {detectionEnabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            {alertsEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
           </Button>
         )}
         <Button

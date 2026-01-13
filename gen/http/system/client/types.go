@@ -108,8 +108,9 @@ type CameraInfoResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, camera streams only without running AI detection.
-	DetectionEnabled *bool `form:"detection_enabled,omitempty" json:"detection_enabled,omitempty" xml:"detection_enabled,omitempty"`
+	// When false, detection pipeline still runs for bounding boxes but no events
+	// are created or alerts sent.
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
 // NewStatusSystemStatusOK builds a "system" service "status" endpoint result

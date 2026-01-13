@@ -515,21 +515,21 @@ func EncodeCaptureError(encoder func(context.Context, http.ResponseWriter) goaht
 	}
 }
 
-// EncodeEnableDetectionResponse returns an encoder for responses returned by
-// the camera enable_detection endpoint.
-func EncodeEnableDetectionResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+// EncodeEnableAlertsResponse returns an encoder for responses returned by the
+// camera enable_alerts endpoint.
+func EncodeEnableAlertsResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
 	return func(ctx context.Context, w http.ResponseWriter, v any) error {
 		res, _ := v.(*camera.CameraInfo)
 		enc := encoder(ctx, w)
-		body := NewEnableDetectionResponseBody(res)
+		body := NewEnableAlertsResponseBody(res)
 		w.WriteHeader(http.StatusOK)
 		return enc.Encode(body)
 	}
 }
 
-// DecodeEnableDetectionRequest returns a decoder for requests sent to the
-// camera enable_detection endpoint.
-func DecodeEnableDetectionRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
+// DecodeEnableAlertsRequest returns a decoder for requests sent to the camera
+// enable_alerts endpoint.
+func DecodeEnableAlertsRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
 	return func(r *http.Request) (any, error) {
 		var (
 			id  string
@@ -542,15 +542,15 @@ func DecodeEnableDetectionRequest(mux goahttp.Muxer, decoder func(*http.Request)
 		if err != nil {
 			return nil, err
 		}
-		payload := NewEnableDetectionPayload(id)
+		payload := NewEnableAlertsPayload(id)
 
 		return payload, nil
 	}
 }
 
-// EncodeEnableDetectionError returns an encoder for errors returned by the
-// enable_detection camera endpoint.
-func EncodeEnableDetectionError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+// EncodeEnableAlertsError returns an encoder for errors returned by the
+// enable_alerts camera endpoint.
+func EncodeEnableAlertsError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
 	encodeError := goahttp.ErrorEncoder(encoder, formatter)
 	return func(ctx context.Context, w http.ResponseWriter, v error) error {
 		var en goa.GoaErrorNamer
@@ -566,7 +566,7 @@ func EncodeEnableDetectionError(encoder func(context.Context, http.ResponseWrite
 			if formatter != nil {
 				body = formatter(ctx, res)
 			} else {
-				body = NewEnableDetectionNotFoundResponseBody(res)
+				body = NewEnableAlertsNotFoundResponseBody(res)
 			}
 			w.Header().Set("goa-error", res.GoaErrorName())
 			w.WriteHeader(http.StatusNotFound)
@@ -577,21 +577,21 @@ func EncodeEnableDetectionError(encoder func(context.Context, http.ResponseWrite
 	}
 }
 
-// EncodeDisableDetectionResponse returns an encoder for responses returned by
-// the camera disable_detection endpoint.
-func EncodeDisableDetectionResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
+// EncodeDisableAlertsResponse returns an encoder for responses returned by the
+// camera disable_alerts endpoint.
+func EncodeDisableAlertsResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, any) error {
 	return func(ctx context.Context, w http.ResponseWriter, v any) error {
 		res, _ := v.(*camera.CameraInfo)
 		enc := encoder(ctx, w)
-		body := NewDisableDetectionResponseBody(res)
+		body := NewDisableAlertsResponseBody(res)
 		w.WriteHeader(http.StatusOK)
 		return enc.Encode(body)
 	}
 }
 
-// DecodeDisableDetectionRequest returns a decoder for requests sent to the
-// camera disable_detection endpoint.
-func DecodeDisableDetectionRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
+// DecodeDisableAlertsRequest returns a decoder for requests sent to the camera
+// disable_alerts endpoint.
+func DecodeDisableAlertsRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.Decoder) func(*http.Request) (any, error) {
 	return func(r *http.Request) (any, error) {
 		var (
 			id  string
@@ -604,15 +604,15 @@ func DecodeDisableDetectionRequest(mux goahttp.Muxer, decoder func(*http.Request
 		if err != nil {
 			return nil, err
 		}
-		payload := NewDisableDetectionPayload(id)
+		payload := NewDisableAlertsPayload(id)
 
 		return payload, nil
 	}
 }
 
-// EncodeDisableDetectionError returns an encoder for errors returned by the
-// disable_detection camera endpoint.
-func EncodeDisableDetectionError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
+// EncodeDisableAlertsError returns an encoder for errors returned by the
+// disable_alerts camera endpoint.
+func EncodeDisableAlertsError(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder, formatter func(ctx context.Context, err error) goahttp.Statuser) func(context.Context, http.ResponseWriter, error) error {
 	encodeError := goahttp.ErrorEncoder(encoder, formatter)
 	return func(ctx context.Context, w http.ResponseWriter, v error) error {
 		var en goa.GoaErrorNamer
@@ -628,7 +628,7 @@ func EncodeDisableDetectionError(encoder func(context.Context, http.ResponseWrit
 			if formatter != nil {
 				body = formatter(ctx, res)
 			} else {
-				body = NewDisableDetectionNotFoundResponseBody(res)
+				body = NewDisableAlertsNotFoundResponseBody(res)
 			}
 			w.Header().Set("goa-error", res.GoaErrorName())
 			w.WriteHeader(http.StatusNotFound)
@@ -643,14 +643,14 @@ func EncodeDisableDetectionError(encoder func(context.Context, http.ResponseWrit
 // *CameraInfoResponse from a value of type *camera.CameraInfo.
 func marshalCameraCameraInfoToCameraInfoResponse(v *camera.CameraInfo) *CameraInfoResponse {
 	res := &CameraInfoResponse{
-		ID:               v.ID,
-		Name:             v.Name,
-		Device:           v.Device,
-		Status:           v.Status,
-		Resolution:       v.Resolution,
-		Fps:              v.Fps,
-		CreatedAt:        v.CreatedAt,
-		DetectionEnabled: v.DetectionEnabled,
+		ID:            v.ID,
+		Name:          v.Name,
+		Device:        v.Device,
+		Status:        v.Status,
+		Resolution:    v.Resolution,
+		Fps:           v.Fps,
+		CreatedAt:     v.CreatedAt,
+		AlertsEnabled: v.AlertsEnabled,
 	}
 
 	return res

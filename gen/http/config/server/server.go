@@ -18,20 +18,23 @@ import (
 
 // Server lists the config service endpoint HTTP handlers.
 type Server struct {
-	Mounts           []*MountPoint
-	Get              http.Handler
-	Update           http.Handler
-	TestNotification http.Handler
-	GetDinov3        http.Handler
-	UpdateDinov3     http.Handler
-	TestDinov3       http.Handler
-	GetYolo          http.Handler
-	UpdateYolo       http.Handler
-	TestYolo         http.Handler
-	GetDetection     http.Handler
-	UpdateDetection  http.Handler
-	GetPipeline      http.Handler
-	UpdatePipeline   http.Handler
+	Mounts            []*MountPoint
+	Get               http.Handler
+	Update            http.Handler
+	TestNotification  http.Handler
+	GetDinov3         http.Handler
+	UpdateDinov3      http.Handler
+	TestDinov3        http.Handler
+	GetYolo           http.Handler
+	UpdateYolo        http.Handler
+	TestYolo          http.Handler
+	GetDetection      http.Handler
+	UpdateDetection   http.Handler
+	GetPipeline       http.Handler
+	UpdatePipeline    http.Handler
+	GetRecognition    http.Handler
+	UpdateRecognition http.Handler
+	TestRecognition   http.Handler
 }
 
 // MountPoint holds information about the mounted endpoints.
@@ -74,20 +77,26 @@ func New(
 			{"UpdateDetection", "PUT", "/api/v1/config/detection"},
 			{"GetPipeline", "GET", "/api/v1/config/pipeline"},
 			{"UpdatePipeline", "PUT", "/api/v1/config/pipeline"},
+			{"GetRecognition", "GET", "/api/v1/config/recognition"},
+			{"UpdateRecognition", "PUT", "/api/v1/config/recognition"},
+			{"TestRecognition", "POST", "/api/v1/config/recognition/test"},
 		},
-		Get:              NewGetHandler(e.Get, mux, decoder, encoder, errhandler, formatter),
-		Update:           NewUpdateHandler(e.Update, mux, decoder, encoder, errhandler, formatter),
-		TestNotification: NewTestNotificationHandler(e.TestNotification, mux, decoder, encoder, errhandler, formatter),
-		GetDinov3:        NewGetDinov3Handler(e.GetDinov3, mux, decoder, encoder, errhandler, formatter),
-		UpdateDinov3:     NewUpdateDinov3Handler(e.UpdateDinov3, mux, decoder, encoder, errhandler, formatter),
-		TestDinov3:       NewTestDinov3Handler(e.TestDinov3, mux, decoder, encoder, errhandler, formatter),
-		GetYolo:          NewGetYoloHandler(e.GetYolo, mux, decoder, encoder, errhandler, formatter),
-		UpdateYolo:       NewUpdateYoloHandler(e.UpdateYolo, mux, decoder, encoder, errhandler, formatter),
-		TestYolo:         NewTestYoloHandler(e.TestYolo, mux, decoder, encoder, errhandler, formatter),
-		GetDetection:     NewGetDetectionHandler(e.GetDetection, mux, decoder, encoder, errhandler, formatter),
-		UpdateDetection:  NewUpdateDetectionHandler(e.UpdateDetection, mux, decoder, encoder, errhandler, formatter),
-		GetPipeline:      NewGetPipelineHandler(e.GetPipeline, mux, decoder, encoder, errhandler, formatter),
-		UpdatePipeline:   NewUpdatePipelineHandler(e.UpdatePipeline, mux, decoder, encoder, errhandler, formatter),
+		Get:               NewGetHandler(e.Get, mux, decoder, encoder, errhandler, formatter),
+		Update:            NewUpdateHandler(e.Update, mux, decoder, encoder, errhandler, formatter),
+		TestNotification:  NewTestNotificationHandler(e.TestNotification, mux, decoder, encoder, errhandler, formatter),
+		GetDinov3:         NewGetDinov3Handler(e.GetDinov3, mux, decoder, encoder, errhandler, formatter),
+		UpdateDinov3:      NewUpdateDinov3Handler(e.UpdateDinov3, mux, decoder, encoder, errhandler, formatter),
+		TestDinov3:        NewTestDinov3Handler(e.TestDinov3, mux, decoder, encoder, errhandler, formatter),
+		GetYolo:           NewGetYoloHandler(e.GetYolo, mux, decoder, encoder, errhandler, formatter),
+		UpdateYolo:        NewUpdateYoloHandler(e.UpdateYolo, mux, decoder, encoder, errhandler, formatter),
+		TestYolo:          NewTestYoloHandler(e.TestYolo, mux, decoder, encoder, errhandler, formatter),
+		GetDetection:      NewGetDetectionHandler(e.GetDetection, mux, decoder, encoder, errhandler, formatter),
+		UpdateDetection:   NewUpdateDetectionHandler(e.UpdateDetection, mux, decoder, encoder, errhandler, formatter),
+		GetPipeline:       NewGetPipelineHandler(e.GetPipeline, mux, decoder, encoder, errhandler, formatter),
+		UpdatePipeline:    NewUpdatePipelineHandler(e.UpdatePipeline, mux, decoder, encoder, errhandler, formatter),
+		GetRecognition:    NewGetRecognitionHandler(e.GetRecognition, mux, decoder, encoder, errhandler, formatter),
+		UpdateRecognition: NewUpdateRecognitionHandler(e.UpdateRecognition, mux, decoder, encoder, errhandler, formatter),
+		TestRecognition:   NewTestRecognitionHandler(e.TestRecognition, mux, decoder, encoder, errhandler, formatter),
 	}
 }
 
@@ -109,6 +118,9 @@ func (s *Server) Use(m func(http.Handler) http.Handler) {
 	s.UpdateDetection = m(s.UpdateDetection)
 	s.GetPipeline = m(s.GetPipeline)
 	s.UpdatePipeline = m(s.UpdatePipeline)
+	s.GetRecognition = m(s.GetRecognition)
+	s.UpdateRecognition = m(s.UpdateRecognition)
+	s.TestRecognition = m(s.TestRecognition)
 }
 
 // MethodNames returns the methods served.
@@ -129,6 +141,9 @@ func Mount(mux goahttp.Muxer, h *Server) {
 	MountUpdateDetectionHandler(mux, h.UpdateDetection)
 	MountGetPipelineHandler(mux, h.GetPipeline)
 	MountUpdatePipelineHandler(mux, h.UpdatePipeline)
+	MountGetRecognitionHandler(mux, h.GetRecognition)
+	MountUpdateRecognitionHandler(mux, h.UpdateRecognition)
+	MountTestRecognitionHandler(mux, h.TestRecognition)
 }
 
 // Mount configures the mux to serve the config endpoints.
@@ -731,6 +746,145 @@ func NewUpdatePipelineHandler(
 			return
 		}
 		res, err := endpoint(ctx, payload)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountGetRecognitionHandler configures the mux to serve the "config" service
+// "get_recognition" endpoint.
+func MountGetRecognitionHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("GET", "/api/v1/config/recognition", f)
+}
+
+// NewGetRecognitionHandler creates a HTTP handler which loads the HTTP request
+// and calls the "config" service "get_recognition" endpoint.
+func NewGetRecognitionHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		encodeResponse = EncodeGetRecognitionResponse(encoder)
+		encodeError    = goahttp.ErrorEncoder(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "get_recognition")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		var err error
+		res, err := endpoint(ctx, nil)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountUpdateRecognitionHandler configures the mux to serve the "config"
+// service "update_recognition" endpoint.
+func MountUpdateRecognitionHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("PUT", "/api/v1/config/recognition", f)
+}
+
+// NewUpdateRecognitionHandler creates a HTTP handler which loads the HTTP
+// request and calls the "config" service "update_recognition" endpoint.
+func NewUpdateRecognitionHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		decodeRequest  = DecodeUpdateRecognitionRequest(mux, decoder)
+		encodeResponse = EncodeUpdateRecognitionResponse(encoder)
+		encodeError    = EncodeUpdateRecognitionError(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "update_recognition")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		payload, err := decodeRequest(r)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		res, err := endpoint(ctx, payload)
+		if err != nil {
+			if err := encodeError(ctx, w, err); err != nil {
+				errhandler(ctx, w, err)
+			}
+			return
+		}
+		if err := encodeResponse(ctx, w, res); err != nil {
+			errhandler(ctx, w, err)
+		}
+	})
+}
+
+// MountTestRecognitionHandler configures the mux to serve the "config" service
+// "test_recognition" endpoint.
+func MountTestRecognitionHandler(mux goahttp.Muxer, h http.Handler) {
+	f, ok := h.(http.HandlerFunc)
+	if !ok {
+		f = func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+		}
+	}
+	mux.Handle("POST", "/api/v1/config/recognition/test", f)
+}
+
+// NewTestRecognitionHandler creates a HTTP handler which loads the HTTP
+// request and calls the "config" service "test_recognition" endpoint.
+func NewTestRecognitionHandler(
+	endpoint goa.Endpoint,
+	mux goahttp.Muxer,
+	decoder func(*http.Request) goahttp.Decoder,
+	encoder func(context.Context, http.ResponseWriter) goahttp.Encoder,
+	errhandler func(context.Context, http.ResponseWriter, error),
+	formatter func(ctx context.Context, err error) goahttp.Statuser,
+) http.Handler {
+	var (
+		encodeResponse = EncodeTestRecognitionResponse(encoder)
+		encodeError    = EncodeTestRecognitionError(encoder, formatter)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), goahttp.AcceptTypeKey, r.Header.Get("Accept"))
+		ctx = context.WithValue(ctx, goa.MethodKey, "test_recognition")
+		ctx = context.WithValue(ctx, goa.ServiceKey, "config")
+		var err error
+		res, err := endpoint(ctx, nil)
 		if err != nil {
 			if err := encodeError(ctx, w, err); err != nil {
 				errhandler(ctx, w, err)

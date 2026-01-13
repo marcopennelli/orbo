@@ -60,8 +60,9 @@ type GetResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, camera streams only without running AI detection.
-	DetectionEnabled *bool `form:"detection_enabled,omitempty" json:"detection_enabled,omitempty" xml:"detection_enabled,omitempty"`
+	// When false, detection pipeline still runs for bounding boxes but no events
+	// are created or alerts sent.
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
 // CreateResponseBody is the type of the "camera" service "create" endpoint
@@ -81,8 +82,9 @@ type CreateResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, camera streams only without running AI detection.
-	DetectionEnabled *bool `form:"detection_enabled,omitempty" json:"detection_enabled,omitempty" xml:"detection_enabled,omitempty"`
+	// When false, detection pipeline still runs for bounding boxes but no events
+	// are created or alerts sent.
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
 // UpdateResponseBody is the type of the "camera" service "update" endpoint
@@ -102,8 +104,9 @@ type UpdateResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, camera streams only without running AI detection.
-	DetectionEnabled *bool `form:"detection_enabled,omitempty" json:"detection_enabled,omitempty" xml:"detection_enabled,omitempty"`
+	// When false, detection pipeline still runs for bounding boxes but no events
+	// are created or alerts sent.
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
 // ActivateResponseBody is the type of the "camera" service "activate" endpoint
@@ -123,8 +126,9 @@ type ActivateResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, camera streams only without running AI detection.
-	DetectionEnabled *bool `form:"detection_enabled,omitempty" json:"detection_enabled,omitempty" xml:"detection_enabled,omitempty"`
+	// When false, detection pipeline still runs for bounding boxes but no events
+	// are created or alerts sent.
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
 // DeactivateResponseBody is the type of the "camera" service "deactivate"
@@ -144,8 +148,9 @@ type DeactivateResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, camera streams only without running AI detection.
-	DetectionEnabled *bool `form:"detection_enabled,omitempty" json:"detection_enabled,omitempty" xml:"detection_enabled,omitempty"`
+	// When false, detection pipeline still runs for bounding boxes but no events
+	// are created or alerts sent.
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
 // CaptureResponseBody is the type of the "camera" service "capture" endpoint
@@ -157,9 +162,9 @@ type CaptureResponseBody struct {
 	ContentType string `form:"content_type" json:"content_type" xml:"content_type"`
 }
 
-// EnableDetectionResponseBody is the type of the "camera" service
-// "enable_detection" endpoint HTTP response body.
-type EnableDetectionResponseBody struct {
+// EnableAlertsResponseBody is the type of the "camera" service "enable_alerts"
+// endpoint HTTP response body.
+type EnableAlertsResponseBody struct {
 	// Camera unique identifier
 	ID string `form:"id" json:"id" xml:"id"`
 	// Camera name
@@ -174,13 +179,14 @@ type EnableDetectionResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, camera streams only without running AI detection.
-	DetectionEnabled *bool `form:"detection_enabled,omitempty" json:"detection_enabled,omitempty" xml:"detection_enabled,omitempty"`
+	// When false, detection pipeline still runs for bounding boxes but no events
+	// are created or alerts sent.
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
-// DisableDetectionResponseBody is the type of the "camera" service
-// "disable_detection" endpoint HTTP response body.
-type DisableDetectionResponseBody struct {
+// DisableAlertsResponseBody is the type of the "camera" service
+// "disable_alerts" endpoint HTTP response body.
+type DisableAlertsResponseBody struct {
 	// Camera unique identifier
 	ID string `form:"id" json:"id" xml:"id"`
 	// Camera name
@@ -195,8 +201,9 @@ type DisableDetectionResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, camera streams only without running AI detection.
-	DetectionEnabled *bool `form:"detection_enabled,omitempty" json:"detection_enabled,omitempty" xml:"detection_enabled,omitempty"`
+	// When false, detection pipeline still runs for bounding boxes but no events
+	// are created or alerts sent.
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
 // GetNotFoundResponseBody is the type of the "camera" service "get" endpoint
@@ -285,18 +292,18 @@ type CaptureNotFoundResponseBody struct {
 	ID string `form:"id" json:"id" xml:"id"`
 }
 
-// EnableDetectionNotFoundResponseBody is the type of the "camera" service
-// "enable_detection" endpoint HTTP response body for the "not_found" error.
-type EnableDetectionNotFoundResponseBody struct {
+// EnableAlertsNotFoundResponseBody is the type of the "camera" service
+// "enable_alerts" endpoint HTTP response body for the "not_found" error.
+type EnableAlertsNotFoundResponseBody struct {
 	// Error message
 	Message string `form:"message" json:"message" xml:"message"`
 	// Resource ID
 	ID string `form:"id" json:"id" xml:"id"`
 }
 
-// DisableDetectionNotFoundResponseBody is the type of the "camera" service
-// "disable_detection" endpoint HTTP response body for the "not_found" error.
-type DisableDetectionNotFoundResponseBody struct {
+// DisableAlertsNotFoundResponseBody is the type of the "camera" service
+// "disable_alerts" endpoint HTTP response body for the "not_found" error.
+type DisableAlertsNotFoundResponseBody struct {
 	// Error message
 	Message string `form:"message" json:"message" xml:"message"`
 	// Resource ID
@@ -319,8 +326,9 @@ type CameraInfoResponse struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, camera streams only without running AI detection.
-	DetectionEnabled *bool `form:"detection_enabled,omitempty" json:"detection_enabled,omitempty" xml:"detection_enabled,omitempty"`
+	// When false, detection pipeline still runs for bounding boxes but no events
+	// are created or alerts sent.
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
 // NewListResponseBody builds the HTTP response body from the result of the
@@ -337,14 +345,14 @@ func NewListResponseBody(res []*camera.CameraInfo) ListResponseBody {
 // "get" endpoint of the "camera" service.
 func NewGetResponseBody(res *camera.CameraInfo) *GetResponseBody {
 	body := &GetResponseBody{
-		ID:               res.ID,
-		Name:             res.Name,
-		Device:           res.Device,
-		Status:           res.Status,
-		Resolution:       res.Resolution,
-		Fps:              res.Fps,
-		CreatedAt:        res.CreatedAt,
-		DetectionEnabled: res.DetectionEnabled,
+		ID:            res.ID,
+		Name:          res.Name,
+		Device:        res.Device,
+		Status:        res.Status,
+		Resolution:    res.Resolution,
+		Fps:           res.Fps,
+		CreatedAt:     res.CreatedAt,
+		AlertsEnabled: res.AlertsEnabled,
 	}
 	return body
 }
@@ -353,14 +361,14 @@ func NewGetResponseBody(res *camera.CameraInfo) *GetResponseBody {
 // "create" endpoint of the "camera" service.
 func NewCreateResponseBody(res *camera.CameraInfo) *CreateResponseBody {
 	body := &CreateResponseBody{
-		ID:               res.ID,
-		Name:             res.Name,
-		Device:           res.Device,
-		Status:           res.Status,
-		Resolution:       res.Resolution,
-		Fps:              res.Fps,
-		CreatedAt:        res.CreatedAt,
-		DetectionEnabled: res.DetectionEnabled,
+		ID:            res.ID,
+		Name:          res.Name,
+		Device:        res.Device,
+		Status:        res.Status,
+		Resolution:    res.Resolution,
+		Fps:           res.Fps,
+		CreatedAt:     res.CreatedAt,
+		AlertsEnabled: res.AlertsEnabled,
 	}
 	return body
 }
@@ -369,14 +377,14 @@ func NewCreateResponseBody(res *camera.CameraInfo) *CreateResponseBody {
 // "update" endpoint of the "camera" service.
 func NewUpdateResponseBody(res *camera.CameraInfo) *UpdateResponseBody {
 	body := &UpdateResponseBody{
-		ID:               res.ID,
-		Name:             res.Name,
-		Device:           res.Device,
-		Status:           res.Status,
-		Resolution:       res.Resolution,
-		Fps:              res.Fps,
-		CreatedAt:        res.CreatedAt,
-		DetectionEnabled: res.DetectionEnabled,
+		ID:            res.ID,
+		Name:          res.Name,
+		Device:        res.Device,
+		Status:        res.Status,
+		Resolution:    res.Resolution,
+		Fps:           res.Fps,
+		CreatedAt:     res.CreatedAt,
+		AlertsEnabled: res.AlertsEnabled,
 	}
 	return body
 }
@@ -385,14 +393,14 @@ func NewUpdateResponseBody(res *camera.CameraInfo) *UpdateResponseBody {
 // "activate" endpoint of the "camera" service.
 func NewActivateResponseBody(res *camera.CameraInfo) *ActivateResponseBody {
 	body := &ActivateResponseBody{
-		ID:               res.ID,
-		Name:             res.Name,
-		Device:           res.Device,
-		Status:           res.Status,
-		Resolution:       res.Resolution,
-		Fps:              res.Fps,
-		CreatedAt:        res.CreatedAt,
-		DetectionEnabled: res.DetectionEnabled,
+		ID:            res.ID,
+		Name:          res.Name,
+		Device:        res.Device,
+		Status:        res.Status,
+		Resolution:    res.Resolution,
+		Fps:           res.Fps,
+		CreatedAt:     res.CreatedAt,
+		AlertsEnabled: res.AlertsEnabled,
 	}
 	return body
 }
@@ -401,14 +409,14 @@ func NewActivateResponseBody(res *camera.CameraInfo) *ActivateResponseBody {
 // the "deactivate" endpoint of the "camera" service.
 func NewDeactivateResponseBody(res *camera.CameraInfo) *DeactivateResponseBody {
 	body := &DeactivateResponseBody{
-		ID:               res.ID,
-		Name:             res.Name,
-		Device:           res.Device,
-		Status:           res.Status,
-		Resolution:       res.Resolution,
-		Fps:              res.Fps,
-		CreatedAt:        res.CreatedAt,
-		DetectionEnabled: res.DetectionEnabled,
+		ID:            res.ID,
+		Name:          res.Name,
+		Device:        res.Device,
+		Status:        res.Status,
+		Resolution:    res.Resolution,
+		Fps:           res.Fps,
+		CreatedAt:     res.CreatedAt,
+		AlertsEnabled: res.AlertsEnabled,
 	}
 	return body
 }
@@ -423,34 +431,34 @@ func NewCaptureResponseBody(res *camera.FrameResponse) *CaptureResponseBody {
 	return body
 }
 
-// NewEnableDetectionResponseBody builds the HTTP response body from the result
-// of the "enable_detection" endpoint of the "camera" service.
-func NewEnableDetectionResponseBody(res *camera.CameraInfo) *EnableDetectionResponseBody {
-	body := &EnableDetectionResponseBody{
-		ID:               res.ID,
-		Name:             res.Name,
-		Device:           res.Device,
-		Status:           res.Status,
-		Resolution:       res.Resolution,
-		Fps:              res.Fps,
-		CreatedAt:        res.CreatedAt,
-		DetectionEnabled: res.DetectionEnabled,
+// NewEnableAlertsResponseBody builds the HTTP response body from the result of
+// the "enable_alerts" endpoint of the "camera" service.
+func NewEnableAlertsResponseBody(res *camera.CameraInfo) *EnableAlertsResponseBody {
+	body := &EnableAlertsResponseBody{
+		ID:            res.ID,
+		Name:          res.Name,
+		Device:        res.Device,
+		Status:        res.Status,
+		Resolution:    res.Resolution,
+		Fps:           res.Fps,
+		CreatedAt:     res.CreatedAt,
+		AlertsEnabled: res.AlertsEnabled,
 	}
 	return body
 }
 
-// NewDisableDetectionResponseBody builds the HTTP response body from the
-// result of the "disable_detection" endpoint of the "camera" service.
-func NewDisableDetectionResponseBody(res *camera.CameraInfo) *DisableDetectionResponseBody {
-	body := &DisableDetectionResponseBody{
-		ID:               res.ID,
-		Name:             res.Name,
-		Device:           res.Device,
-		Status:           res.Status,
-		Resolution:       res.Resolution,
-		Fps:              res.Fps,
-		CreatedAt:        res.CreatedAt,
-		DetectionEnabled: res.DetectionEnabled,
+// NewDisableAlertsResponseBody builds the HTTP response body from the result
+// of the "disable_alerts" endpoint of the "camera" service.
+func NewDisableAlertsResponseBody(res *camera.CameraInfo) *DisableAlertsResponseBody {
+	body := &DisableAlertsResponseBody{
+		ID:            res.ID,
+		Name:          res.Name,
+		Device:        res.Device,
+		Status:        res.Status,
+		Resolution:    res.Resolution,
+		Fps:           res.Fps,
+		CreatedAt:     res.CreatedAt,
+		AlertsEnabled: res.AlertsEnabled,
 	}
 	return body
 }
@@ -553,20 +561,20 @@ func NewCaptureNotFoundResponseBody(res *camera.NotFoundError) *CaptureNotFoundR
 	return body
 }
 
-// NewEnableDetectionNotFoundResponseBody builds the HTTP response body from
-// the result of the "enable_detection" endpoint of the "camera" service.
-func NewEnableDetectionNotFoundResponseBody(res *camera.NotFoundError) *EnableDetectionNotFoundResponseBody {
-	body := &EnableDetectionNotFoundResponseBody{
+// NewEnableAlertsNotFoundResponseBody builds the HTTP response body from the
+// result of the "enable_alerts" endpoint of the "camera" service.
+func NewEnableAlertsNotFoundResponseBody(res *camera.NotFoundError) *EnableAlertsNotFoundResponseBody {
+	body := &EnableAlertsNotFoundResponseBody{
 		Message: res.Message,
 		ID:      res.ID,
 	}
 	return body
 }
 
-// NewDisableDetectionNotFoundResponseBody builds the HTTP response body from
-// the result of the "disable_detection" endpoint of the "camera" service.
-func NewDisableDetectionNotFoundResponseBody(res *camera.NotFoundError) *DisableDetectionNotFoundResponseBody {
-	body := &DisableDetectionNotFoundResponseBody{
+// NewDisableAlertsNotFoundResponseBody builds the HTTP response body from the
+// result of the "disable_alerts" endpoint of the "camera" service.
+func NewDisableAlertsNotFoundResponseBody(res *camera.NotFoundError) *DisableAlertsNotFoundResponseBody {
+	body := &DisableAlertsNotFoundResponseBody{
 		Message: res.Message,
 		ID:      res.ID,
 	}
@@ -648,19 +656,19 @@ func NewCapturePayload(id string) *camera.CapturePayload {
 	return v
 }
 
-// NewEnableDetectionPayload builds a camera service enable_detection endpoint
+// NewEnableAlertsPayload builds a camera service enable_alerts endpoint
 // payload.
-func NewEnableDetectionPayload(id string) *camera.EnableDetectionPayload {
-	v := &camera.EnableDetectionPayload{}
+func NewEnableAlertsPayload(id string) *camera.EnableAlertsPayload {
+	v := &camera.EnableAlertsPayload{}
 	v.ID = id
 
 	return v
 }
 
-// NewDisableDetectionPayload builds a camera service disable_detection
-// endpoint payload.
-func NewDisableDetectionPayload(id string) *camera.DisableDetectionPayload {
-	v := &camera.DisableDetectionPayload{}
+// NewDisableAlertsPayload builds a camera service disable_alerts endpoint
+// payload.
+func NewDisableAlertsPayload(id string) *camera.DisableAlertsPayload {
+	v := &camera.DisableAlertsPayload{}
 	v.ID = id
 
 	return v

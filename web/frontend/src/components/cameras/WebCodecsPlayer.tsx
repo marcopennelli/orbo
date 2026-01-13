@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { Wifi, WifiOff, Video, VideoOff, Zap, Eye, EyeOff } from 'lucide-react';
+import { Wifi, WifiOff, Video, VideoOff, Zap, Bell, BellOff } from 'lucide-react';
 import { Button, Spinner } from '../ui';
 import useWebCodecsStream from '../../hooks/useWebCodecsStream';
 
@@ -7,7 +7,7 @@ interface WebCodecsPlayerProps {
   cameraId: string;
   cameraName: string;
   enabled: boolean;
-  detectionEnabled?: boolean;
+  alertsEnabled?: boolean;
   className?: string;
   onFullscreen?: () => void;
 }
@@ -16,7 +16,7 @@ export default function WebCodecsPlayer({
   cameraId,
   cameraName,
   enabled,
-  detectionEnabled = true,
+  alertsEnabled = true,
   className = '',
   onFullscreen,
 }: WebCodecsPlayerProps) {
@@ -83,12 +83,12 @@ export default function WebCodecsPlayer({
                   <VideoOff className="w-3 h-3 text-accent-red" />
                 </>
               )}
-              {/* Detection status indicator */}
-              <span title={detectionEnabled ? 'AI detection enabled' : 'AI detection disabled (streaming only)'}>
-                {detectionEnabled ? (
-                  <Eye className="w-3 h-3 text-accent-green" />
+              {/* Alerts status indicator */}
+              <span title={alertsEnabled ? 'Alerts enabled' : 'Alerts disabled (bounding boxes only)'}>
+                {alertsEnabled ? (
+                  <Bell className="w-3 h-3 text-accent-green" />
                 ) : (
-                  <EyeOff className="w-3 h-3 text-text-muted" />
+                  <BellOff className="w-3 h-3 text-text-muted" />
                 )}
               </span>
             </span>

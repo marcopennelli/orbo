@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as configApi from '../api/config';
-import type { TelegramConfig, YoloConfig, DetectionConfig, PipelineConfig } from '../types';
+import type { TelegramConfig, YoloConfig, DetectionConfig, PipelineConfig, RecognitionConfig } from '../types';
 
 // Telegram config
 export function useTelegramConfig() {
@@ -90,5 +90,31 @@ export function useUpdatePipelineConfig() {
       queryClient.invalidateQueries({ queryKey: ['config', 'pipeline'] });
       queryClient.invalidateQueries({ queryKey: ['system', 'status'] });
     },
+  });
+}
+
+// Recognition config
+export function useRecognitionConfig() {
+  return useQuery({
+    queryKey: ['config', 'recognition'],
+    queryFn: configApi.getRecognitionConfig,
+  });
+}
+
+export function useUpdateRecognitionConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (config: Partial<RecognitionConfig>) => configApi.updateRecognitionConfig(config),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['config', 'recognition'] });
+      queryClient.invalidateQueries({ queryKey: ['system', 'status'] });
+    },
+  });
+}
+
+export function useTestRecognition() {
+  return useMutation({
+    mutationFn: configApi.testRecognitionService,
   });
 }

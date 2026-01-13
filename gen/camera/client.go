@@ -15,31 +15,31 @@ import (
 
 // Client is the "camera" service client.
 type Client struct {
-	ListEndpoint             goa.Endpoint
-	GetEndpoint              goa.Endpoint
-	CreateEndpoint           goa.Endpoint
-	UpdateEndpoint           goa.Endpoint
-	DeleteEndpoint           goa.Endpoint
-	ActivateEndpoint         goa.Endpoint
-	DeactivateEndpoint       goa.Endpoint
-	CaptureEndpoint          goa.Endpoint
-	EnableDetectionEndpoint  goa.Endpoint
-	DisableDetectionEndpoint goa.Endpoint
+	ListEndpoint          goa.Endpoint
+	GetEndpoint           goa.Endpoint
+	CreateEndpoint        goa.Endpoint
+	UpdateEndpoint        goa.Endpoint
+	DeleteEndpoint        goa.Endpoint
+	ActivateEndpoint      goa.Endpoint
+	DeactivateEndpoint    goa.Endpoint
+	CaptureEndpoint       goa.Endpoint
+	EnableAlertsEndpoint  goa.Endpoint
+	DisableAlertsEndpoint goa.Endpoint
 }
 
 // NewClient initializes a "camera" service client given the endpoints.
-func NewClient(list, get, create, update, delete_, activate, deactivate, capture, enableDetection, disableDetection goa.Endpoint) *Client {
+func NewClient(list, get, create, update, delete_, activate, deactivate, capture, enableAlerts, disableAlerts goa.Endpoint) *Client {
 	return &Client{
-		ListEndpoint:             list,
-		GetEndpoint:              get,
-		CreateEndpoint:           create,
-		UpdateEndpoint:           update,
-		DeleteEndpoint:           delete_,
-		ActivateEndpoint:         activate,
-		DeactivateEndpoint:       deactivate,
-		CaptureEndpoint:          capture,
-		EnableDetectionEndpoint:  enableDetection,
-		DisableDetectionEndpoint: disableDetection,
+		ListEndpoint:          list,
+		GetEndpoint:           get,
+		CreateEndpoint:        create,
+		UpdateEndpoint:        update,
+		DeleteEndpoint:        delete_,
+		ActivateEndpoint:      activate,
+		DeactivateEndpoint:    deactivate,
+		CaptureEndpoint:       capture,
+		EnableAlertsEndpoint:  enableAlerts,
+		DisableAlertsEndpoint: disableAlerts,
 	}
 }
 
@@ -143,28 +143,26 @@ func (c *Client) Capture(ctx context.Context, p *CapturePayload) (res *FrameResp
 	return ires.(*FrameResponse), nil
 }
 
-// EnableDetection calls the "enable_detection" endpoint of the "camera"
-// service.
-// EnableDetection may return the following errors:
+// EnableAlerts calls the "enable_alerts" endpoint of the "camera" service.
+// EnableAlerts may return the following errors:
 //   - "not_found" (type *NotFoundError): Camera not found
 //   - error: internal error
-func (c *Client) EnableDetection(ctx context.Context, p *EnableDetectionPayload) (res *CameraInfo, err error) {
+func (c *Client) EnableAlerts(ctx context.Context, p *EnableAlertsPayload) (res *CameraInfo, err error) {
 	var ires any
-	ires, err = c.EnableDetectionEndpoint(ctx, p)
+	ires, err = c.EnableAlertsEndpoint(ctx, p)
 	if err != nil {
 		return
 	}
 	return ires.(*CameraInfo), nil
 }
 
-// DisableDetection calls the "disable_detection" endpoint of the "camera"
-// service.
-// DisableDetection may return the following errors:
+// DisableAlerts calls the "disable_alerts" endpoint of the "camera" service.
+// DisableAlerts may return the following errors:
 //   - "not_found" (type *NotFoundError): Camera not found
 //   - error: internal error
-func (c *Client) DisableDetection(ctx context.Context, p *DisableDetectionPayload) (res *CameraInfo, err error) {
+func (c *Client) DisableAlerts(ctx context.Context, p *DisableAlertsPayload) (res *CameraInfo, err error) {
 	var ires any
-	ires, err = c.DisableDetectionEndpoint(ctx, p)
+	ires, err = c.DisableAlertsEndpoint(ctx, p)
 	if err != nil {
 		return
 	}

@@ -69,8 +69,8 @@ var CameraInfo = Type("CameraInfo", func() {
     Field(7, "created_at", String, "Creation timestamp", func() {
         Format(FormatDateTime)
     })
-    Field(8, "detection_enabled", Boolean, "Whether detection is enabled for this camera", func() {
-        Description("When false, camera streams only without running AI detection.")
+    Field(8, "alerts_enabled", Boolean, "Whether events and alerts are enabled for this camera", func() {
+        Description("When false, detection pipeline still runs for bounding boxes but no events are created or alerts sent.")
     })
     Required("id", "name", "device", "status")
 })
@@ -168,6 +168,25 @@ var YOLOConfig = Type("YOLOConfig", func() {
     Field(5, "classes_filter", String, "Comma-separated class names to filter (empty = all)")
     Field(6, "draw_boxes", Boolean, "Draw bounding boxes on images (for Telegram, API)", func() {
         Default(false)
+    })
+    Field(7, "box_color", String, "Bounding box color in hex format (e.g., '#0066FF')")
+    Field(8, "box_thickness", Int, "Bounding box line thickness (1-5)", func() {
+        Default(2)
+    })
+    Required("enabled")
+})
+
+var RecognitionConfig = Type("RecognitionConfig", func() {
+    Description("Face recognition configuration")
+    Field(1, "enabled", Boolean, "Enable face recognition")
+    Field(2, "service_endpoint", String, "Face recognition service endpoint URL")
+    Field(3, "similarity_threshold", Float32, "Similarity threshold for face matching (0-1)", func() {
+        Default(0.5)
+    })
+    Field(4, "known_face_color", String, "Color for known/recognized faces in hex format (e.g., '#00FF00')")
+    Field(5, "unknown_face_color", String, "Color for unknown faces in hex format (e.g., '#FF0000')")
+    Field(6, "box_thickness", Int, "Bounding box line thickness (1-5)", func() {
+        Default(2)
     })
     Required("enabled")
 })
@@ -446,8 +465,8 @@ var _ = Service("camera", func() {
         })
     })
 
-    Method("enable_detection", func() {
-        Description("Enable AI detection for this camera. Detection will run on captured frames.")
+    Method("enable_alerts", func() {
+        Description("Enable alerts for this camera. Detection pipeline will create events and send notifications.")
         Payload(func() {
             Field(1, "id", String, "Camera ID", func() {
                 Format(FormatUUID)
@@ -457,14 +476,14 @@ var _ = Service("camera", func() {
         Result(CameraInfo)
         Error("not_found", NotFoundError, "Camera not found")
         HTTP(func() {
-            POST("/api/v1/cameras/{id}/detection/enable")
+            POST("/api/v1/cameras/{id}/alerts/enable")
             Response(StatusOK)
             Response("not_found", StatusNotFound)
         })
     })
 
-    Method("disable_detection", func() {
-        Description("Disable AI detection for this camera. Camera will stream only without detection.")
+    Method("disable_alerts", func() {
+        Description("Disable alerts for this camera. Detection pipeline still runs for bounding boxes but no events are created or notifications sent.")
         Payload(func() {
             Field(1, "id", String, "Camera ID", func() {
                 Format(FormatUUID)
@@ -474,7 +493,7 @@ var _ = Service("camera", func() {
         Result(CameraInfo)
         Error("not_found", NotFoundError, "Camera not found")
         HTTP(func() {
-            POST("/api/v1/cameras/{id}/detection/disable")
+            POST("/api/v1/cameras/{id}/alerts/disable")
             Response(StatusOK)
             Response("not_found", StatusNotFound)
         })
@@ -720,6 +739,47 @@ var _ = Service("config", func() {
             PUT("/api/v1/config/pipeline")
             Response(StatusOK)
             Response("bad_request", StatusBadRequest)
+        })
+    })
+
+    Method("get_recognition", func() {
+        Description("Get face recognition configuration")
+        Result(RecognitionConfig)
+        HTTP(func() {
+            GET("/api/v1/config/recognition")
+            Response(StatusOK)
+        })
+    })
+
+    Method("update_recognition", func() {
+        Description("Update face recognition configuration")
+        Payload(RecognitionConfig)
+        Result(RecognitionConfig)
+        Error("bad_request", BadRequestError, "Invalid recognition configuration")
+        HTTP(func() {
+            PUT("/api/v1/config/recognition")
+            Response(StatusOK)
+            Response("bad_request", StatusBadRequest)
+        })
+    })
+
+    Method("test_recognition", func() {
+        Description("Test face recognition service connectivity")
+        Result(func() {
+            Field(1, "healthy", Boolean, "Service health status")
+            Field(2, "endpoint", String, "Service endpoint")
+            Field(3, "response_time_ms", Float32, "Response time in milliseconds")
+            Field(4, "device", String, "Detection device")
+            Field(5, "model_loaded", Boolean, "Model loaded status")
+            Field(6, "known_faces_count", Int, "Number of registered faces")
+            Field(7, "message", String, "Status message")
+            Required("healthy", "message")
+        })
+        Error("internal", InternalError, "Failed to test recognition service")
+        HTTP(func() {
+            POST("/api/v1/config/recognition/test")
+            Response(StatusOK)
+            Response("internal", StatusInternalServerError)
         })
     })
 })

@@ -44,13 +44,13 @@ type Client struct {
 	// endpoint.
 	CaptureDoer goahttp.Doer
 
-	// EnableDetection Doer is the HTTP client used to make requests to the
-	// enable_detection endpoint.
-	EnableDetectionDoer goahttp.Doer
+	// EnableAlerts Doer is the HTTP client used to make requests to the
+	// enable_alerts endpoint.
+	EnableAlertsDoer goahttp.Doer
 
-	// DisableDetection Doer is the HTTP client used to make requests to the
-	// disable_detection endpoint.
-	DisableDetectionDoer goahttp.Doer
+	// DisableAlerts Doer is the HTTP client used to make requests to the
+	// disable_alerts endpoint.
+	DisableAlertsDoer goahttp.Doer
 
 	// RestoreResponseBody controls whether the response bodies are reset after
 	// decoding so they can be read again.
@@ -72,21 +72,21 @@ func NewClient(
 	restoreBody bool,
 ) *Client {
 	return &Client{
-		ListDoer:             doer,
-		GetDoer:              doer,
-		CreateDoer:           doer,
-		UpdateDoer:           doer,
-		DeleteDoer:           doer,
-		ActivateDoer:         doer,
-		DeactivateDoer:       doer,
-		CaptureDoer:          doer,
-		EnableDetectionDoer:  doer,
-		DisableDetectionDoer: doer,
-		RestoreResponseBody:  restoreBody,
-		scheme:               scheme,
-		host:                 host,
-		decoder:              dec,
-		encoder:              enc,
+		ListDoer:            doer,
+		GetDoer:             doer,
+		CreateDoer:          doer,
+		UpdateDoer:          doer,
+		DeleteDoer:          doer,
+		ActivateDoer:        doer,
+		DeactivateDoer:      doer,
+		CaptureDoer:         doer,
+		EnableAlertsDoer:    doer,
+		DisableAlertsDoer:   doer,
+		RestoreResponseBody: restoreBody,
+		scheme:              scheme,
+		host:                host,
+		decoder:             dec,
+		encoder:             enc,
 	}
 }
 
@@ -252,39 +252,39 @@ func (c *Client) Capture() goa.Endpoint {
 	}
 }
 
-// EnableDetection returns an endpoint that makes HTTP requests to the camera
-// service enable_detection server.
-func (c *Client) EnableDetection() goa.Endpoint {
+// EnableAlerts returns an endpoint that makes HTTP requests to the camera
+// service enable_alerts server.
+func (c *Client) EnableAlerts() goa.Endpoint {
 	var (
-		decodeResponse = DecodeEnableDetectionResponse(c.decoder, c.RestoreResponseBody)
+		decodeResponse = DecodeEnableAlertsResponse(c.decoder, c.RestoreResponseBody)
 	)
 	return func(ctx context.Context, v any) (any, error) {
-		req, err := c.BuildEnableDetectionRequest(ctx, v)
+		req, err := c.BuildEnableAlertsRequest(ctx, v)
 		if err != nil {
 			return nil, err
 		}
-		resp, err := c.EnableDetectionDoer.Do(req)
+		resp, err := c.EnableAlertsDoer.Do(req)
 		if err != nil {
-			return nil, goahttp.ErrRequestError("camera", "enable_detection", err)
+			return nil, goahttp.ErrRequestError("camera", "enable_alerts", err)
 		}
 		return decodeResponse(resp)
 	}
 }
 
-// DisableDetection returns an endpoint that makes HTTP requests to the camera
-// service disable_detection server.
-func (c *Client) DisableDetection() goa.Endpoint {
+// DisableAlerts returns an endpoint that makes HTTP requests to the camera
+// service disable_alerts server.
+func (c *Client) DisableAlerts() goa.Endpoint {
 	var (
-		decodeResponse = DecodeDisableDetectionResponse(c.decoder, c.RestoreResponseBody)
+		decodeResponse = DecodeDisableAlertsResponse(c.decoder, c.RestoreResponseBody)
 	)
 	return func(ctx context.Context, v any) (any, error) {
-		req, err := c.BuildDisableDetectionRequest(ctx, v)
+		req, err := c.BuildDisableAlertsRequest(ctx, v)
 		if err != nil {
 			return nil, err
 		}
-		resp, err := c.DisableDetectionDoer.Do(req)
+		resp, err := c.DisableAlertsDoer.Do(req)
 		if err != nil {
-			return nil, goahttp.ErrRequestError("camera", "disable_detection", err)
+			return nil, goahttp.ErrRequestError("camera", "disable_alerts", err)
 		}
 		return decodeResponse(resp)
 	}

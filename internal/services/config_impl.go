@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -40,6 +41,7 @@ type ConfigImplementation struct {
 	notificationCfg *config.NotificationConfig
 	dinov3Cfg       *config.DINOv3Config
 	yoloCfg         *config.YOLOConfig
+	recognitionCfg  *config.RecognitionConfig
 	detectionCfg    *config.DetectionConfig
 	pipelineCfg     *config.PipelineConfig
 	db              *database.Database
@@ -83,6 +85,7 @@ func NewConfigService(telegramBot *telegram.TelegramBot, dinov3Detector *detecti
 		yoloEndpoint = "http://yolo-service:8081"
 	}
 
+	defaultBoxColor := "#0066FF" // Blue
 	yoloCfg := &config.YOLOConfig{
 		Enabled:             os.Getenv("YOLO_ENABLED") == "true",
 		ServiceEndpoint:     &yoloEndpoint,
@@ -90,6 +93,26 @@ func NewConfigService(telegramBot *telegram.TelegramBot, dinov3Detector *detecti
 		SecurityMode:        true,
 		ClassesFilter:       nil,
 		DrawBoxes:           os.Getenv("YOLO_DRAW_BOXES") == "true",
+		BoxColor:            &defaultBoxColor,
+		BoxThickness:        2,
+	}
+
+	// Initialize Recognition config with defaults
+	defaultSimilarityThreshold := float32(0.5)
+	recognitionEndpoint := os.Getenv("RECOGNITION_ENDPOINT")
+	if recognitionEndpoint == "" {
+		recognitionEndpoint = "http://recognition-service:8082"
+	}
+	defaultKnownFaceColor := "#00FF00" // Green
+	defaultUnknownFaceColor := "#FF0000" // Red
+
+	recognitionCfg := &config.RecognitionConfig{
+		Enabled:            os.Getenv("RECOGNITION_ENABLED") == "true",
+		ServiceEndpoint:    &recognitionEndpoint,
+		SimilarityThreshold: defaultSimilarityThreshold,
+		KnownFaceColor:     &defaultKnownFaceColor,
+		UnknownFaceColor:   &defaultUnknownFaceColor,
+		BoxThickness:       2,
 	}
 
 	// Determine primary detector from environment
@@ -159,6 +182,7 @@ func NewConfigService(telegramBot *telegram.TelegramBot, dinov3Detector *detecti
 		notificationCfg: notificationCfg,
 		dinov3Cfg:       dinov3Cfg,
 		yoloCfg:         yoloCfg,
+		recognitionCfg:  recognitionCfg,
 		detectionCfg:    detectionCfg,
 		pipelineCfg:     pipelineCfg,
 		db:              db,
@@ -227,6 +251,12 @@ func (c *ConfigImplementation) loadConfigFromDB() {
 			c.yoloCfg.SecurityMode = cfg.SecurityMode
 			c.yoloCfg.ClassesFilter = cfg.ClassesFilter
 			c.yoloCfg.DrawBoxes = cfg.DrawBoxes
+			if cfg.BoxColor != nil {
+				c.yoloCfg.BoxColor = cfg.BoxColor
+			}
+			if cfg.BoxThickness != 0 {
+				c.yoloCfg.BoxThickness = cfg.BoxThickness
+			}
 			// Apply draw boxes setting to motion detector
 			if c.motionDetector != nil {
 				c.motionDetector.SetDrawBoxes(cfg.DrawBoxes)
@@ -310,6 +340,8 @@ func (c *ConfigImplementation) saveYoloConfigToDB() {
 		SecurityMode:        c.yoloCfg.SecurityMode,
 		ClassesFilter:       c.yoloCfg.ClassesFilter,
 		DrawBoxes:           c.yoloCfg.DrawBoxes,
+		BoxColor:            c.yoloCfg.BoxColor,
+		BoxThickness:        c.yoloCfg.BoxThickness,
 	}
 	if jsonBytes, err := json.Marshal(cfg); err == nil {
 		if err := c.db.SaveConfig("yolo_config", string(jsonBytes)); err != nil {
@@ -607,6 +639,8 @@ func (c *ConfigImplementation) GetYolo(ctx context.Context) (*config.YOLOConfig,
 		SecurityMode:        c.yoloCfg.SecurityMode,
 		ClassesFilter:       c.yoloCfg.ClassesFilter,
 		DrawBoxes:           c.yoloCfg.DrawBoxes,
+		BoxColor:            c.yoloCfg.BoxColor,
+		BoxThickness:        c.yoloCfg.BoxThickness,
 	}, nil
 }
 
@@ -635,6 +669,12 @@ func (c *ConfigImplementation) UpdateYolo(ctx context.Context, cfg *config.YOLOC
 	c.yoloCfg.SecurityMode = cfg.SecurityMode
 	c.yoloCfg.ClassesFilter = cfg.ClassesFilter
 	c.yoloCfg.DrawBoxes = cfg.DrawBoxes
+	if cfg.BoxColor != nil {
+		c.yoloCfg.BoxColor = cfg.BoxColor
+	}
+	if cfg.BoxThickness != 0 {
+		c.yoloCfg.BoxThickness = cfg.BoxThickness
+	}
 
 	// Update the YOLO detector if available
 	if c.yoloDetector != nil {
@@ -690,6 +730,8 @@ func (c *ConfigImplementation) UpdateYolo(ctx context.Context, cfg *config.YOLOC
 		SecurityMode:        c.yoloCfg.SecurityMode,
 		ClassesFilter:       c.yoloCfg.ClassesFilter,
 		DrawBoxes:           c.yoloCfg.DrawBoxes,
+		BoxColor:            c.yoloCfg.BoxColor,
+		BoxThickness:        c.yoloCfg.BoxThickness,
 	}, nil
 }
 
@@ -863,11 +905,11 @@ func (c *ConfigImplementation) UpdatePipeline(ctx context.Context, cfg *config.P
 
 	// Validate detection mode
 	switch cfg.Mode {
-	case "disabled", "continuous", "motion_triggered", "scheduled", "hybrid":
+	case "disabled", "visual_only", "continuous", "motion_triggered", "scheduled", "hybrid":
 		// Valid
 	default:
 		return nil, &config.BadRequestError{
-			Message: "Detection mode must be one of: disabled, continuous, motion_triggered, scheduled, hybrid",
+			Message: "Detection mode must be one of: disabled, visual_only, continuous, motion_triggered, scheduled, hybrid",
 		}
 	}
 
@@ -977,6 +1019,174 @@ func (c *ConfigImplementation) GetPipelineConfig() *config.PipelineConfig {
 	return c.pipelineCfg
 }
 
+// GetRecognition returns the current face recognition configuration
+func (c *ConfigImplementation) GetRecognition(ctx context.Context) (*config.RecognitionConfig, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return &config.RecognitionConfig{
+		Enabled:            c.recognitionCfg.Enabled,
+		ServiceEndpoint:    c.recognitionCfg.ServiceEndpoint,
+		SimilarityThreshold: c.recognitionCfg.SimilarityThreshold,
+		KnownFaceColor:     c.recognitionCfg.KnownFaceColor,
+		UnknownFaceColor:   c.recognitionCfg.UnknownFaceColor,
+		BoxThickness:       c.recognitionCfg.BoxThickness,
+	}, nil
+}
+
+// UpdateRecognition updates the face recognition configuration
+func (c *ConfigImplementation) UpdateRecognition(ctx context.Context, cfg *config.RecognitionConfig) (*config.RecognitionConfig, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if cfg.Enabled && (cfg.ServiceEndpoint == nil || *cfg.ServiceEndpoint == "") {
+		return nil, &config.BadRequestError{
+			Message: "Recognition service endpoint is required when enabled",
+		}
+	}
+
+	if cfg.SimilarityThreshold < 0 || cfg.SimilarityThreshold > 1 {
+		return nil, &config.BadRequestError{
+			Message: "Similarity threshold must be between 0 and 1",
+		}
+	}
+
+	// Validate box thickness (0 means keep current value)
+	if cfg.BoxThickness != 0 && (cfg.BoxThickness < 1 || cfg.BoxThickness > 5) {
+		return nil, &config.BadRequestError{
+			Message: "Box thickness must be between 1 and 5",
+		}
+	}
+
+	c.recognitionCfg.Enabled = cfg.Enabled
+	if cfg.ServiceEndpoint != nil {
+		c.recognitionCfg.ServiceEndpoint = cfg.ServiceEndpoint
+	}
+	c.recognitionCfg.SimilarityThreshold = cfg.SimilarityThreshold
+	if cfg.KnownFaceColor != nil {
+		c.recognitionCfg.KnownFaceColor = cfg.KnownFaceColor
+	}
+	if cfg.UnknownFaceColor != nil {
+		c.recognitionCfg.UnknownFaceColor = cfg.UnknownFaceColor
+	}
+	if cfg.BoxThickness != 0 {
+		c.recognitionCfg.BoxThickness = cfg.BoxThickness
+	}
+
+	// TODO: If we have a recognition detector reference, update its config here
+	// For now, color configuration is sent via gRPC Configure call from motion detector
+
+	// Save to database
+	c.saveRecognitionConfigToDB()
+
+	return &config.RecognitionConfig{
+		Enabled:            c.recognitionCfg.Enabled,
+		ServiceEndpoint:    c.recognitionCfg.ServiceEndpoint,
+		SimilarityThreshold: c.recognitionCfg.SimilarityThreshold,
+		KnownFaceColor:     c.recognitionCfg.KnownFaceColor,
+		UnknownFaceColor:   c.recognitionCfg.UnknownFaceColor,
+		BoxThickness:       c.recognitionCfg.BoxThickness,
+	}, nil
+}
+
+// TestRecognition tests the face recognition service connectivity
+func (c *ConfigImplementation) TestRecognition(ctx context.Context) (*config.TestRecognitionResult, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if !c.recognitionCfg.Enabled {
+		return &config.TestRecognitionResult{
+			Healthy: false,
+			Message: "Face recognition is disabled",
+		}, nil
+	}
+
+	endpoint := ""
+	if c.recognitionCfg.ServiceEndpoint != nil {
+		endpoint = *c.recognitionCfg.ServiceEndpoint
+	}
+
+	// Try to make a health check request to the recognition service
+	startTime := time.Now()
+
+	// Simple HTTP health check
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(endpoint + "/health")
+	responseTime := float32(time.Since(startTime).Milliseconds())
+
+	if err != nil {
+		return &config.TestRecognitionResult{
+			Healthy:        false,
+			Endpoint:       &endpoint,
+			ResponseTimeMs: &responseTime,
+			Message:        "Recognition service is not responding: " + err.Error(),
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return &config.TestRecognitionResult{
+			Healthy:        false,
+			Endpoint:       &endpoint,
+			ResponseTimeMs: &responseTime,
+			Message:        fmt.Sprintf("Recognition service returned status %d", resp.StatusCode),
+		}, nil
+	}
+
+	// Parse health response
+	var healthResp struct {
+		Status          string `json:"status"`
+		Device          string `json:"device"`
+		ModelLoaded     bool   `json:"model_loaded"`
+		KnownFacesCount int    `json:"known_faces_count"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&healthResp); err == nil {
+		device := healthResp.Device
+		modelLoaded := healthResp.ModelLoaded
+		knownFacesCount := healthResp.KnownFacesCount
+
+		if healthResp.Status == "healthy" && modelLoaded {
+			return &config.TestRecognitionResult{
+				Healthy:         true,
+				Endpoint:        &endpoint,
+				ResponseTimeMs:  &responseTime,
+				Device:          &device,
+				ModelLoaded:     &modelLoaded,
+				KnownFacesCount: &knownFacesCount,
+				Message:         "Recognition service is healthy and model is loaded",
+			}, nil
+		}
+	}
+
+	modelLoaded := false
+	return &config.TestRecognitionResult{
+		Healthy:        false,
+		Endpoint:       &endpoint,
+		ResponseTimeMs: &responseTime,
+		ModelLoaded:    &modelLoaded,
+		Message:        "Recognition service is running but not fully operational",
+	}, nil
+}
+
+// saveRecognitionConfigToDB saves recognition config to database
+func (c *ConfigImplementation) saveRecognitionConfigToDB() {
+	if c.db == nil {
+		return
+	}
+	cfg := config.RecognitionConfig{
+		Enabled:            c.recognitionCfg.Enabled,
+		SimilarityThreshold: c.recognitionCfg.SimilarityThreshold,
+		KnownFaceColor:     c.recognitionCfg.KnownFaceColor,
+		UnknownFaceColor:   c.recognitionCfg.UnknownFaceColor,
+		BoxThickness:       c.recognitionCfg.BoxThickness,
+	}
+	if jsonBytes, err := json.Marshal(cfg); err == nil {
+		if err := c.db.SaveConfig("recognition_config", string(jsonBytes)); err != nil {
+			fmt.Printf("Warning: failed to save recognition config to database: %v\n", err)
+		}
+	}
+}
+
 // Helper functions
 
 func ptrString(s string) *string {
@@ -1061,6 +1271,8 @@ func CreatePipelineConfigProvider(configImpl *ConfigImplementation) motion.Pipel
 			mode = pipeline.DetectionModeDisabled
 		case "continuous":
 			mode = pipeline.DetectionModeContinuous
+		case "visual_only":
+			mode = pipeline.DetectionModeVisualOnly
 		case "motion_triggered":
 			mode = pipeline.DetectionModeMotionTriggered
 		case "scheduled":

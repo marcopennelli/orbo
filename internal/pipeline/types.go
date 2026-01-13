@@ -10,6 +10,8 @@ type DetectionMode string
 const (
 	// DetectionModeDisabled - no detection, streaming only
 	DetectionModeDisabled DetectionMode = "disabled"
+	// DetectionModeVisualOnly - run detection for bounding boxes but don't send alerts
+	DetectionModeVisualOnly DetectionMode = "visual_only"
 	// DetectionModeContinuous - run detection on every frame
 	DetectionModeContinuous DetectionMode = "continuous"
 	// DetectionModeMotionTriggered - detect only when motion is detected (current behavior)

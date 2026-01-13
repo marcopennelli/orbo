@@ -29,9 +29,9 @@ import (
 func UsageCommands() string {
 	return `health (healthz|readyz)
 auth (login|status)
-camera (list|get|create|update|delete|activate|deactivate|capture|enable-detection|disable-detection)
+camera (list|get|create|update|delete|activate|deactivate|capture|enable-alerts|disable-alerts)
 motion (events|event|frame|forensic-thumbnail)
-config (get|update|test-notification|get-dinov3|update-dinov3|test-dinov3|get-yolo|update-yolo|test-yolo|get-detection|update-detection|get-pipeline|update-pipeline)
+config (get|update|test-notification|get-dinov3|update-dinov3|test-dinov3|get-yolo|update-yolo|test-yolo|get-detection|update-detection|get-pipeline|update-pipeline|get-recognition|update-recognition|test-recognition)
 system (status|start-detection|stop-detection)
 `
 }
@@ -40,11 +40,11 @@ system (status|start-detection|stop-detection)
 func UsageExamples() string {
 	return os.Args[0] + ` health healthz` + "\n" +
 		os.Args[0] + ` auth login --body '{
-      "password": "Quos reprehenderit molestiae quod.",
-      "username": "Aut repellat."
+      "password": "Officia sed.",
+      "username": "Voluptas quia eligendi perferendis ut."
    }'` + "\n" +
 		os.Args[0] + ` camera list` + "\n" +
-		os.Args[0] + ` motion events --camera-id "7cfb9469-efd3-11f0-9afe-5847ca7b8ce1" --since "1975-08-28T07:37:24Z" --limit -1657755613948880382` + "\n" +
+		os.Args[0] + ` motion events --camera-id "ecdbbda9-f010-11f0-998b-5847ca7b8ce1" --since "2003-02-27T07:19:32Z" --limit -7357366374111831451` + "\n" +
 		os.Args[0] + ` config get` + "\n" +
 		""
 }
@@ -98,11 +98,11 @@ func ParseEndpoint(
 		cameraCaptureFlags  = flag.NewFlagSet("capture", flag.ExitOnError)
 		cameraCaptureIDFlag = cameraCaptureFlags.String("id", "REQUIRED", "Camera ID")
 
-		cameraEnableDetectionFlags  = flag.NewFlagSet("enable-detection", flag.ExitOnError)
-		cameraEnableDetectionIDFlag = cameraEnableDetectionFlags.String("id", "REQUIRED", "Camera ID")
+		cameraEnableAlertsFlags  = flag.NewFlagSet("enable-alerts", flag.ExitOnError)
+		cameraEnableAlertsIDFlag = cameraEnableAlertsFlags.String("id", "REQUIRED", "Camera ID")
 
-		cameraDisableDetectionFlags  = flag.NewFlagSet("disable-detection", flag.ExitOnError)
-		cameraDisableDetectionIDFlag = cameraDisableDetectionFlags.String("id", "REQUIRED", "Camera ID")
+		cameraDisableAlertsFlags  = flag.NewFlagSet("disable-alerts", flag.ExitOnError)
+		cameraDisableAlertsIDFlag = cameraDisableAlertsFlags.String("id", "REQUIRED", "Camera ID")
 
 		motionFlags = flag.NewFlagSet("motion", flag.ContinueOnError)
 
@@ -154,6 +154,13 @@ func ParseEndpoint(
 		configUpdatePipelineFlags    = flag.NewFlagSet("update-pipeline", flag.ExitOnError)
 		configUpdatePipelineBodyFlag = configUpdatePipelineFlags.String("body", "REQUIRED", "")
 
+		configGetRecognitionFlags = flag.NewFlagSet("get-recognition", flag.ExitOnError)
+
+		configUpdateRecognitionFlags    = flag.NewFlagSet("update-recognition", flag.ExitOnError)
+		configUpdateRecognitionBodyFlag = configUpdateRecognitionFlags.String("body", "REQUIRED", "")
+
+		configTestRecognitionFlags = flag.NewFlagSet("test-recognition", flag.ExitOnError)
+
 		systemFlags = flag.NewFlagSet("system", flag.ContinueOnError)
 
 		systemStatusFlags = flag.NewFlagSet("status", flag.ExitOnError)
@@ -179,8 +186,8 @@ func ParseEndpoint(
 	cameraActivateFlags.Usage = cameraActivateUsage
 	cameraDeactivateFlags.Usage = cameraDeactivateUsage
 	cameraCaptureFlags.Usage = cameraCaptureUsage
-	cameraEnableDetectionFlags.Usage = cameraEnableDetectionUsage
-	cameraDisableDetectionFlags.Usage = cameraDisableDetectionUsage
+	cameraEnableAlertsFlags.Usage = cameraEnableAlertsUsage
+	cameraDisableAlertsFlags.Usage = cameraDisableAlertsUsage
 
 	motionFlags.Usage = motionUsage
 	motionEventsFlags.Usage = motionEventsUsage
@@ -202,6 +209,9 @@ func ParseEndpoint(
 	configUpdateDetectionFlags.Usage = configUpdateDetectionUsage
 	configGetPipelineFlags.Usage = configGetPipelineUsage
 	configUpdatePipelineFlags.Usage = configUpdatePipelineUsage
+	configGetRecognitionFlags.Usage = configGetRecognitionUsage
+	configUpdateRecognitionFlags.Usage = configUpdateRecognitionUsage
+	configTestRecognitionFlags.Usage = configTestRecognitionUsage
 
 	systemFlags.Usage = systemUsage
 	systemStatusFlags.Usage = systemStatusUsage
@@ -296,11 +306,11 @@ func ParseEndpoint(
 			case "capture":
 				epf = cameraCaptureFlags
 
-			case "enable-detection":
-				epf = cameraEnableDetectionFlags
+			case "enable-alerts":
+				epf = cameraEnableAlertsFlags
 
-			case "disable-detection":
-				epf = cameraDisableDetectionFlags
+			case "disable-alerts":
+				epf = cameraDisableAlertsFlags
 
 			}
 
@@ -360,6 +370,15 @@ func ParseEndpoint(
 
 			case "update-pipeline":
 				epf = configUpdatePipelineFlags
+
+			case "get-recognition":
+				epf = configGetRecognitionFlags
+
+			case "update-recognition":
+				epf = configUpdateRecognitionFlags
+
+			case "test-recognition":
+				epf = configTestRecognitionFlags
 
 			}
 
@@ -443,12 +462,12 @@ func ParseEndpoint(
 			case "capture":
 				endpoint = c.Capture()
 				data, err = camerac.BuildCapturePayload(*cameraCaptureIDFlag)
-			case "enable-detection":
-				endpoint = c.EnableDetection()
-				data, err = camerac.BuildEnableDetectionPayload(*cameraEnableDetectionIDFlag)
-			case "disable-detection":
-				endpoint = c.DisableDetection()
-				data, err = camerac.BuildDisableDetectionPayload(*cameraDisableDetectionIDFlag)
+			case "enable-alerts":
+				endpoint = c.EnableAlerts()
+				data, err = camerac.BuildEnableAlertsPayload(*cameraEnableAlertsIDFlag)
+			case "disable-alerts":
+				endpoint = c.DisableAlerts()
+				data, err = camerac.BuildDisableAlertsPayload(*cameraDisableAlertsIDFlag)
 			}
 		case "motion":
 			c := motionc.NewClient(scheme, host, doer, enc, dec, restore)
@@ -508,6 +527,15 @@ func ParseEndpoint(
 			case "update-pipeline":
 				endpoint = c.UpdatePipeline()
 				data, err = configc.BuildUpdatePipelinePayload(*configUpdatePipelineBodyFlag)
+			case "get-recognition":
+				endpoint = c.GetRecognition()
+				data = nil
+			case "update-recognition":
+				endpoint = c.UpdateRecognition()
+				data, err = configc.BuildUpdateRecognitionPayload(*configUpdateRecognitionBodyFlag)
+			case "test-recognition":
+				endpoint = c.TestRecognition()
+				data = nil
 			}
 		case "system":
 			c := systemc.NewClient(scheme, host, doer, enc, dec, restore)
@@ -587,8 +615,8 @@ Authenticate with username and password to receive a JWT token
 
 Example:
     %[1]s auth login --body '{
-      "password": "Quos reprehenderit molestiae quod.",
-      "username": "Aut repellat."
+      "password": "Officia sed.",
+      "username": "Voluptas quia eligendi perferendis ut."
    }'
 `, os.Args[0])
 }
@@ -618,8 +646,8 @@ COMMAND:
     activate: Activate camera for motion detection
     deactivate: Deactivate camera
     capture: Capture a single frame from camera as base64
-    enable-detection: Enable AI detection for this camera. Detection will run on captured frames.
-    disable-detection: Disable AI detection for this camera. Camera will stream only without detection.
+    enable-alerts: Enable alerts for this camera. Detection pipeline will create events and send notifications.
+    disable-alerts: Disable alerts for this camera. Detection pipeline still runs for bounding boxes but no events are created or notifications sent.
 
 Additional help:
     %[1]s camera COMMAND --help
@@ -642,7 +670,7 @@ Get camera information by ID
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera get --id "7cfaaa7e-efd3-11f0-9afe-5847ca7b8ce1"
+    %[1]s camera get --id "ecdae60c-f010-11f0-998b-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -654,10 +682,10 @@ Add a new camera
 
 Example:
     %[1]s camera create --body '{
-      "device": "Ad eligendi.",
-      "fps": 8101873989605169975,
-      "name": "Sapiente nobis iusto quis esse quis sapiente.",
-      "resolution": "Cupiditate atque."
+      "device": "Et corporis.",
+      "fps": 6590396382631310600,
+      "name": "In molestiae iste.",
+      "resolution": "Ipsa delectus."
    }'
 `, os.Args[0])
 }
@@ -671,11 +699,11 @@ Update camera configuration. Device can only be changed when camera is inactive.
 
 Example:
     %[1]s camera update --body '{
-      "device": "Excepturi iure omnis.",
-      "fps": 7788107982347300633,
-      "name": "Dolorem quis odio.",
-      "resolution": "Quis cum et doloremque esse autem qui."
-   }' --id "7cfaf05b-efd3-11f0-9afe-5847ca7b8ce1"
+      "device": "Dolor sed voluptates ad rem dolores quia.",
+      "fps": 8833264999851994961,
+      "name": "Qui rerum quia hic repellat rem.",
+      "resolution": "Ut illo atque pariatur eaque eos quidem."
+   }' --id "ecdb302e-f010-11f0-998b-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -686,7 +714,7 @@ Remove a camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera delete --id "7cfb08cb-efd3-11f0-9afe-5847ca7b8ce1"
+    %[1]s camera delete --id "ecdb47a6-f010-11f0-998b-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -697,7 +725,7 @@ Activate camera for motion detection
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera activate --id "7cfb0f20-efd3-11f0-9afe-5847ca7b8ce1"
+    %[1]s camera activate --id "ecdb4e31-f010-11f0-998b-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -708,7 +736,7 @@ Deactivate camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera deactivate --id "7cfb23f7-efd3-11f0-9afe-5847ca7b8ce1"
+    %[1]s camera deactivate --id "ecdb626b-f010-11f0-998b-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -719,29 +747,29 @@ Capture a single frame from camera as base64
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera capture --id "7cfb346b-efd3-11f0-9afe-5847ca7b8ce1"
+    %[1]s camera capture --id "ecdb779f-f010-11f0-998b-5847ca7b8ce1"
 `, os.Args[0])
 }
 
-func cameraEnableDetectionUsage() {
-	fmt.Fprintf(os.Stderr, `%[1]s [flags] camera enable-detection -id STRING
+func cameraEnableAlertsUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] camera enable-alerts -id STRING
 
-Enable AI detection for this camera. Detection will run on captured frames.
+Enable alerts for this camera. Detection pipeline will create events and send notifications.
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera enable-detection --id "7cfb404f-efd3-11f0-9afe-5847ca7b8ce1"
+    %[1]s camera enable-alerts --id "ecdb8569-f010-11f0-998b-5847ca7b8ce1"
 `, os.Args[0])
 }
 
-func cameraDisableDetectionUsage() {
-	fmt.Fprintf(os.Stderr, `%[1]s [flags] camera disable-detection -id STRING
+func cameraDisableAlertsUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] camera disable-alerts -id STRING
 
-Disable AI detection for this camera. Camera will stream only without detection.
+Disable alerts for this camera. Detection pipeline still runs for bounding boxes but no events are created or notifications sent.
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera disable-detection --id "7cfb5296-efd3-11f0-9afe-5847ca7b8ce1"
+    %[1]s camera disable-alerts --id "ecdbab5c-f010-11f0-998b-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -770,7 +798,7 @@ List motion detection events
     -limit INT: 
 
 Example:
-    %[1]s motion events --camera-id "7cfb9469-efd3-11f0-9afe-5847ca7b8ce1" --since "1975-08-28T07:37:24Z" --limit -1657755613948880382
+    %[1]s motion events --camera-id "ecdbbda9-f010-11f0-998b-5847ca7b8ce1" --since "2003-02-27T07:19:32Z" --limit -7357366374111831451
 `, os.Args[0])
 }
 
@@ -781,7 +809,7 @@ Get motion event by ID
     -id STRING: Event ID
 
 Example:
-    %[1]s motion event --id "7cfbba30-efd3-11f0-9afe-5847ca7b8ce1"
+    %[1]s motion event --id "ecdbdcfd-f010-11f0-998b-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -792,7 +820,7 @@ Get captured frame for motion event as base64
     -id STRING: Event ID
 
 Example:
-    %[1]s motion frame --id "7cfbed01-efd3-11f0-9afe-5847ca7b8ce1"
+    %[1]s motion frame --id "ecdbfcfd-f010-11f0-998b-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -804,7 +832,7 @@ Get forensic face analysis thumbnail (NSA-style with landmarks) for a motion eve
     -index INT: Face thumbnail index (0-based)
 
 Example:
-    %[1]s motion forensic-thumbnail --id "7cfbfa77-efd3-11f0-9afe-5847ca7b8ce1" --index 2253109563423253377
+    %[1]s motion forensic-thumbnail --id "ecdc05f0-f010-11f0-998b-5847ca7b8ce1" --index 1276679161183541511
 `, os.Args[0])
 }
 
@@ -828,6 +856,9 @@ COMMAND:
     update-detection: Update combined detection configuration
     get-pipeline: Get detection pipeline configuration
     update-pipeline: Update detection pipeline configuration
+    get-recognition: Get face recognition configuration
+    update-recognition: Update face recognition configuration
+    test-recognition: Test face recognition service connectivity
 
 Additional help:
     %[1]s config COMMAND --help
@@ -851,10 +882,10 @@ Update notification configuration
 
 Example:
     %[1]s config update --body '{
-      "cooldown_seconds": 4140290001883044554,
-      "min_confidence": 0.7715329,
-      "telegram_bot_token": "Nam minima dolorum modi commodi.",
-      "telegram_chat_id": "Adipisci delectus.",
+      "cooldown_seconds": 8847911415795252102,
+      "min_confidence": 0.0048802625,
+      "telegram_bot_token": "Porro sed eius ut eum voluptatem modi.",
+      "telegram_chat_id": "Incidunt dolor cupiditate velit consequatur.",
       "telegram_enabled": true
    }'
 `, os.Args[0])
@@ -888,12 +919,12 @@ Update DINOv3 AI configuration
 
 Example:
     %[1]s config update-dinov3 --body '{
-      "confidence_threshold": 0.3935828,
+      "confidence_threshold": 0.69612443,
       "enable_scene_analysis": false,
-      "enabled": false,
+      "enabled": true,
       "fallback_to_basic": true,
-      "motion_threshold": 0.245757,
-      "service_endpoint": "Tenetur mollitia in."
+      "motion_threshold": 0.12781343,
+      "service_endpoint": "Aut eligendi."
    }'
 `, os.Args[0])
 }
@@ -926,12 +957,14 @@ Update YOLO detection configuration
 
 Example:
     %[1]s config update-yolo --body '{
-      "classes_filter": "Nisi aspernatur beatae laborum necessitatibus ipsum.",
-      "confidence_threshold": 0.3803266,
-      "draw_boxes": false,
+      "box_color": "Expedita aut minima perspiciatis.",
+      "box_thickness": 322002139192709832,
+      "classes_filter": "Aut quisquam sequi velit nihil.",
+      "confidence_threshold": 0.10458655,
+      "draw_boxes": true,
       "enabled": true,
       "security_mode": false,
-      "service_endpoint": "Minima et voluptate rerum sint."
+      "service_endpoint": "At quis."
    }'
 `, os.Args[0])
 }
@@ -965,22 +998,24 @@ Update combined detection configuration
 Example:
     %[1]s config update-detection --body '{
       "dinov3": {
-         "confidence_threshold": 0.995641,
+         "confidence_threshold": 0.82597387,
          "enable_scene_analysis": true,
-         "enabled": true,
+         "enabled": false,
          "fallback_to_basic": true,
-         "motion_threshold": 0.56711036,
-         "service_endpoint": "Incidunt et."
+         "motion_threshold": 0.04976495,
+         "service_endpoint": "Tempore consequatur asperiores."
       },
       "fallback_enabled": false,
-      "primary_detector": "basic",
+      "primary_detector": "dinov3",
       "yolo": {
-         "classes_filter": "Doloremque beatae deleniti commodi velit commodi.",
-         "confidence_threshold": 0.2053725,
-         "draw_boxes": true,
+         "box_color": "In dolores rem voluptas eum incidunt.",
+         "box_thickness": 8712871376137544995,
+         "classes_filter": "Harum occaecati omnis rem dolor.",
+         "confidence_threshold": 0.32154036,
+         "draw_boxes": false,
          "enabled": true,
          "security_mode": false,
-         "service_endpoint": "Eius distinctio ipsum porro."
+         "service_endpoint": "Soluta delectus non perspiciatis blanditiis."
       }
    }'
 `, os.Args[0])
@@ -1009,11 +1044,49 @@ Example:
          "face"
       ],
       "execution_mode": "sequential",
-      "mode": "hybrid",
-      "motion_cooldown_seconds": 8133219637353987660,
-      "motion_sensitivity": 0.5485527,
-      "schedule_interval": "Culpa similique ea ratione quisquam alias."
+      "mode": "continuous",
+      "motion_cooldown_seconds": 29525455477767673,
+      "motion_sensitivity": 0.7234474,
+      "schedule_interval": "Aut nisi quibusdam id et et ex."
    }'
+`, os.Args[0])
+}
+
+func configGetRecognitionUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config get-recognition
+
+Get face recognition configuration
+
+Example:
+    %[1]s config get-recognition
+`, os.Args[0])
+}
+
+func configUpdateRecognitionUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config update-recognition -body JSON
+
+Update face recognition configuration
+    -body JSON: 
+
+Example:
+    %[1]s config update-recognition --body '{
+      "box_thickness": 473801709441388807,
+      "enabled": true,
+      "known_face_color": "Occaecati deserunt.",
+      "service_endpoint": "Qui impedit aut.",
+      "similarity_threshold": 0.31017613,
+      "unknown_face_color": "Velit aperiam."
+   }'
+`, os.Args[0])
+}
+
+func configTestRecognitionUsage() {
+	fmt.Fprintf(os.Stderr, `%[1]s [flags] config test-recognition
+
+Test face recognition service connectivity
+
+Example:
+    %[1]s config test-recognition
 `, os.Args[0])
 }
 

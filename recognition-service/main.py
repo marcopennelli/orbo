@@ -49,6 +49,13 @@ class FaceRecognitionService:
         self.known_faces: Dict[str, Dict[str, Any]] = {}
         self.similarity_threshold = float(os.getenv('SIMILARITY_THRESHOLD', '0.5'))
         self.max_images_per_person = int(os.getenv('MAX_IMAGES_PER_PERSON', '10'))
+
+        # Bounding box appearance configuration (RGB format)
+        # Known faces: green, Unknown faces: red
+        self.known_face_color: Tuple[int, int, int] = (0, 255, 0)  # RGB green
+        self.unknown_face_color: Tuple[int, int, int] = (255, 0, 0)  # RGB red
+        self.box_thickness: int = 2
+
         self.initialize_model()
         self.load_known_faces()
 
@@ -133,6 +140,37 @@ class FaceRecognitionService:
         except Exception as e:
             logger.error(f"Failed to save faces database: {e}")
             raise
+
+    def _hex_to_rgb(self, hex_color: str) -> Tuple[int, int, int]:
+        """Convert hex color string to RGB tuple"""
+        # Remove # if present
+        hex_color = hex_color.lstrip('#')
+        # Parse RGB values
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        return (r, g, b)
+
+    def set_known_face_color(self, hex_color: str):
+        """Set color for known/recognized faces from hex string (e.g., '#00FF00')"""
+        try:
+            self.known_face_color = self._hex_to_rgb(hex_color)
+            logger.info(f"Known face color set to {hex_color} -> RGB {self.known_face_color}")
+        except Exception as e:
+            logger.warning(f"Invalid color {hex_color}: {e}, keeping current color")
+
+    def set_unknown_face_color(self, hex_color: str):
+        """Set color for unknown faces from hex string (e.g., '#FF0000')"""
+        try:
+            self.unknown_face_color = self._hex_to_rgb(hex_color)
+            logger.info(f"Unknown face color set to {hex_color} -> RGB {self.unknown_face_color}")
+        except Exception as e:
+            logger.warning(f"Invalid color {hex_color}: {e}, keeping current color")
+
+    def set_box_thickness(self, thickness: int):
+        """Set bounding box line thickness (1-5)"""
+        self.box_thickness = max(1, min(5, thickness))
+        logger.info(f"Box thickness set to {self.box_thickness}")
 
     def preprocess_image(self, image_data: bytes) -> np.ndarray:
         """Preprocess image for face detection"""
@@ -709,7 +747,7 @@ class FaceRecognitionService:
         }
 
     def detect_and_annotate(self, image_data: bytes, recognize: bool = True) -> Tuple[bytes, Dict[str, Any]]:
-        """Detect/recognize faces and return annotated image"""
+        """Detect/recognize faces and return annotated image with configurable colors"""
         if not self.model_loaded:
             raise HTTPException(status_code=503, detail="Model not loaded")
 
@@ -729,8 +767,8 @@ class FaceRecognitionService:
                 bbox = face.bbox.astype(int)
                 confidence = float(face.det_score)
 
-                # Default: unknown face (red box)
-                color = (255, 0, 0)  # RGB - red
+                # Default: unknown face (use configurable color)
+                color = self.unknown_face_color
                 label = "Unknown"
                 similarity = 0.0
                 is_known = False
@@ -750,10 +788,10 @@ class FaceRecognitionService:
                         label = best_match
                         similarity = best_similarity
                         is_known = True
-                        color = (0, 255, 0)  # RGB - green for known
+                        color = self.known_face_color  # Use configurable known face color
 
-                # Draw bounding box
-                cv2.rectangle(annotated, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
+                # Draw bounding box with configurable thickness
+                cv2.rectangle(annotated, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, self.box_thickness)
 
                 # Draw label background
                 label_text = f"{label}"

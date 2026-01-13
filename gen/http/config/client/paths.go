@@ -71,3 +71,18 @@ func GetPipelineConfigPath() string {
 func UpdatePipelineConfigPath() string {
 	return "/api/v1/config/pipeline"
 }
+
+// GetRecognitionConfigPath returns the URL path to the config service get_recognition HTTP endpoint.
+func GetRecognitionConfigPath() string {
+	return "/api/v1/config/recognition"
+}
+
+// UpdateRecognitionConfigPath returns the URL path to the config service update_recognition HTTP endpoint.
+func UpdateRecognitionConfigPath() string {
+	return "/api/v1/config/recognition"
+}
+
+// TestRecognitionConfigPath returns the URL path to the config service test_recognition HTTP endpoint.
+func TestRecognitionConfigPath() string {
+	return "/api/v1/config/recognition/test"
+}

@@ -29,6 +29,11 @@ func (f *StrategyFactory) Create(config *pipeline.EffectiveConfig) (pipeline.Det
 	case pipeline.DetectionModeDisabled:
 		return NewDisabledStrategy(), nil
 
+	case pipeline.DetectionModeVisualOnly:
+		// Visual only runs like continuous but results don't trigger alerts
+		// (alert suppression is handled in the motion detector/event handler)
+		return NewContinuousStrategy(0), nil
+
 	case pipeline.DetectionModeContinuous:
 		// No rate limiting for continuous mode
 		return NewContinuousStrategy(0), nil

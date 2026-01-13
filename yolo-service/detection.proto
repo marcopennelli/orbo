@@ -162,6 +162,12 @@ message ConfigureRequest {
 
   // Classes to detect (empty = all classes)
   repeated string classes = 5;
+
+  // Bounding box color in hex format (e.g., "#0066FF")
+  optional string box_color = 6;
+
+  // Bounding box line thickness (1-5)
+  optional int32 box_thickness = 7;
 }
 
 // ConfigureResponse confirms configuration update

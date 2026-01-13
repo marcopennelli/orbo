@@ -109,3 +109,24 @@ func (s *configsrvc) UpdatePipeline(ctx context.Context, p *config.PipelineConfi
 	s.logger.Print("config.update_pipeline")
 	return
 }
+
+// GetRecognition returns the face recognition configuration
+func (s *configsrvc) GetRecognition(ctx context.Context) (res *config.RecognitionConfig, err error) {
+	res = &config.RecognitionConfig{}
+	s.logger.Print("config.get_recognition")
+	return
+}
+
+// UpdateRecognition updates the face recognition configuration
+func (s *configsrvc) UpdateRecognition(ctx context.Context, p *config.RecognitionConfig) (res *config.RecognitionConfig, err error) {
+	res = &config.RecognitionConfig{}
+	s.logger.Print("config.update_recognition")
+	return
+}
+
+// TestRecognition tests the face recognition service connectivity
+func (s *configsrvc) TestRecognition(ctx context.Context) (res *config.TestRecognitionResult, err error) {
+	res = &config.TestRecognitionResult{}
+	s.logger.Print("config.test_recognition")
+	return
+}

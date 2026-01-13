@@ -256,6 +256,15 @@ message ConfigureRequest {
 
   // Enable age/gender estimation
   optional bool enable_age_gender = 2;
+
+  // Color for known/recognized faces in hex format (e.g., "#00FF00")
+  optional string known_face_color = 3;
+
+  // Color for unknown faces in hex format (e.g., "#FF0000")
+  optional string unknown_face_color = 4;
+
+  // Bounding box line thickness (1-5)
+  optional int32 box_thickness = 5;
 }
 
 // ConfigureResponse confirms configuration update

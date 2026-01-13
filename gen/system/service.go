@@ -47,8 +47,9 @@ type CameraInfo struct {
 	Fps *int
 	// Creation timestamp
 	CreatedAt *string
-	// When false, camera streams only without running AI detection.
-	DetectionEnabled *bool
+	// When false, detection pipeline still runs for bounding boxes but no events
+	// are created or alerts sent.
+	AlertsEnabled *bool
 }
 
 // Internal server error

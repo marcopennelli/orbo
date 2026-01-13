@@ -15,37 +15,43 @@ import (
 
 // Client is the "config" service client.
 type Client struct {
-	GetEndpoint              goa.Endpoint
-	UpdateEndpoint           goa.Endpoint
-	TestNotificationEndpoint goa.Endpoint
-	GetDinov3Endpoint        goa.Endpoint
-	UpdateDinov3Endpoint     goa.Endpoint
-	TestDinov3Endpoint       goa.Endpoint
-	GetYoloEndpoint          goa.Endpoint
-	UpdateYoloEndpoint       goa.Endpoint
-	TestYoloEndpoint         goa.Endpoint
-	GetDetectionEndpoint     goa.Endpoint
-	UpdateDetectionEndpoint  goa.Endpoint
-	GetPipelineEndpoint      goa.Endpoint
-	UpdatePipelineEndpoint   goa.Endpoint
+	GetEndpoint               goa.Endpoint
+	UpdateEndpoint            goa.Endpoint
+	TestNotificationEndpoint  goa.Endpoint
+	GetDinov3Endpoint         goa.Endpoint
+	UpdateDinov3Endpoint      goa.Endpoint
+	TestDinov3Endpoint        goa.Endpoint
+	GetYoloEndpoint           goa.Endpoint
+	UpdateYoloEndpoint        goa.Endpoint
+	TestYoloEndpoint          goa.Endpoint
+	GetDetectionEndpoint      goa.Endpoint
+	UpdateDetectionEndpoint   goa.Endpoint
+	GetPipelineEndpoint       goa.Endpoint
+	UpdatePipelineEndpoint    goa.Endpoint
+	GetRecognitionEndpoint    goa.Endpoint
+	UpdateRecognitionEndpoint goa.Endpoint
+	TestRecognitionEndpoint   goa.Endpoint
 }
 
 // NewClient initializes a "config" service client given the endpoints.
-func NewClient(get, update, testNotification, getDinov3, updateDinov3, testDinov3, getYolo, updateYolo, testYolo, getDetection, updateDetection, getPipeline, updatePipeline goa.Endpoint) *Client {
+func NewClient(get, update, testNotification, getDinov3, updateDinov3, testDinov3, getYolo, updateYolo, testYolo, getDetection, updateDetection, getPipeline, updatePipeline, getRecognition, updateRecognition, testRecognition goa.Endpoint) *Client {
 	return &Client{
-		GetEndpoint:              get,
-		UpdateEndpoint:           update,
-		TestNotificationEndpoint: testNotification,
-		GetDinov3Endpoint:        getDinov3,
-		UpdateDinov3Endpoint:     updateDinov3,
-		TestDinov3Endpoint:       testDinov3,
-		GetYoloEndpoint:          getYolo,
-		UpdateYoloEndpoint:       updateYolo,
-		TestYoloEndpoint:         testYolo,
-		GetDetectionEndpoint:     getDetection,
-		UpdateDetectionEndpoint:  updateDetection,
-		GetPipelineEndpoint:      getPipeline,
-		UpdatePipelineEndpoint:   updatePipeline,
+		GetEndpoint:               get,
+		UpdateEndpoint:            update,
+		TestNotificationEndpoint:  testNotification,
+		GetDinov3Endpoint:         getDinov3,
+		UpdateDinov3Endpoint:      updateDinov3,
+		TestDinov3Endpoint:        testDinov3,
+		GetYoloEndpoint:           getYolo,
+		UpdateYoloEndpoint:        updateYolo,
+		TestYoloEndpoint:          testYolo,
+		GetDetectionEndpoint:      getDetection,
+		UpdateDetectionEndpoint:   updateDetection,
+		GetPipelineEndpoint:       getPipeline,
+		UpdatePipelineEndpoint:    updatePipeline,
+		GetRecognitionEndpoint:    getRecognition,
+		UpdateRecognitionEndpoint: updateRecognition,
+		TestRecognitionEndpoint:   testRecognition,
 	}
 }
 
@@ -203,4 +209,42 @@ func (c *Client) UpdatePipeline(ctx context.Context, p *PipelineConfig) (res *Pi
 		return
 	}
 	return ires.(*PipelineConfig), nil
+}
+
+// GetRecognition calls the "get_recognition" endpoint of the "config" service.
+func (c *Client) GetRecognition(ctx context.Context) (res *RecognitionConfig, err error) {
+	var ires any
+	ires, err = c.GetRecognitionEndpoint(ctx, nil)
+	if err != nil {
+		return
+	}
+	return ires.(*RecognitionConfig), nil
+}
+
+// UpdateRecognition calls the "update_recognition" endpoint of the "config"
+// service.
+// UpdateRecognition may return the following errors:
+//   - "bad_request" (type *BadRequestError): Invalid recognition configuration
+//   - error: internal error
+func (c *Client) UpdateRecognition(ctx context.Context, p *RecognitionConfig) (res *RecognitionConfig, err error) {
+	var ires any
+	ires, err = c.UpdateRecognitionEndpoint(ctx, p)
+	if err != nil {
+		return
+	}
+	return ires.(*RecognitionConfig), nil
+}
+
+// TestRecognition calls the "test_recognition" endpoint of the "config"
+// service.
+// TestRecognition may return the following errors:
+//   - "internal" (type *InternalError): Failed to test recognition service
+//   - error: internal error
+func (c *Client) TestRecognition(ctx context.Context) (res *TestRecognitionResult, err error) {
+	var ires any
+	ires, err = c.TestRecognitionEndpoint(ctx, nil)
+	if err != nil {
+		return
+	}
+	return ires.(*TestRecognitionResult), nil
 }
