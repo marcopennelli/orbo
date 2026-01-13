@@ -62,12 +62,15 @@ containers:
     environment:
       YOLO_MODEL: "yolo11n.pt"
       CONFIDENCE_THRESHOLD: "0.5"
+      # YOLO11 tasks: detect, segment, pose, obb, classify
+      ENABLED_TASKS: "detect,segment,pose"
       # Bounding box customization (hex color format)
       BOX_COLOR: "#0066FF"
       BOX_THICKNESS: "2"
     restart_policy: always
     user: "1000:1000"
-    read_only: true
+    # YOLO needs writable /app/runs and /tmp/Ultralytics for inference
+    read_only: false
 
   # Face Recognition Service (optional)
   - name: recognition

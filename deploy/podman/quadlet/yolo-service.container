@@ -65,8 +65,8 @@ Environment=ALERT_ON_POSES=fall_detected,lying
 User=1000
 Group=1000
 
-# Read-only root filesystem
-ReadOnly=true
+# Read-only root filesystem disabled - YOLO needs writable /app/runs and /tmp/Ultralytics
+ReadOnly=false
 
 # Health check
 HealthCmd=wget --no-verbose --tries=1 --spider http://localhost:8081/health || exit 1
