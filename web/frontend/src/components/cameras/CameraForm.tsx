@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Bell, BellOff } from 'lucide-react';
 import type { Camera, CameraCreatePayload, CameraUpdatePayload } from '../../types';
-import { Button, Input, Modal } from '../ui';
+import { Button, Input, Modal, Switch } from '../ui';
 
 interface CameraFormProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
   const [device, setDevice] = useState('');
   const [resolution, setResolution] = useState('640x480');
   const [fps, setFps] = useState(30);
+  const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [errors, setErrors] = useState<{ name?: string; device?: string }>({});
 
   const isEditing = !!camera;
@@ -26,11 +28,13 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
       setDevice(camera.device);
       setResolution(camera.resolution || '640x480');
       setFps(camera.fps || 30);
+      setAlertsEnabled(camera.alerts_enabled);
     } else {
       setName('');
       setDevice('');
       setResolution('640x480');
       setFps(30);
+      setAlertsEnabled(true);
     }
     setErrors({});
   }, [camera, isOpen]);
@@ -60,6 +64,7 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
         name: name.trim(),
         resolution,
         fps,
+        alerts_enabled: alertsEnabled,
       };
       // Only include device if changed
       if (device.trim() !== camera?.device) {
@@ -72,6 +77,7 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
         device: device.trim(),
         resolution,
         fps,
+        alerts_enabled: alertsEnabled,
       } as CameraCreatePayload);
     }
   };
@@ -116,6 +122,29 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
           min={1}
           max={60}
         />
+
+        {/* Alerts Toggle */}
+        <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-bg-card/50">
+          <div className="flex items-center gap-3">
+            {alertsEnabled ? (
+              <Bell size={18} className="text-accent" />
+            ) : (
+              <BellOff size={18} className="text-text-muted" />
+            )}
+            <div>
+              <span className="text-sm text-text-secondary block">Enable Alerts</span>
+              <span className="text-xs text-text-muted">
+                {alertsEnabled
+                  ? 'Events will be created and notifications sent'
+                  : 'Detection runs for display only, no alerts'}
+              </span>
+            </div>
+          </div>
+          <Switch
+            checked={alertsEnabled}
+            onChange={setAlertsEnabled}
+          />
+        </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <Button variant="secondary" type="button" onClick={onClose}>

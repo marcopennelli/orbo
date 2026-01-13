@@ -24,6 +24,8 @@ type CreateRequestBody struct {
 	Resolution *string `form:"resolution,omitempty" json:"resolution,omitempty" xml:"resolution,omitempty"`
 	// Frames per second
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
+	// Enable events and alerts for this camera
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
 // UpdateRequestBody is the type of the "camera" service "update" endpoint HTTP
@@ -37,6 +39,8 @@ type UpdateRequestBody struct {
 	Resolution *string `form:"resolution,omitempty" json:"resolution,omitempty" xml:"resolution,omitempty"`
 	// Frames per second
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
+	// Enable events and alerts for this camera
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
 // ListResponseBody is the type of the "camera" service "list" endpoint HTTP
@@ -601,11 +605,17 @@ func NewCreatePayload(body *CreateRequestBody) *camera.CreatePayload {
 	if body.Fps != nil {
 		v.Fps = *body.Fps
 	}
+	if body.AlertsEnabled != nil {
+		v.AlertsEnabled = *body.AlertsEnabled
+	}
 	if body.Resolution == nil {
 		v.Resolution = "640x480"
 	}
 	if body.Fps == nil {
 		v.Fps = 30
+	}
+	if body.AlertsEnabled == nil {
+		v.AlertsEnabled = true
 	}
 
 	return v
@@ -614,10 +624,11 @@ func NewCreatePayload(body *CreateRequestBody) *camera.CreatePayload {
 // NewUpdatePayload builds a camera service update endpoint payload.
 func NewUpdatePayload(body *UpdateRequestBody, id string) *camera.UpdatePayload {
 	v := &camera.UpdatePayload{
-		Name:       body.Name,
-		Device:     body.Device,
-		Resolution: body.Resolution,
-		Fps:        body.Fps,
+		Name:          body.Name,
+		Device:        body.Device,
+		Resolution:    body.Resolution,
+		Fps:           body.Fps,
+		AlertsEnabled: body.AlertsEnabled,
 	}
 	v.ID = id
 

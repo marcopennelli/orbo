@@ -52,19 +52,36 @@ containers:
     user: "1000:1000"
     read_only: true
 
-  # YOLO Object Detection Service
+  # YOLO Object Detection Service (Multi-task YOLO11)
   - name: yolo-service
     image: ghcr.io/marcopennelli/orbo-yolo:latest
     ports:
       - "8081:8081"
     environment:
-      # Use nano model for RPi (smallest/fastest)
-      YOLO_MODEL: "yolo11n.pt"
+      # Model size: n (nano), s (small), m (medium), l (large), x (xlarge)
+      MODEL_SIZE: "n"
       # Higher threshold = fewer detections = faster
       CONFIDENCE_THRESHOLD: "0.6"
+      # YOLO11 tasks to enable: detect, pose, segment, obb, classify
+      # Use comma-separated list. Each task loads its own model.
+      ENABLED_TASKS: "detect,pose"
+      # Maximum models to keep in memory (LRU eviction)
+      MAX_CACHED_MODELS: "2"
+      # Preload models on startup (empty = load on first request)
+      PRELOAD_TASKS: "detect"
       # Bounding box customization (hex color format)
       BOX_COLOR: "#0066FF"
       BOX_THICKNESS: "2"
+      # Pose estimation settings
+      POSE_COLOR: "#FF00FF"
+      # Fall detection alert
+      FALL_DETECTION: "true"
+      ALERT_ON_POSES: "fall_detected,lying"
+      # Segmentation settings
+      SEGMENT_COLOR: "#00FFFF"
+      SEGMENT_ALPHA: "0.4"
+      # OBB settings
+      OBB_COLOR: "#FFFF00"
     restart_policy: always
     user: "1000:1000"
     read_only: true

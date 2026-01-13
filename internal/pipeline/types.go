@@ -128,6 +128,7 @@ type CameraDetectionConfig struct {
 	MotionSensitivity *float32        `json:"motion_sensitivity,omitempty"` // Motion detection threshold
 	MotionCooldownMs  *int            `json:"motion_cooldown_ms,omitempty"` // Cooldown after motion stops (milliseconds)
 	YOLOConfidence    *float32        `json:"yolo_confidence,omitempty"`    // YOLO detection threshold
+	YOLOTasks         []string        `json:"yolo_tasks,omitempty"`         // YOLO tasks: detect, pose, segment, obb, classify
 	EnableFaceRecog   *bool           `json:"enable_face_recog,omitempty"`  // Enable face recognition
 	EnablePlateRecog  *bool           `json:"enable_plate_recog,omitempty"` // Enable plate recognition
 }
@@ -141,6 +142,7 @@ type GlobalDetectionConfig struct {
 	MotionSensitivity float32       `json:"motion_sensitivity"`
 	MotionCooldownMs  int           `json:"motion_cooldown_ms"` // Cooldown in milliseconds after motion stops
 	YOLOConfidence    float32       `json:"yolo_confidence"`
+	YOLOTasks         []string      `json:"yolo_tasks"` // YOLO tasks: detect, pose, segment, obb, classify
 	EnableFaceRecog   bool          `json:"enable_face_recog"`
 	EnablePlateRecog  bool          `json:"enable_plate_recog"`
 }
@@ -156,6 +158,7 @@ type EffectiveConfig struct {
 	MotionSensitivity float32
 	MotionCooldownMs  int // Cooldown in milliseconds after motion stops
 	YOLOConfidence    float32
+	YOLOTasks         []string // YOLO tasks for this camera
 	EnableFaceRecog   bool
 	EnablePlateRecog  bool
 }
@@ -170,6 +173,7 @@ func DefaultGlobalConfig() *GlobalDetectionConfig {
 		MotionSensitivity: 0.1,
 		MotionCooldownMs:  2000, // 2 second default cooldown
 		YOLOConfidence:    0.5,
+		YOLOTasks:         []string{"detect"}, // Default to standard detection only
 		EnableFaceRecog:   true,
 		EnablePlateRecog:  false,
 	}
@@ -190,6 +194,7 @@ func (c *CameraDetectionConfig) MergeWithGlobal(cameraID string, global *GlobalD
 		MotionSensitivity: global.MotionSensitivity,
 		MotionCooldownMs:  global.MotionCooldownMs,
 		YOLOConfidence:    global.YOLOConfidence,
+		YOLOTasks:         global.YOLOTasks,
 		EnableFaceRecog:   global.EnableFaceRecog,
 		EnablePlateRecog:  global.EnablePlateRecog,
 	}
@@ -219,6 +224,9 @@ func (c *CameraDetectionConfig) MergeWithGlobal(cameraID string, global *GlobalD
 	}
 	if c.YOLOConfidence != nil {
 		effective.YOLOConfidence = *c.YOLOConfidence
+	}
+	if len(c.YOLOTasks) > 0 {
+		effective.YOLOTasks = c.YOLOTasks
 	}
 	if c.EnableFaceRecog != nil {
 		effective.EnableFaceRecog = *c.EnableFaceRecog

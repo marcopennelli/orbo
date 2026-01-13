@@ -690,6 +690,12 @@ func marshalConfigYOLOConfigToYOLOConfigResponseBody(v *config.YOLOConfig) *YOLO
 			res.BoxThickness = 2
 		}
 	}
+	if v.Tasks != nil {
+		res.Tasks = make([]string, len(v.Tasks))
+		for i, val := range v.Tasks {
+			res.Tasks[i] = val
+		}
+	}
 
 	return res
 }
@@ -771,6 +777,12 @@ func unmarshalYOLOConfigRequestBodyToConfigYOLOConfig(v *YOLOConfigRequestBody) 
 	}
 	if v.BoxThickness == nil {
 		res.BoxThickness = 2
+	}
+	if v.Tasks != nil {
+		res.Tasks = make([]string, len(v.Tasks))
+		for i, val := range v.Tasks {
+			res.Tasks[i] = val
+		}
 	}
 
 	return res

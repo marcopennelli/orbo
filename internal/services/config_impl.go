@@ -95,6 +95,7 @@ func NewConfigService(telegramBot *telegram.TelegramBot, dinov3Detector *detecti
 		DrawBoxes:           os.Getenv("YOLO_DRAW_BOXES") == "true",
 		BoxColor:            &defaultBoxColor,
 		BoxThickness:        2,
+		Tasks:               []string{"detect"}, // Default to standard detection
 	}
 
 	// Initialize Recognition config with defaults
@@ -257,6 +258,10 @@ func (c *ConfigImplementation) loadConfigFromDB() {
 			if cfg.BoxThickness != 0 {
 				c.yoloCfg.BoxThickness = cfg.BoxThickness
 			}
+			// Load tasks (default to detect if not set)
+			if len(cfg.Tasks) > 0 {
+				c.yoloCfg.Tasks = cfg.Tasks
+			}
 			// Apply draw boxes setting to motion detector
 			if c.motionDetector != nil {
 				c.motionDetector.SetDrawBoxes(cfg.DrawBoxes)
@@ -342,6 +347,7 @@ func (c *ConfigImplementation) saveYoloConfigToDB() {
 		DrawBoxes:           c.yoloCfg.DrawBoxes,
 		BoxColor:            c.yoloCfg.BoxColor,
 		BoxThickness:        c.yoloCfg.BoxThickness,
+		Tasks:               c.yoloCfg.Tasks,
 	}
 	if jsonBytes, err := json.Marshal(cfg); err == nil {
 		if err := c.db.SaveConfig("yolo_config", string(jsonBytes)); err != nil {
@@ -632,6 +638,10 @@ func (c *ConfigImplementation) GetYolo(ctx context.Context) (*config.YOLOConfig,
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
+	// Return a copy of tasks to avoid race conditions
+	tasks := make([]string, len(c.yoloCfg.Tasks))
+	copy(tasks, c.yoloCfg.Tasks)
+
 	return &config.YOLOConfig{
 		Enabled:             c.yoloCfg.Enabled,
 		ServiceEndpoint:     c.yoloCfg.ServiceEndpoint,
@@ -641,6 +651,7 @@ func (c *ConfigImplementation) GetYolo(ctx context.Context) (*config.YOLOConfig,
 		DrawBoxes:           c.yoloCfg.DrawBoxes,
 		BoxColor:            c.yoloCfg.BoxColor,
 		BoxThickness:        c.yoloCfg.BoxThickness,
+		Tasks:               tasks,
 	}, nil
 }
 
@@ -674,6 +685,13 @@ func (c *ConfigImplementation) UpdateYolo(ctx context.Context, cfg *config.YOLOC
 	}
 	if cfg.BoxThickness != 0 {
 		c.yoloCfg.BoxThickness = cfg.BoxThickness
+	}
+	// Update tasks (default to detect if empty)
+	if len(cfg.Tasks) > 0 {
+		c.yoloCfg.Tasks = make([]string, len(cfg.Tasks))
+		copy(c.yoloCfg.Tasks, cfg.Tasks)
+	} else if len(c.yoloCfg.Tasks) == 0 {
+		c.yoloCfg.Tasks = []string{"detect"}
 	}
 
 	// Update the YOLO detector if available
@@ -723,6 +741,10 @@ func (c *ConfigImplementation) UpdateYolo(ctx context.Context, cfg *config.YOLOC
 	// Save to database
 	c.saveYoloConfigToDB()
 
+	// Return a copy of tasks
+	tasks := make([]string, len(c.yoloCfg.Tasks))
+	copy(tasks, c.yoloCfg.Tasks)
+
 	return &config.YOLOConfig{
 		Enabled:             c.yoloCfg.Enabled,
 		ServiceEndpoint:     c.yoloCfg.ServiceEndpoint,
@@ -732,6 +754,7 @@ func (c *ConfigImplementation) UpdateYolo(ctx context.Context, cfg *config.YOLOC
 		DrawBoxes:           c.yoloCfg.DrawBoxes,
 		BoxColor:            c.yoloCfg.BoxColor,
 		BoxThickness:        c.yoloCfg.BoxThickness,
+		Tasks:               tasks,
 	}, nil
 }
 

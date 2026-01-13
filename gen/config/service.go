@@ -224,6 +224,10 @@ type YOLOConfig struct {
 	BoxColor *string
 	// Bounding box line thickness (1-5)
 	BoxThickness int
+	// List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose
+	// estimation, 'segment' for instance segmentation, 'obb' for oriented bounding
+	// boxes, 'classify' for image classification.
+	Tasks []string
 }
 
 // Error returns an error description.

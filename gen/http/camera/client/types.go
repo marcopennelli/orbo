@@ -24,6 +24,8 @@ type CreateRequestBody struct {
 	Resolution string `form:"resolution" json:"resolution" xml:"resolution"`
 	// Frames per second
 	Fps int `form:"fps" json:"fps" xml:"fps"`
+	// Enable events and alerts for this camera
+	AlertsEnabled bool `form:"alerts_enabled" json:"alerts_enabled" xml:"alerts_enabled"`
 }
 
 // UpdateRequestBody is the type of the "camera" service "update" endpoint HTTP
@@ -37,6 +39,8 @@ type UpdateRequestBody struct {
 	Resolution *string `form:"resolution,omitempty" json:"resolution,omitempty" xml:"resolution,omitempty"`
 	// Frames per second
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
+	// Enable events and alerts for this camera
+	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
 }
 
 // ListResponseBody is the type of the "camera" service "list" endpoint HTTP
@@ -335,10 +339,11 @@ type CameraInfoResponse struct {
 // "create" endpoint of the "camera" service.
 func NewCreateRequestBody(p *camera.CreatePayload) *CreateRequestBody {
 	body := &CreateRequestBody{
-		Name:       p.Name,
-		Device:     p.Device,
-		Resolution: p.Resolution,
-		Fps:        p.Fps,
+		Name:          p.Name,
+		Device:        p.Device,
+		Resolution:    p.Resolution,
+		Fps:           p.Fps,
+		AlertsEnabled: p.AlertsEnabled,
 	}
 	{
 		var zero string
@@ -352,6 +357,12 @@ func NewCreateRequestBody(p *camera.CreatePayload) *CreateRequestBody {
 			body.Fps = 30
 		}
 	}
+	{
+		var zero bool
+		if body.AlertsEnabled == zero {
+			body.AlertsEnabled = true
+		}
+	}
 	return body
 }
 
@@ -359,10 +370,11 @@ func NewCreateRequestBody(p *camera.CreatePayload) *CreateRequestBody {
 // "update" endpoint of the "camera" service.
 func NewUpdateRequestBody(p *camera.UpdatePayload) *UpdateRequestBody {
 	body := &UpdateRequestBody{
-		Name:       p.Name,
-		Device:     p.Device,
-		Resolution: p.Resolution,
-		Fps:        p.Fps,
+		Name:          p.Name,
+		Device:        p.Device,
+		Resolution:    p.Resolution,
+		Fps:           p.Fps,
+		AlertsEnabled: p.AlertsEnabled,
 	}
 	return body
 }

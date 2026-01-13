@@ -92,6 +92,9 @@ func (c *CameraImplementation) Create(ctx context.Context, p *camera_service.Cre
 	// Create camera
 	cam := camera.NewCamera(id, p.Name, p.Device, resolution, fps)
 
+	// Set alerts_enabled from payload (defaults to true via Goa)
+	cam.AlertsEnabled = p.AlertsEnabled
+
 	// Add to manager
 	err := c.cameraManager.AddCamera(cam)
 	if err != nil {
@@ -166,6 +169,11 @@ func (c *CameraImplementation) Update(ctx context.Context, p *camera_service.Upd
 			Message: "Failed to update camera",
 			Details: &details,
 		}
+	}
+
+	// Update alerts_enabled if provided
+	if p.AlertsEnabled != nil {
+		c.cameraManager.SetAlertsEnabled(p.ID, *p.AlertsEnabled)
 	}
 
 	resolutionPtr := cam.Resolution

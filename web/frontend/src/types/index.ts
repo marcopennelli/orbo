@@ -15,6 +15,7 @@ export interface CameraCreatePayload {
   device: string;
   resolution?: string;
   fps?: number;
+  alerts_enabled?: boolean;
 }
 
 export interface CameraUpdatePayload {
@@ -22,6 +23,7 @@ export interface CameraUpdatePayload {
   device?: string;  // Can only be changed when camera is inactive
   resolution?: string;
   fps?: number;
+  alerts_enabled?: boolean;
 }
 
 // Frame response - matches FrameResponse from design.go
@@ -77,6 +79,9 @@ export interface TelegramConfig {
   cooldown_seconds?: number;
 }
 
+// YOLO task types - matches YoloTask from Go code
+export type YoloTask = 'detect' | 'pose' | 'segment' | 'obb' | 'classify';
+
 // YOLO config - matches YOLOConfig from design.go
 export interface YoloConfig {
   enabled: boolean;
@@ -87,6 +92,7 @@ export interface YoloConfig {
   draw_boxes?: boolean;
   box_color?: string;  // Hex color for bounding boxes (e.g., '#0066FF')
   box_thickness?: number;  // Bounding box line thickness (1-5)
+  tasks?: YoloTask[];  // YOLO11 tasks: detect, pose, segment, obb, classify
 }
 
 // Recognition config - matches RecognitionConfig from design.go

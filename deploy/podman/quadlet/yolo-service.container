@@ -1,12 +1,14 @@
-# YOLO Detection Service for Orbo
+# YOLO11 Multi-Task Detection Service for Orbo
 # Quadlet container file for systemd/Podman
 # Compatible with meta-container-deploy for Yocto-based systems
 #
 # Install to: /etc/containers/systemd/yolo-service.container
 # Podman will generate: yolo-service.service
+#
+# Supports YOLO11 tasks: detect, pose, segment, obb, classify
 
 [Unit]
-Description=YOLO Object Detection Service for Orbo
+Description=YOLO11 Multi-Task Detection Service for Orbo
 After=network-online.target
 Before=orbo.service
 
@@ -17,12 +19,44 @@ ContainerName=yolo-service
 # Internal port (accessed by orbo container via pod network)
 PublishPort=8081:8081
 
-# Environment variables
-Environment=YOLO_MODEL=yolo11n.pt
+# ==========================================================================
+# Model Configuration
+# ==========================================================================
+# Model size: n (nano), s (small), m (medium), l (large), x (xlarge)
+Environment=MODEL_SIZE=n
 Environment=CONFIDENCE_THRESHOLD=0.5
-# Bounding box customization (hex color format)
+
+# ==========================================================================
+# YOLO11 Tasks - Multiple tasks can run on the same frame
+# ==========================================================================
+# Available tasks: detect, pose, segment, obb, classify
+# Models are loaded on-demand and cached with LRU eviction
+Environment=ENABLED_TASKS=detect
+# Maximum models to keep in memory (default: 3)
+Environment=MAX_CACHED_MODELS=3
+# Preload these models on startup (empty = load on first request)
+Environment=PRELOAD_TASKS=detect
+
+# ==========================================================================
+# Visualization Settings
+# ==========================================================================
+# Detection bounding boxes (hex color format)
 Environment=BOX_COLOR=#0066FF
 Environment=BOX_THICKNESS=2
+# Pose estimation skeleton/keypoints
+Environment=POSE_COLOR=#FF00FF
+# Segmentation masks
+Environment=SEGMENT_COLOR=#00FFFF
+Environment=SEGMENT_ALPHA=0.4
+# Oriented bounding boxes
+Environment=OBB_COLOR=#FFFF00
+
+# ==========================================================================
+# Pose Analysis & Alerts
+# ==========================================================================
+Environment=FALL_DETECTION=true
+# Pose classifications that trigger alerts: fall_detected, lying, crouching, arms_raised
+Environment=ALERT_ON_POSES=fall_detected,lying
 
 # GPU support (uncomment for NVIDIA GPU)
 # AddDevice=nvidia.com/gpu=all

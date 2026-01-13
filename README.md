@@ -14,7 +14,7 @@ Orbo is a modern, open-source video alarm system built with Go and OpenCV. It fe
 - **Dual Streaming Modes**: MJPEG (traditional) and WebCodecs (low-latency WebSocket) streaming
 - **Camera Support**: USB cameras (`/dev/video*`), HTTP endpoints, and RTSP streams
 - **Motion Detection**: OpenCV-based with configurable sensitivity
-- **AI Object Detection**: YOLO11 integration via gRPC for real-time detection of persons, vehicles, and 80+ COCO classes
+- **AI Object Detection**: YOLO11 multi-task integration via gRPC - detection, pose estimation, segmentation, and more
 - **Face Recognition**: InsightFace-based gRPC face detection and identity matching with persistent face database
 - **Configurable Bounding Box Colors**: Customize colors for YOLO detections and face recognition (known/unknown faces)
 - **Sequential Detection Pipeline**: Optimized detector chain (YOLO → Face) with proper annotation stacking
@@ -79,7 +79,7 @@ The React-based web UI provides:
 - **Per-Camera Alerts Control**: Toggle event/notification generation per camera (bounding boxes always visible)
 - **Multi-Camera Grid**: Configurable layouts (1x1, 2x1, 2x2, 3x3) with detection status indicators
 - **Motion Events**: Browse and filter detection events with thumbnails
-- **Settings Panel**: Configure Pipeline, YOLO (with color picker), Face Recognition, and Telegram settings
+- **Settings Panel**: Configure Pipeline, YOLO (multi-task selection, color picker), Face Recognition, and Telegram settings
 - **System Controls**: Start/stop detection, view system status
 
 ### Frontend Development
@@ -129,6 +129,7 @@ make -C deploy full-build     # Build frontend + backend
 | `YOLO_CLASSES_FILTER` | Classes to detect (e.g., "person,car") | all |
 | `YOLO_BOX_COLOR` | Bounding box color (hex) | `#0066FF` |
 | `YOLO_BOX_THICKNESS` | Bounding box line thickness (1-5) | 2 |
+| `YOLO_TASKS` | Comma-separated YOLO11 tasks (detect,pose,segment,obb,classify) | detect |
 | `RECOGNITION_ENABLED` | Enable face recognition | false |
 | `RECOGNITION_SERVICE_ENDPOINT` | Face recognition service URL | `http://recognition:8082` |
 | `RECOGNITION_SIMILARITY_THRESHOLD` | Face match threshold (0.0-1.0) | 0.5 |
@@ -271,8 +272,26 @@ Once configured, control Orbo directly from Telegram:
 - `POST /detect/security` - Security-focused detection
 - `GET /classes` - List supported classes
 
+**YOLO11 Multi-Task Support:**
+
+The YOLO service supports multiple analysis tasks that can be enabled simultaneously:
+
+| Task | Description | Output |
+|------|-------------|--------|
+| `detect` | Object detection (default) | Bounding boxes for 80+ COCO classes |
+| `pose` | Pose estimation | 17 human body keypoints with fall detection |
+| `segment` | Instance segmentation | Pixel-level object masks |
+| `obb` | Oriented bounding boxes | Rotated boxes for angled objects |
+| `classify` | Image classification | Scene/category classification |
+
+Configure via the web UI (Settings → YOLO → YOLO11 Tasks) or API:
+```bash
+curl -X PUT http://orbo/api/v1/config/yolo \
+  -H "Content-Type: application/json" \
+  -d '{"tasks": ["detect", "pose"], "box_color": "#0066FF", "box_thickness": 2}'
+```
+
 **Configurable YOLO Bounding Box Colors:**
-Configure via the web UI (Settings → YOLO) or API:
 ```bash
 curl -X PUT http://orbo/api/v1/config/yolo \
   -H "Content-Type: application/json" \

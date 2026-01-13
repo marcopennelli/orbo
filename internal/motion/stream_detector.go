@@ -10,6 +10,7 @@ import (
 	"image/color"
 	"image/jpeg"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"sort"
@@ -1290,7 +1291,7 @@ func (sd *StreamDetector) performFaceRecognitionForStream(cameraID string, frame
 
 		// Save event
 		sd.addEvent(event)
-	} else if yoloResult != nil && yoloResult.Count > 0 {
+	} else if yoloResult != nil && len(yoloResult.Detections) > 0 {
 		// No faces detected but YOLO found objects - create YOLO-only event
 		bestDet := yoloResult.Detections[0]
 
@@ -2270,28 +2271,27 @@ func (sd *StreamDetector) pollHTTPImage(cameraID, imageURL string, frameBuffer c
 	}
 }
 
-// fetchHTTPImage fetches a single image from HTTP endpoint
+// fetchHTTPImage fetches a single image from HTTP endpoint using direct HTTP GET
+// This is more reliable than ffmpeg for simple JPEG image endpoints
 func (sd *StreamDetector) fetchHTTPImage(imageURL string) ([]byte, error) {
-	// Use ffmpeg to fetch and convert the image
-	cmd := exec.Command("ffmpeg",
-		"-y",
-		"-i", imageURL,
-		"-vframes", "1",
-		"-f", "mjpeg",
-		"-q:v", "5",
-		"-",
-	)
+	client := &http.Client{Timeout: 10 * time.Second}
 
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
+	resp, err := client.Get(imageURL)
 	if err != nil {
-		return nil, fmt.Errorf("ffmpeg error: %v (stderr: %s)", err, stderr.String())
+		return nil, fmt.Errorf("HTTP error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
 	}
 
-	return stdout.Bytes(), nil
+	frameData, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read error: %v", err)
+	}
+
+	return frameData, nil
 }
 
 // processHTTPFrames processes frames from HTTP polling

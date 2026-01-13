@@ -64,6 +64,10 @@ type UpdateYoloRequestBody struct {
 	BoxColor *string `form:"box_color,omitempty" json:"box_color,omitempty" xml:"box_color,omitempty"`
 	// Bounding box line thickness (1-5)
 	BoxThickness int `form:"box_thickness" json:"box_thickness" xml:"box_thickness"`
+	// List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose
+	// estimation, 'segment' for instance segmentation, 'obb' for oriented bounding
+	// boxes, 'classify' for image classification.
+	Tasks []string `form:"tasks,omitempty" json:"tasks,omitempty" xml:"tasks,omitempty"`
 }
 
 // UpdateDetectionRequestBody is the type of the "config" service
@@ -221,6 +225,10 @@ type GetYoloResponseBody struct {
 	BoxColor *string `form:"box_color,omitempty" json:"box_color,omitempty" xml:"box_color,omitempty"`
 	// Bounding box line thickness (1-5)
 	BoxThickness *int `form:"box_thickness,omitempty" json:"box_thickness,omitempty" xml:"box_thickness,omitempty"`
+	// List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose
+	// estimation, 'segment' for instance segmentation, 'obb' for oriented bounding
+	// boxes, 'classify' for image classification.
+	Tasks []string `form:"tasks,omitempty" json:"tasks,omitempty" xml:"tasks,omitempty"`
 }
 
 // UpdateYoloResponseBody is the type of the "config" service "update_yolo"
@@ -242,6 +250,10 @@ type UpdateYoloResponseBody struct {
 	BoxColor *string `form:"box_color,omitempty" json:"box_color,omitempty" xml:"box_color,omitempty"`
 	// Bounding box line thickness (1-5)
 	BoxThickness *int `form:"box_thickness,omitempty" json:"box_thickness,omitempty" xml:"box_thickness,omitempty"`
+	// List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose
+	// estimation, 'segment' for instance segmentation, 'obb' for oriented bounding
+	// boxes, 'classify' for image classification.
+	Tasks []string `form:"tasks,omitempty" json:"tasks,omitempty" xml:"tasks,omitempty"`
 }
 
 // TestYoloResponseBody is the type of the "config" service "test_yolo"
@@ -476,6 +488,10 @@ type YOLOConfigResponseBody struct {
 	BoxColor *string `form:"box_color,omitempty" json:"box_color,omitempty" xml:"box_color,omitempty"`
 	// Bounding box line thickness (1-5)
 	BoxThickness *int `form:"box_thickness,omitempty" json:"box_thickness,omitempty" xml:"box_thickness,omitempty"`
+	// List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose
+	// estimation, 'segment' for instance segmentation, 'obb' for oriented bounding
+	// boxes, 'classify' for image classification.
+	Tasks []string `form:"tasks,omitempty" json:"tasks,omitempty" xml:"tasks,omitempty"`
 }
 
 // DINOv3ConfigResponseBody is used to define fields on response body types.
@@ -512,6 +528,10 @@ type YOLOConfigRequestBody struct {
 	BoxColor *string `form:"box_color,omitempty" json:"box_color,omitempty" xml:"box_color,omitempty"`
 	// Bounding box line thickness (1-5)
 	BoxThickness int `form:"box_thickness" json:"box_thickness" xml:"box_thickness"`
+	// List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose
+	// estimation, 'segment' for instance segmentation, 'obb' for oriented bounding
+	// boxes, 'classify' for image classification.
+	Tasks []string `form:"tasks,omitempty" json:"tasks,omitempty" xml:"tasks,omitempty"`
 }
 
 // DINOv3ConfigRequestBody is used to define fields on request body types.
@@ -616,6 +636,12 @@ func NewUpdateYoloRequestBody(p *config.YOLOConfig) *UpdateYoloRequestBody {
 		var zero int
 		if body.BoxThickness == zero {
 			body.BoxThickness = 2
+		}
+	}
+	if p.Tasks != nil {
+		body.Tasks = make([]string, len(p.Tasks))
+		for i, val := range p.Tasks {
+			body.Tasks[i] = val
 		}
 	}
 	return body
@@ -904,6 +930,12 @@ func NewGetYoloYOLOConfigOK(body *GetYoloResponseBody) *config.YOLOConfig {
 	if body.BoxThickness == nil {
 		v.BoxThickness = 2
 	}
+	if body.Tasks != nil {
+		v.Tasks = make([]string, len(body.Tasks))
+		for i, val := range body.Tasks {
+			v.Tasks[i] = val
+		}
+	}
 
 	return v
 }
@@ -940,6 +972,12 @@ func NewUpdateYoloYOLOConfigOK(body *UpdateYoloResponseBody) *config.YOLOConfig 
 	}
 	if body.BoxThickness == nil {
 		v.BoxThickness = 2
+	}
+	if body.Tasks != nil {
+		v.Tasks = make([]string, len(body.Tasks))
+		for i, val := range body.Tasks {
+			v.Tasks[i] = val
+		}
 	}
 
 	return v
@@ -1350,8 +1388,8 @@ func ValidateGetPipelineResponseBody(body *GetPipelineResponseBody) (err error) 
 		err = goa.MergeErrors(err, goa.MissingFieldError("execution_mode", "body"))
 	}
 	if body.Mode != nil {
-		if !(*body.Mode == "disabled" || *body.Mode == "continuous" || *body.Mode == "motion_triggered" || *body.Mode == "scheduled" || *body.Mode == "hybrid") {
-			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.mode", *body.Mode, []any{"disabled", "continuous", "motion_triggered", "scheduled", "hybrid"}))
+		if !(*body.Mode == "disabled" || *body.Mode == "visual_only" || *body.Mode == "continuous" || *body.Mode == "motion_triggered" || *body.Mode == "scheduled" || *body.Mode == "hybrid") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.mode", *body.Mode, []any{"disabled", "visual_only", "continuous", "motion_triggered", "scheduled", "hybrid"}))
 		}
 	}
 	if body.ExecutionMode != nil {
@@ -1387,8 +1425,8 @@ func ValidateUpdatePipelineResponseBody(body *UpdatePipelineResponseBody) (err e
 		err = goa.MergeErrors(err, goa.MissingFieldError("execution_mode", "body"))
 	}
 	if body.Mode != nil {
-		if !(*body.Mode == "disabled" || *body.Mode == "continuous" || *body.Mode == "motion_triggered" || *body.Mode == "scheduled" || *body.Mode == "hybrid") {
-			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.mode", *body.Mode, []any{"disabled", "continuous", "motion_triggered", "scheduled", "hybrid"}))
+		if !(*body.Mode == "disabled" || *body.Mode == "visual_only" || *body.Mode == "continuous" || *body.Mode == "motion_triggered" || *body.Mode == "scheduled" || *body.Mode == "hybrid") {
+			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.mode", *body.Mode, []any{"disabled", "visual_only", "continuous", "motion_triggered", "scheduled", "hybrid"}))
 		}
 	}
 	if body.ExecutionMode != nil {

@@ -4,20 +4,38 @@ package orbo.detection.v1;
 
 option go_package = "orbo/api/proto/detection/v1;detectionv1";
 
-// DetectionService provides real-time object detection using YOLO
+// DetectionService provides real-time object detection using YOLO11
+// Supports multiple tasks: detect, pose, segment, obb, classify
 service DetectionService {
   // DetectStream is a bidirectional streaming RPC for real-time detection
   // Client sends frames, server responds with detection results
   rpc DetectStream(stream FrameRequest) returns (stream DetectionResponse);
+
+  // AnalyzeStream is a bidirectional streaming RPC for multi-task analysis
+  // Client sends frames with task list, server responds with combined results
+  rpc AnalyzeStream(stream AnalyzeRequest) returns (stream AnalyzeResponse);
 
   // HealthCheck verifies the detection service is operational
   rpc HealthCheck(HealthRequest) returns (HealthResponse);
 
   // Configure updates detection parameters at runtime
   rpc Configure(ConfigureRequest) returns (ConfigureResponse);
+
+  // GetTasks returns available YOLO tasks and their status
+  rpc GetTasks(TasksRequest) returns (TasksResponse);
 }
 
-// FrameRequest contains a video frame to be processed
+// YoloTask represents the available YOLO11 task types
+enum YoloTask {
+  YOLO_TASK_UNSPECIFIED = 0;
+  YOLO_TASK_DETECT = 1;   // Standard object detection
+  YOLO_TASK_POSE = 2;     // Human pose estimation (17 keypoints)
+  YOLO_TASK_SEGMENT = 3;  // Instance segmentation
+  YOLO_TASK_OBB = 4;      // Oriented bounding boxes
+  YOLO_TASK_CLASSIFY = 5; // Image classification
+}
+
+// FrameRequest contains a video frame to be processed (legacy, detection only)
 message FrameRequest {
   // Camera identifier
   string camera_id = 1;
@@ -39,6 +57,33 @@ message FrameRequest {
 
   // Enable object tracking (ByteTrack/BoT-SORT)
   bool enable_tracking = 7;
+}
+
+// AnalyzeRequest contains a frame for multi-task analysis
+message AnalyzeRequest {
+  // Camera identifier
+  string camera_id = 1;
+
+  // Frame sequence number for ordering validation
+  uint64 frame_seq = 2;
+
+  // Capture timestamp in nanoseconds since epoch
+  int64 timestamp_ns = 3;
+
+  // JPEG-encoded frame data
+  bytes jpeg_data = 4;
+
+  // Tasks to run on this frame
+  repeated YoloTask tasks = 5;
+
+  // Request annotated image with all task annotations drawn
+  bool return_annotated = 6;
+
+  // Minimum confidence threshold for detections (0-1)
+  float conf_threshold = 7;
+
+  // Classes to filter for detection (empty = all)
+  repeated string classes_filter = 8;
 }
 
 // DetectionResponse contains detection results for a processed frame
@@ -120,6 +165,193 @@ message TrackUpdate {
 
   // Number of frames since last detection
   int32 time_since_update = 5;
+}
+
+// AnalyzeResponse contains multi-task analysis results
+message AnalyzeResponse {
+  // Camera identifier (echoed from request)
+  string camera_id = 1;
+
+  // Frame sequence number (echoed from request)
+  uint64 frame_seq = 2;
+
+  // Original capture timestamp
+  int64 capture_timestamp_ns = 3;
+
+  // When inference completed
+  int64 inference_timestamp_ns = 4;
+
+  // Annotated JPEG image with all task annotations (if requested)
+  bytes annotated_jpeg = 5;
+
+  // Total inference time in milliseconds (all tasks)
+  float total_inference_ms = 6;
+
+  // Device used for inference (cuda, cpu, etc.)
+  string device = 7;
+
+  // Per-task results
+  TaskResults detect = 8;
+  PoseResults pose = 9;
+  SegmentResults segment = 10;
+  OBBResults obb = 11;
+  ClassifyResults classify = 12;
+
+  // Alerts triggered by pose analysis (e.g., fall_detected)
+  repeated string alerts = 13;
+}
+
+// TaskResults contains standard detection results
+message TaskResults {
+  repeated Detection detections = 1;
+  float inference_ms = 2;
+  int32 count = 3;
+}
+
+// PoseResults contains pose estimation results
+message PoseResults {
+  repeated PoseDetection poses = 1;
+  float inference_ms = 2;
+  int32 count = 3;
+}
+
+// PoseDetection represents a detected human pose
+message PoseDetection {
+  // Bounding box of the person
+  BBox bbox = 1;
+
+  // Detection confidence
+  float confidence = 2;
+
+  // COCO 17-keypoint format: [x, y, confidence] for each keypoint
+  // Order: nose, left_eye, right_eye, left_ear, right_ear,
+  //        left_shoulder, right_shoulder, left_elbow, right_elbow,
+  //        left_wrist, right_wrist, left_hip, right_hip,
+  //        left_knee, right_knee, left_ankle, right_ankle
+  repeated Keypoint keypoints = 3;
+
+  // Pose classification (standing, sitting, lying, crouching, etc.)
+  string pose_class = 4;
+
+  // Track ID from object tracker
+  int32 track_id = 5;
+}
+
+// Keypoint represents a single body joint
+message Keypoint {
+  float x = 1;
+  float y = 2;
+  float confidence = 3;
+  string name = 4;  // e.g., "nose", "left_shoulder"
+}
+
+// SegmentResults contains instance segmentation results
+message SegmentResults {
+  repeated SegmentDetection segments = 1;
+  float inference_ms = 2;
+  int32 count = 3;
+}
+
+// SegmentDetection represents a segmented object
+message SegmentDetection {
+  // Class name
+  string class_name = 1;
+
+  // Class ID
+  int32 class_id = 2;
+
+  // Detection confidence
+  float confidence = 3;
+
+  // Bounding box
+  BBox bbox = 4;
+
+  // Segmentation mask as RLE-encoded bytes (optional)
+  bytes mask_rle = 5;
+
+  // Mask polygon points as flattened [x1,y1,x2,y2,...] (optional)
+  repeated float mask_polygon = 6;
+}
+
+// OBBResults contains oriented bounding box results
+message OBBResults {
+  repeated OBBDetection obbs = 1;
+  float inference_ms = 2;
+  int32 count = 3;
+}
+
+// OBBDetection represents an oriented bounding box detection
+message OBBDetection {
+  // Class name
+  string class_name = 1;
+
+  // Class ID
+  int32 class_id = 2;
+
+  // Detection confidence
+  float confidence = 3;
+
+  // Center point
+  float cx = 4;
+  float cy = 5;
+
+  // Width and height of rotated box
+  float width = 6;
+  float height = 7;
+
+  // Rotation angle in radians
+  float angle = 8;
+
+  // 4 corner points as [x1,y1,x2,y2,x3,y3,x4,y4]
+  repeated float corners = 9;
+}
+
+// ClassifyResults contains image classification results
+message ClassifyResults {
+  repeated Classification classifications = 1;
+  float inference_ms = 2;
+}
+
+// Classification represents a single classification result
+message Classification {
+  // Class name
+  string class_name = 1;
+
+  // Class ID
+  int32 class_id = 2;
+
+  // Classification confidence/probability
+  float confidence = 3;
+}
+
+// TasksRequest is empty - requests available tasks info
+message TasksRequest {}
+
+// TasksResponse contains available YOLO tasks and their status
+message TasksResponse {
+  // Available tasks that can be requested
+  repeated TaskInfo available_tasks = 1;
+
+  // Currently loaded models
+  repeated string loaded_models = 2;
+
+  // Maximum models that can be cached
+  int32 max_cached_models = 3;
+}
+
+// TaskInfo describes a single YOLO task
+message TaskInfo {
+  // Task type
+  YoloTask task = 1;
+
+  // Human-readable name
+  string name = 2;
+
+  // Whether the model is currently loaded
+  bool loaded = 3;
+
+  // Model file name
+  string model_file = 4;
 }
 
 // HealthRequest is empty - just checks service availability

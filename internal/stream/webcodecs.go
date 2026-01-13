@@ -25,8 +25,9 @@ const (
 
 // WebCodecsClient represents a connected WebSocket client with its mode
 type WebCodecsClient struct {
-	conn *websocket.Conn
-	mode ClientMode
+	conn    *websocket.Conn
+	mode    ClientMode
+	writeMu sync.Mutex // Protects concurrent writes to this connection
 }
 
 // WebCodecsStream handles WebSocket streaming for a single camera
@@ -289,12 +290,16 @@ func (s *WebCodecsStream) broadcastAnnotatedFrame(seq uint64, frameData []byte) 
 	copy(msg[13:], frameData)
 
 	// Only send to auto-mode clients (raw-mode clients never get annotated frames)
-	for conn, client := range s.clients {
+	for _, client := range s.clients {
 		if client.mode != ModeAuto {
 			continue
 		}
-		conn.SetWriteDeadline(time.Now().Add(100 * time.Millisecond))
-		if err := conn.WriteMessage(websocket.BinaryMessage, msg); err != nil {
+		// Use per-client mutex to prevent concurrent writes
+		client.writeMu.Lock()
+		client.conn.SetWriteDeadline(time.Now().Add(100 * time.Millisecond))
+		err := client.conn.WriteMessage(websocket.BinaryMessage, msg)
+		client.writeMu.Unlock()
+		if err != nil {
 			// Will be cleaned up by read pump
 			log.Printf("[WebCodecs] Write error to client: %v", err)
 		}
@@ -341,14 +346,18 @@ func (s *WebCodecsStream) broadcastRawFrame(frameData []byte) {
 	binary.BigEndian.PutUint32(msg[9:13], uint32(len(frameData)))
 	copy(msg[13:], frameData)
 
-	for conn, client := range s.clients {
+	for _, client := range s.clients {
 		// Raw-mode clients always get raw frames
 		// Auto-mode clients only get raw frames when detection is not active
 		if client.mode == ModeAuto && detectionActive {
 			continue
 		}
-		conn.SetWriteDeadline(time.Now().Add(100 * time.Millisecond))
-		if err := conn.WriteMessage(websocket.BinaryMessage, msg); err != nil {
+		// Use per-client mutex to prevent concurrent writes
+		client.writeMu.Lock()
+		client.conn.SetWriteDeadline(time.Now().Add(100 * time.Millisecond))
+		err := client.conn.WriteMessage(websocket.BinaryMessage, msg)
+		client.writeMu.Unlock()
+		if err != nil {
 			// Will be cleaned up by read pump
 		}
 	}
@@ -392,6 +401,11 @@ func (s *WebCodecsStream) ServeWebSocketWithMode(w http.ResponseWriter, r *http.
 
 // readPump reads from WebSocket to detect disconnection
 func (s *WebCodecsStream) readPump(conn *websocket.Conn) {
+	// Get client reference for write mutex
+	s.clientsMu.RLock()
+	client := s.clients[conn]
+	s.clientsMu.RUnlock()
+
 	defer func() {
 		s.clientsMu.Lock()
 		delete(s.clients, conn)
@@ -418,8 +432,15 @@ func (s *WebCodecsStream) readPump(conn *websocket.Conn) {
 			case <-s.stopCh:
 				return
 			case <-ticker.C:
-				conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				if client == nil {
+					return
+				}
+				// Use per-client mutex to prevent concurrent writes
+				client.writeMu.Lock()
+				client.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+				err := client.conn.WriteMessage(websocket.PingMessage, nil)
+				client.writeMu.Unlock()
+				if err != nil {
 					return
 				}
 			}

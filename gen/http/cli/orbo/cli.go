@@ -40,11 +40,11 @@ system (status|start-detection|stop-detection)
 func UsageExamples() string {
 	return os.Args[0] + ` health healthz` + "\n" +
 		os.Args[0] + ` auth login --body '{
-      "password": "Officia sed.",
-      "username": "Voluptas quia eligendi perferendis ut."
+      "password": "Fugiat natus inventore quos nam et adipisci.",
+      "username": "Consequuntur placeat qui a et sed."
    }'` + "\n" +
 		os.Args[0] + ` camera list` + "\n" +
-		os.Args[0] + ` motion events --camera-id "ecdbbda9-f010-11f0-998b-5847ca7b8ce1" --since "2003-02-27T07:19:32Z" --limit -7357366374111831451` + "\n" +
+		os.Args[0] + ` motion events --camera-id "3cd51195-f072-11f0-aca2-5847ca7b8ce1" --since "1995-07-27T14:39:00Z" --limit -8628092076975255126` + "\n" +
 		os.Args[0] + ` config get` + "\n" +
 		""
 }
@@ -615,8 +615,8 @@ Authenticate with username and password to receive a JWT token
 
 Example:
     %[1]s auth login --body '{
-      "password": "Officia sed.",
-      "username": "Voluptas quia eligendi perferendis ut."
+      "password": "Fugiat natus inventore quos nam et adipisci.",
+      "username": "Consequuntur placeat qui a et sed."
    }'
 `, os.Args[0])
 }
@@ -670,7 +670,7 @@ Get camera information by ID
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera get --id "ecdae60c-f010-11f0-998b-5847ca7b8ce1"
+    %[1]s camera get --id "3cd35670-f072-11f0-aca2-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -682,10 +682,11 @@ Add a new camera
 
 Example:
     %[1]s camera create --body '{
-      "device": "Et corporis.",
-      "fps": 6590396382631310600,
-      "name": "In molestiae iste.",
-      "resolution": "Ipsa delectus."
+      "alerts_enabled": true,
+      "device": "Dolore temporibus qui dolor non.",
+      "fps": 6629571893810400612,
+      "name": "Consectetur ipsa tempora aut fuga.",
+      "resolution": "Hic suscipit inventore commodi provident."
    }'
 `, os.Args[0])
 }
@@ -699,11 +700,12 @@ Update camera configuration. Device can only be changed when camera is inactive.
 
 Example:
     %[1]s camera update --body '{
-      "device": "Dolor sed voluptates ad rem dolores quia.",
-      "fps": 8833264999851994961,
-      "name": "Qui rerum quia hic repellat rem.",
-      "resolution": "Ut illo atque pariatur eaque eos quidem."
-   }' --id "ecdb302e-f010-11f0-998b-5847ca7b8ce1"
+      "alerts_enabled": true,
+      "device": "Minus omnis.",
+      "fps": 6536155408702514852,
+      "name": "Rerum adipisci cum non vitae et ipsum.",
+      "resolution": "Et natus qui recusandae natus."
+   }' --id "3cd3f5d0-f072-11f0-aca2-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -714,7 +716,7 @@ Remove a camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera delete --id "ecdb47a6-f010-11f0-998b-5847ca7b8ce1"
+    %[1]s camera delete --id "3cd428af-f072-11f0-aca2-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -725,7 +727,7 @@ Activate camera for motion detection
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera activate --id "ecdb4e31-f010-11f0-998b-5847ca7b8ce1"
+    %[1]s camera activate --id "3cd434d0-f072-11f0-aca2-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -736,7 +738,7 @@ Deactivate camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera deactivate --id "ecdb626b-f010-11f0-998b-5847ca7b8ce1"
+    %[1]s camera deactivate --id "3cd45373-f072-11f0-aca2-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -747,7 +749,7 @@ Capture a single frame from camera as base64
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera capture --id "ecdb779f-f010-11f0-998b-5847ca7b8ce1"
+    %[1]s camera capture --id "3cd46eab-f072-11f0-aca2-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -758,7 +760,7 @@ Enable alerts for this camera. Detection pipeline will create events and send no
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera enable-alerts --id "ecdb8569-f010-11f0-998b-5847ca7b8ce1"
+    %[1]s camera enable-alerts --id "3cd47e3f-f072-11f0-aca2-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -769,7 +771,7 @@ Disable alerts for this camera. Detection pipeline still runs for bounding boxes
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera disable-alerts --id "ecdbab5c-f010-11f0-998b-5847ca7b8ce1"
+    %[1]s camera disable-alerts --id "3cd49c3a-f072-11f0-aca2-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -798,7 +800,7 @@ List motion detection events
     -limit INT: 
 
 Example:
-    %[1]s motion events --camera-id "ecdbbda9-f010-11f0-998b-5847ca7b8ce1" --since "2003-02-27T07:19:32Z" --limit -7357366374111831451
+    %[1]s motion events --camera-id "3cd51195-f072-11f0-aca2-5847ca7b8ce1" --since "1995-07-27T14:39:00Z" --limit -8628092076975255126
 `, os.Args[0])
 }
 
@@ -809,7 +811,7 @@ Get motion event by ID
     -id STRING: Event ID
 
 Example:
-    %[1]s motion event --id "ecdbdcfd-f010-11f0-998b-5847ca7b8ce1"
+    %[1]s motion event --id "3cd53032-f072-11f0-aca2-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -820,7 +822,7 @@ Get captured frame for motion event as base64
     -id STRING: Event ID
 
 Example:
-    %[1]s motion frame --id "ecdbfcfd-f010-11f0-998b-5847ca7b8ce1"
+    %[1]s motion frame --id "3cd5564d-f072-11f0-aca2-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -832,7 +834,7 @@ Get forensic face analysis thumbnail (NSA-style with landmarks) for a motion eve
     -index INT: Face thumbnail index (0-based)
 
 Example:
-    %[1]s motion forensic-thumbnail --id "ecdc05f0-f010-11f0-998b-5847ca7b8ce1" --index 1276679161183541511
+    %[1]s motion forensic-thumbnail --id "3cd560aa-f072-11f0-aca2-5847ca7b8ce1" --index 2265401934714453009
 `, os.Args[0])
 }
 
@@ -882,11 +884,11 @@ Update notification configuration
 
 Example:
     %[1]s config update --body '{
-      "cooldown_seconds": 8847911415795252102,
-      "min_confidence": 0.0048802625,
-      "telegram_bot_token": "Porro sed eius ut eum voluptatem modi.",
-      "telegram_chat_id": "Incidunt dolor cupiditate velit consequatur.",
-      "telegram_enabled": true
+      "cooldown_seconds": 4173248364901550452,
+      "min_confidence": 0.10383743,
+      "telegram_bot_token": "Earum ex.",
+      "telegram_chat_id": "Nesciunt a aut eos nam minima.",
+      "telegram_enabled": false
    }'
 `, os.Args[0])
 }
@@ -919,12 +921,12 @@ Update DINOv3 AI configuration
 
 Example:
     %[1]s config update-dinov3 --body '{
-      "confidence_threshold": 0.69612443,
-      "enable_scene_analysis": false,
+      "confidence_threshold": 0.29266176,
+      "enable_scene_analysis": true,
       "enabled": true,
-      "fallback_to_basic": true,
-      "motion_threshold": 0.12781343,
-      "service_endpoint": "Aut eligendi."
+      "fallback_to_basic": false,
+      "motion_threshold": 0.6838521,
+      "service_endpoint": "Nihil aut quisquam sequi velit."
    }'
 `, os.Args[0])
 }
@@ -957,14 +959,18 @@ Update YOLO detection configuration
 
 Example:
     %[1]s config update-yolo --body '{
-      "box_color": "Expedita aut minima perspiciatis.",
-      "box_thickness": 322002139192709832,
-      "classes_filter": "Aut quisquam sequi velit nihil.",
-      "confidence_threshold": 0.10458655,
-      "draw_boxes": true,
+      "box_color": "Est soluta ad alias omnis dicta soluta.",
+      "box_thickness": 8770274830355288665,
+      "classes_filter": "Ratione quisquam alias omnis laboriosam ut.",
+      "confidence_threshold": 0.25283316,
+      "draw_boxes": false,
       "enabled": true,
-      "security_mode": false,
-      "service_endpoint": "At quis."
+      "security_mode": true,
+      "service_endpoint": "Numquam neque.",
+      "tasks": [
+         "detect",
+         "pose"
+      ]
    }'
 `, os.Args[0])
 }
@@ -998,24 +1004,28 @@ Update combined detection configuration
 Example:
     %[1]s config update-detection --body '{
       "dinov3": {
-         "confidence_threshold": 0.82597387,
+         "confidence_threshold": 0.12232191,
          "enable_scene_analysis": true,
-         "enabled": false,
-         "fallback_to_basic": true,
-         "motion_threshold": 0.04976495,
-         "service_endpoint": "Tempore consequatur asperiores."
+         "enabled": true,
+         "fallback_to_basic": false,
+         "motion_threshold": 0.5484977,
+         "service_endpoint": "Molestias occaecati deserunt iste."
       },
       "fallback_enabled": false,
-      "primary_detector": "dinov3",
+      "primary_detector": "basic",
       "yolo": {
-         "box_color": "In dolores rem voluptas eum incidunt.",
-         "box_thickness": 8712871376137544995,
-         "classes_filter": "Harum occaecati omnis rem dolor.",
-         "confidence_threshold": 0.32154036,
-         "draw_boxes": false,
-         "enabled": true,
-         "security_mode": false,
-         "service_endpoint": "Soluta delectus non perspiciatis blanditiis."
+         "box_color": "Inventore ea corrupti qui.",
+         "box_thickness": 8523763844041114734,
+         "classes_filter": "Cumque praesentium eum ea ad.",
+         "confidence_threshold": 0.75414485,
+         "draw_boxes": true,
+         "enabled": false,
+         "security_mode": true,
+         "service_endpoint": "Quas saepe temporibus ipsa qui temporibus.",
+         "tasks": [
+            "detect",
+            "pose"
+         ]
       }
    }'
 `, os.Args[0])
@@ -1045,9 +1055,9 @@ Example:
       ],
       "execution_mode": "sequential",
       "mode": "continuous",
-      "motion_cooldown_seconds": 29525455477767673,
-      "motion_sensitivity": 0.7234474,
-      "schedule_interval": "Aut nisi quibusdam id et et ex."
+      "motion_cooldown_seconds": 3749967334656660534,
+      "motion_sensitivity": 0.2647602,
+      "schedule_interval": "Non qui praesentium labore quasi rem id."
    }'
 `, os.Args[0])
 }
@@ -1070,12 +1080,12 @@ Update face recognition configuration
 
 Example:
     %[1]s config update-recognition --body '{
-      "box_thickness": 473801709441388807,
+      "box_thickness": 5035404992028972237,
       "enabled": true,
-      "known_face_color": "Occaecati deserunt.",
-      "service_endpoint": "Qui impedit aut.",
-      "similarity_threshold": 0.31017613,
-      "unknown_face_color": "Velit aperiam."
+      "known_face_color": "Facere ex suscipit dolores quaerat possimus.",
+      "service_endpoint": "Quo sed optio non est.",
+      "similarity_threshold": 0.5883048,
+      "unknown_face_color": "Aperiam nihil."
    }'
 `, os.Args[0])
 }

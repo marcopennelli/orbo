@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Zap, CheckCircle, XCircle, Save, RotateCcw } from 'lucide-react';
-import type { YoloConfig } from '../../types';
+import { Zap, CheckCircle, XCircle, Save, RotateCcw, Info } from 'lucide-react';
+import type { YoloConfig, YoloTask } from '../../types';
 import { Button, Input, Switch } from '../ui';
 
 interface YoloSettingsProps {
@@ -12,6 +12,15 @@ interface YoloSettingsProps {
 }
 
 const COMMON_CLASSES = ['person', 'car', 'truck', 'motorcycle', 'bicycle', 'dog', 'cat', 'bird'];
+
+// YOLO11 tasks with descriptions
+const YOLO_TASKS: { id: YoloTask; label: string; description: string }[] = [
+  { id: 'detect', label: 'Object Detection', description: 'Detect objects with bounding boxes (persons, vehicles, etc.)' },
+  { id: 'pose', label: 'Pose Estimation', description: 'Human body keypoints (17 joints) with fall detection' },
+  { id: 'segment', label: 'Segmentation', description: 'Instance segmentation with pixel-level masks' },
+  { id: 'obb', label: 'Oriented Boxes', description: 'Rotated bounding boxes for angled objects' },
+  { id: 'classify', label: 'Classification', description: 'Scene/image classification (indoor, outdoor, etc.)' },
+];
 
 // Parse comma-separated string to array
 const parseClasses = (filter: string | undefined): string[] => {
@@ -46,7 +55,8 @@ export default function YoloSettings({ config, onSave, onTest, isLoading, isSavi
       localConfig.draw_boxes !== config.draw_boxes ||
       localConfig.classes_filter !== config.classes_filter ||
       localConfig.box_color !== config.box_color ||
-      localConfig.box_thickness !== config.box_thickness
+      localConfig.box_thickness !== config.box_thickness ||
+      JSON.stringify(localConfig.tasks || ['detect']) !== JSON.stringify(config.tasks || ['detect'])
     );
   }, [localConfig, config]);
 
@@ -86,7 +96,26 @@ export default function YoloSettings({ config, onSave, onTest, isLoading, isSavi
     updateLocal({ classes_filter: formatClasses(newClasses) });
   };
 
+  // Handle task toggle
+  const handleTaskToggle = useCallback((taskId: YoloTask, enabled: boolean) => {
+    const currentTasks = localConfig.tasks || ['detect'];
+    let newTasks: YoloTask[];
+
+    if (enabled) {
+      newTasks = [...currentTasks, taskId];
+    } else {
+      newTasks = currentTasks.filter(t => t !== taskId);
+      // Ensure at least 'detect' is always enabled
+      if (newTasks.length === 0) {
+        newTasks = ['detect'];
+      }
+    }
+
+    updateLocal({ tasks: newTasks });
+  }, [localConfig.tasks, updateLocal]);
+
   const parsedClasses = parseClasses(localConfig.classes_filter);
+  const selectedTasks = localConfig.tasks || ['detect'];
 
   return (
     <div className="flex flex-col h-full">
@@ -127,6 +156,54 @@ export default function YoloSettings({ config, onSave, onTest, isLoading, isSavi
                 className="w-full h-2 bg-bg-hover rounded-lg appearance-none cursor-pointer accent-accent"
                 disabled={isLoading || isSaving}
               />
+            </div>
+
+            {/* YOLO11 Tasks Selection */}
+            <div className="border border-border rounded-lg p-3 space-y-3 bg-bg-card/50">
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-medium text-text-secondary">YOLO11 Tasks</h4>
+                <Info size={14} className="text-text-muted" />
+              </div>
+              <p className="text-xs text-text-muted">
+                Select which YOLO11 analysis tasks to run. Multiple tasks share the same frame for consistent results.
+              </p>
+
+              <div className="space-y-2">
+                {YOLO_TASKS.map((task) => {
+                  const isEnabled = selectedTasks.includes(task.id);
+                  const isDetect = task.id === 'detect';
+                  return (
+                    <label
+                      key={task.id}
+                      className={`flex items-start gap-3 p-2 rounded-md border border-border hover:bg-bg-card/50 cursor-pointer
+                        ${isDetect && selectedTasks.length === 1 ? 'opacity-75' : ''}
+                      `}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isEnabled}
+                        onChange={(e) => handleTaskToggle(task.id, e.target.checked)}
+                        disabled={isLoading || isSaving || (isDetect && selectedTasks.length === 1)}
+                        className="mt-0.5 w-4 h-4 text-accent border-border rounded focus:ring-accent"
+                      />
+                      <div className="flex-1">
+                        <span className="text-sm text-text-secondary block">{task.label}</span>
+                        <span className="text-xs text-text-muted">{task.description}</span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+
+              {selectedTasks.length > 1 && (
+                <div className="flex items-start gap-2 p-2 bg-accent/10 rounded-md">
+                  <Info size={14} className="text-accent flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-text-muted">
+                    Multiple tasks enabled. Each model is loaded on-demand and cached in memory.
+                    {selectedTasks.includes('pose') && ' Pose includes fall detection alerts.'}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between">

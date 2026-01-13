@@ -99,6 +99,8 @@ type CreatePayload struct {
 	Resolution string
 	// Frames per second
 	Fps int
+	// Enable events and alerts for this camera
+	AlertsEnabled bool
 }
 
 // DeactivatePayload is the payload type of the camera service deactivate
@@ -168,6 +170,8 @@ type UpdatePayload struct {
 	Resolution *string
 	// Frames per second
 	Fps *int
+	// Enable events and alerts for this camera
+	AlertsEnabled *bool
 }
 
 // Error returns an error description.

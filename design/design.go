@@ -173,6 +173,10 @@ var YOLOConfig = Type("YOLOConfig", func() {
     Field(8, "box_thickness", Int, "Bounding box line thickness (1-5)", func() {
         Default(2)
     })
+    Field(9, "tasks", ArrayOf(String), "YOLO11 tasks to run: detect, pose, segment, obb, classify", func() {
+        Description("List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose estimation, 'segment' for instance segmentation, 'obb' for oriented bounding boxes, 'classify' for image classification.")
+        Example([]string{"detect", "pose"})
+    })
     Required("enabled")
 })
 
@@ -209,7 +213,7 @@ var PipelineConfig = Type("PipelineConfig", func() {
     Description("Detection pipeline configuration for modular video processing")
     Field(1, "mode", String, "Detection mode", func() {
         Description("Controls when detection runs")
-        Enum("disabled", "continuous", "motion_triggered", "scheduled", "hybrid")
+        Enum("disabled", "visual_only", "continuous", "motion_triggered", "scheduled", "hybrid")
         Default("motion_triggered")
     })
     Field(2, "execution_mode", String, "Detector execution mode", func() {
@@ -359,6 +363,9 @@ var _ = Service("camera", func() {
             Field(4, "fps", Int, "Frames per second", func() {
                 Default(30)
             })
+            Field(5, "alerts_enabled", Boolean, "Enable events and alerts for this camera", func() {
+                Default(true)
+            })
             Required("name", "device")
         })
         Result(CameraInfo)
@@ -380,6 +387,7 @@ var _ = Service("camera", func() {
             Field(3, "device", String, "Camera device path (only when inactive)")
             Field(4, "resolution", String, "Camera resolution")
             Field(5, "fps", Int, "Frames per second")
+            Field(6, "alerts_enabled", Boolean, "Enable events and alerts for this camera")
             Required("id")
         })
         Result(CameraInfo)

@@ -172,12 +172,35 @@ Configure via Quadlet `Environment=` directives or manifest `environment:` secti
 
 #### YOLO Service Configuration
 
+The YOLO service now supports YOLO11 with multiple task types: detection, pose estimation, segmentation, oriented bounding boxes, and classification.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `YOLO_MODEL` | yolo11n.pt | YOLO model file (nano/small/medium/large) |
+| `MODEL_SIZE` | n | Model size: n (nano), s (small), m (medium), l (large), x (xlarge) |
 | `CONFIDENCE_THRESHOLD` | 0.5 | Detection confidence threshold (0.0-1.0) |
-| `BOX_COLOR` | #0066FF | Bounding box color (hex format) |
+| `ENABLED_TASKS` | detect | Comma-separated list of tasks: detect, pose, segment, obb, classify |
+| `MAX_CACHED_MODELS` | 3 | Maximum models to keep in LRU cache |
+| `PRELOAD_TASKS` | detect | Tasks to preload on startup (empty = load on first request) |
+| `BOX_COLOR` | #0066FF | Bounding box color for detection (hex format) |
 | `BOX_THICKNESS` | 2 | Bounding box line thickness (1-5 pixels) |
+| `POSE_COLOR` | #FF00FF | Skeleton/keypoint color for pose estimation (hex) |
+| `FALL_DETECTION` | true | Enable fall detection alerts from pose analysis |
+| `ALERT_ON_POSES` | fall_detected,lying | Pose classifications that trigger alerts |
+| `SEGMENT_COLOR` | #00FFFF | Segmentation mask outline color (hex) |
+| `SEGMENT_ALPHA` | 0.4 | Segmentation mask transparency (0.0-1.0) |
+| `OBB_COLOR` | #FFFF00 | Oriented bounding box color (hex) |
+
+**YOLO11 Tasks:**
+
+| Task | Model | Description |
+|------|-------|-------------|
+| `detect` | yolo11{size}.pt | Standard object detection (80 COCO classes) |
+| `pose` | yolo11{size}-pose.pt | Human pose estimation (17 COCO keypoints) |
+| `segment` | yolo11{size}-seg.pt | Instance segmentation with pixel masks |
+| `obb` | yolo11{size}-obb.pt | Oriented/rotated bounding boxes |
+| `classify` | yolo11{size}-cls.pt | Image/scene classification |
+
+**Memory Note:** Each task requires its own model. Use `MAX_CACHED_MODELS` to limit memory usage - models are loaded on-demand and evicted using LRU when the cache is full.
 
 #### Face Recognition Service Configuration
 

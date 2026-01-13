@@ -41,14 +41,15 @@ func BuildCreatePayload(cameraCreateBody string) (*camera.CreatePayload, error) 
 	{
 		err = json.Unmarshal([]byte(cameraCreateBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Et corporis.\",\n      \"fps\": 6590396382631310600,\n      \"name\": \"In molestiae iste.\",\n      \"resolution\": \"Ipsa delectus.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"alerts_enabled\": true,\n      \"device\": \"Dolore temporibus qui dolor non.\",\n      \"fps\": 6629571893810400612,\n      \"name\": \"Consectetur ipsa tempora aut fuga.\",\n      \"resolution\": \"Hic suscipit inventore commodi provident.\"\n   }'")
 		}
 	}
 	v := &camera.CreatePayload{
-		Name:       body.Name,
-		Device:     body.Device,
-		Resolution: body.Resolution,
-		Fps:        body.Fps,
+		Name:          body.Name,
+		Device:        body.Device,
+		Resolution:    body.Resolution,
+		Fps:           body.Fps,
+		AlertsEnabled: body.AlertsEnabled,
 	}
 	{
 		var zero string
@@ -60,6 +61,12 @@ func BuildCreatePayload(cameraCreateBody string) (*camera.CreatePayload, error) 
 		var zero int
 		if v.Fps == zero {
 			v.Fps = 30
+		}
+	}
+	{
+		var zero bool
+		if v.AlertsEnabled == zero {
+			v.AlertsEnabled = true
 		}
 	}
 
@@ -74,7 +81,7 @@ func BuildUpdatePayload(cameraUpdateBody string, cameraUpdateID string) (*camera
 	{
 		err = json.Unmarshal([]byte(cameraUpdateBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Dolor sed voluptates ad rem dolores quia.\",\n      \"fps\": 8833264999851994961,\n      \"name\": \"Qui rerum quia hic repellat rem.\",\n      \"resolution\": \"Ut illo atque pariatur eaque eos quidem.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"alerts_enabled\": true,\n      \"device\": \"Minus omnis.\",\n      \"fps\": 6536155408702514852,\n      \"name\": \"Rerum adipisci cum non vitae et ipsum.\",\n      \"resolution\": \"Et natus qui recusandae natus.\"\n   }'")
 		}
 	}
 	var id string
@@ -86,10 +93,11 @@ func BuildUpdatePayload(cameraUpdateBody string, cameraUpdateID string) (*camera
 		}
 	}
 	v := &camera.UpdatePayload{
-		Name:       body.Name,
-		Device:     body.Device,
-		Resolution: body.Resolution,
-		Fps:        body.Fps,
+		Name:          body.Name,
+		Device:        body.Device,
+		Resolution:    body.Resolution,
+		Fps:           body.Fps,
+		AlertsEnabled: body.AlertsEnabled,
 	}
 	v.ID = id
 
