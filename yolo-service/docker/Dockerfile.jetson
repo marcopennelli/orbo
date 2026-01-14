@@ -3,46 +3,68 @@
 # =============================================================================
 # Platforms: linux/arm64
 # Use case: NVIDIA Jetson Orin Nano, Orin NX, AGX Orin
-# Requires: JetPack 6.x (L4T R36.x)
+# Note: Uses arm64 CUDA base image compatible with Jetson's CUDA runtime
 # Image size: ~4GB
+#
+# For optimal performance on Jetson, you may also build locally using:
+#   nvcr.io/nvidia/l4t-pytorch:r36.2.0-pth2.1-py3
 # =============================================================================
 
-FROM nvcr.io/nvidia/l4t-pytorch:r36.2.0-pth2.1-py3 AS base
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir grpcio-tools
+
+COPY detection.proto /build/proto/
+RUN python -m grpc_tools.protoc \
+    -I/build/proto \
+    --python_out=/build \
+    --grpc_python_out=/build \
+    /build/proto/detection.proto
+
+# -----------------------------------------------------------------------------
+# Use arm64 Python with PyTorch built for CUDA
+# Jetson will use its native CUDA libraries via nvidia-container-runtime
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install additional dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender1 \
+    libgomp1 \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install grpcio-tools for proto compilation
-RUN pip3 install --no-cache-dir grpcio-tools
-
-# Copy and compile proto file
-COPY detection.proto /app/proto/
-RUN python3 -m grpc_tools.protoc \
-    -I/app/proto \
-    --python_out=/app \
-    --grpc_python_out=/app \
-    /app/proto/detection.proto
-
-# Core dependencies (PyTorch already in base image)
-RUN pip3 install --no-cache-dir \
+# Core dependencies
+RUN pip install --no-cache-dir \
     flask>=2.0.0 \
     grpcio>=1.50.0 \
     protobuf>=4.21.0 \
     pillow>=9.0.0 \
+    numpy>=1.21.0 \
     requests>=2.28.0 \
     opencv-python-headless>=4.7.0
 
+# PyTorch for arm64 - will use Jetson's CUDA via nvidia-container-runtime
+# Note: On Jetson, mount the host's CUDA libraries for GPU acceleration
+RUN pip install --no-cache-dir \
+    torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
 # Ultralytics YOLO
-RUN pip3 install --no-cache-dir ultralytics>=8.0.0
+RUN pip install --no-cache-dir ultralytics>=8.0.0
+
+# Copy compiled proto files
+COPY --from=builder /build/detection_pb2.py /build/detection_pb2_grpc.py /app/
 
 # Copy application code
 COPY main.py grpc_server.py ./
@@ -55,7 +77,7 @@ ENV YOLO_CONFIG_DIR=/tmp/Ultralytics
 ENV ULTRALYTICS_SETTINGS_JSON='{"runs_dir": "/app/runs"}'
 
 # Download YOLO11 models
-RUN python3 -c "from ultralytics import YOLO; YOLO('yolo11n.pt'); YOLO('yolo11n-seg.pt'); YOLO('yolo11n-pose.pt')"
+RUN python -c "from ultralytics import YOLO; YOLO('yolo11n.pt'); YOLO('yolo11n-seg.pt'); YOLO('yolo11n-pose.pt')"
 
 # Non-root user
 RUN groupadd -g 1000 yolo && useradd -u 1000 -g yolo -s /bin/sh -m yolo \
@@ -66,6 +88,6 @@ USER yolo
 EXPOSE 8081 50051
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import requests; requests.get('http://localhost:8081/health')" || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8081/health')" || exit 1
 
-CMD ["python3", "main.py"]
+CMD ["python", "main.py"]
