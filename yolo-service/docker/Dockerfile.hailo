@@ -1,19 +1,15 @@
 # =============================================================================
-# YOLO Service - Default Dockerfile
+# YOLO Service - Hailo-8 Accelerator
 # =============================================================================
-# This is a symlink/copy of docker/Dockerfile.cpu for backwards compatibility.
-# For specific accelerators, use the appropriate Dockerfile in docker/:
+# Platforms: linux/amd64, linux/arm64
+# Use case: Raspberry Pi AI Kit (Hailo-8L), Hailo-8 PCIe cards
+# Requires: Hailo Runtime + HailoRT drivers on host
+# Image size: ~3.5GB
 #
-#   - docker/Dockerfile.cpu     → CPU-only (default, universal)
-#   - docker/Dockerfile.cuda    → NVIDIA CUDA (desktop/server GPU)
-#   - docker/Dockerfile.jetson  → NVIDIA Jetson (arm64 with CUDA)
-#   - docker/Dockerfile.hailo   → Hailo-8 accelerator
-#
-# The CI workflow builds all variants automatically. See:
-#   ghcr.io/marcopennelli/orbo-yolo:latest        (CPU)
-#   ghcr.io/marcopennelli/orbo-yolo:latest-cuda   (NVIDIA CUDA)
-#   ghcr.io/marcopennelli/orbo-yolo:latest-jetson (NVIDIA Jetson)
-#   ghcr.io/marcopennelli/orbo-yolo:latest-hailo  (Hailo-8)
+# Note: This image expects pre-compiled .hef model files.
+# Convert YOLO models using Hailo Dataflow Compiler:
+#   hailo optimize yolo11n.onnx --hw-arch hailo8l
+#   hailo compile yolo11n.har --hw-arch hailo8l
 # =============================================================================
 
 FROM python:3.11-slim AS builder
@@ -38,6 +34,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1-mesa-glx \
     libglib2.0-0 \
@@ -58,11 +55,16 @@ RUN pip install --no-cache-dir \
     requests>=2.28.0 \
     opencv-python-headless>=4.7.0
 
-# PyTorch CPU-only
+# PyTorch CPU (fallback, Hailo uses its own inference)
 RUN pip install --no-cache-dir \
     torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-# Ultralytics YOLO
+# Hailo Runtime Python bindings
+# Note: hailort wheel must match the host driver version
+# Users may need to mount the correct wheel or install from Hailo repos
+RUN pip install --no-cache-dir hailort || echo "hailort not available in PyPI, will use host-mounted library"
+
+# Ultralytics YOLO with Hailo export support
 RUN pip install --no-cache-dir ultralytics>=8.0.0
 
 # Copy compiled proto files
@@ -71,14 +73,18 @@ COPY --from=builder /build/detection_pb2.py /build/detection_pb2_grpc.py /app/
 # Copy application code
 COPY main.py grpc_server.py ./
 
-# Create directories
+# Create directories for models (including .hef files)
 RUN mkdir -p /app/models /app/runs /tmp/Ultralytics \
     && chmod 777 /app/runs /tmp/Ultralytics
 
 ENV YOLO_CONFIG_DIR=/tmp/Ultralytics
 ENV ULTRALYTICS_SETTINGS_JSON='{"runs_dir": "/app/runs"}'
 
-# Download YOLO11 models
+# Hailo environment variables
+ENV HAILO_DEVICE_IDS=0
+ENV YOLO_BACKEND=hailo
+
+# Download YOLO11 models (PyTorch format, for fallback/export)
 RUN python -c "from ultralytics import YOLO; YOLO('yolo11n.pt'); YOLO('yolo11n-seg.pt'); YOLO('yolo11n-pose.pt')"
 
 # Non-root user

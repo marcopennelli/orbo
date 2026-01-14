@@ -1,19 +1,10 @@
 # =============================================================================
-# YOLO Service - Default Dockerfile
+# YOLO Service - NVIDIA CUDA (Desktop/Server GPU)
 # =============================================================================
-# This is a symlink/copy of docker/Dockerfile.cpu for backwards compatibility.
-# For specific accelerators, use the appropriate Dockerfile in docker/:
-#
-#   - docker/Dockerfile.cpu     → CPU-only (default, universal)
-#   - docker/Dockerfile.cuda    → NVIDIA CUDA (desktop/server GPU)
-#   - docker/Dockerfile.jetson  → NVIDIA Jetson (arm64 with CUDA)
-#   - docker/Dockerfile.hailo   → Hailo-8 accelerator
-#
-# The CI workflow builds all variants automatically. See:
-#   ghcr.io/marcopennelli/orbo-yolo:latest        (CPU)
-#   ghcr.io/marcopennelli/orbo-yolo:latest-cuda   (NVIDIA CUDA)
-#   ghcr.io/marcopennelli/orbo-yolo:latest-jetson (NVIDIA Jetson)
-#   ghcr.io/marcopennelli/orbo-yolo:latest-hailo  (Hailo-8)
+# Platforms: linux/amd64
+# Use case: Desktop/server with NVIDIA GPU (GTX/RTX, Tesla, etc.)
+# Requires: NVIDIA Container Toolkit
+# Image size: ~5GB
 # =============================================================================
 
 FROM python:3.11-slim AS builder
@@ -34,11 +25,14 @@ RUN python -m grpc_tools.protoc \
     /build/proto/detection.proto
 
 # -----------------------------------------------------------------------------
-FROM python:3.11-slim
+FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-dev \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
@@ -46,7 +40,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     libgomp1 \
     wget \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/bin/python3 /usr/bin/python
 
 # Core dependencies
 RUN pip install --no-cache-dir \
@@ -58,9 +53,12 @@ RUN pip install --no-cache-dir \
     requests>=2.28.0 \
     opencv-python-headless>=4.7.0
 
-# PyTorch CPU-only
+# PyTorch with CUDA 12.1
 RUN pip install --no-cache-dir \
-    torch torchvision --index-url https://download.pytorch.org/whl/cpu
+    torch --index-url https://download.pytorch.org/whl/cu121
+
+RUN pip install --no-cache-dir \
+    torchvision --index-url https://download.pytorch.org/whl/cu121
 
 # Ultralytics YOLO
 RUN pip install --no-cache-dir ultralytics>=8.0.0

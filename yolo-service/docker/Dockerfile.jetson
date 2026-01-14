@@ -1,40 +1,30 @@
 # =============================================================================
-# YOLO Service - ROCm GPU Build
+# YOLO Service - NVIDIA Jetson (ARM64 with CUDA)
 # =============================================================================
-# This Dockerfile is for local builds with AMD GPU support.
-# NOT suitable for GHCR (exceeds 10GB layer limit).
-#
-# Usage:
-#   docker build -f Dockerfile.rocm -t orbo-yolo:rocm .
+# Platforms: linux/arm64
+# Use case: NVIDIA Jetson Orin Nano, Orin NX, AGX Orin
+# Requires: JetPack 6.x (L4T R36.x)
+# Image size: ~4GB
 # =============================================================================
 
-FROM docker.io/rocm/pytorch:rocm6.0_ubuntu20.04_py3.9_pytorch_2.1.1
+FROM nvcr.io/nvidia/l4t-pytorch:r36.2.0-pth2.1-py3 AS base
 
 WORKDIR /app
 
-# Install system dependencies
+# Install additional dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3-pip \
     libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
-    libgomp1 \
+    libxrender1 \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Set ROCm environment variables
-ENV HSA_OVERRIDE_GFX_VERSION=10.3.0
-ENV PYTORCH_ROCM_ARCH="gfx1030;gfx1031;gfx1032;gfx1100;gfx1101;gfx1102"
+# Install grpcio-tools for proto compilation
+RUN pip3 install --no-cache-dir grpcio-tools
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
-
-# Install other requirements (PyTorch already in base image)
-RUN pip3 install --no-cache-dir -r requirements.txt
-
-# Copy proto file and generate Python code
+# Copy and compile proto file
 COPY detection.proto /app/proto/
 RUN python3 -m grpc_tools.protoc \
     -I/app/proto \
@@ -42,24 +32,39 @@ RUN python3 -m grpc_tools.protoc \
     --grpc_python_out=/app \
     /app/proto/detection.proto
 
+# Core dependencies (PyTorch already in base image)
+RUN pip3 install --no-cache-dir \
+    flask>=2.0.0 \
+    grpcio>=1.50.0 \
+    protobuf>=4.21.0 \
+    pillow>=9.0.0 \
+    requests>=2.28.0 \
+    opencv-python-headless>=4.7.0
+
+# Ultralytics YOLO
+RUN pip3 install --no-cache-dir ultralytics>=8.0.0
+
 # Copy application code
 COPY main.py grpc_server.py ./
 
-# Create directories for YOLO models and runtime
+# Create directories
 RUN mkdir -p /app/models /app/runs /tmp/Ultralytics \
     && chmod 777 /app/runs /tmp/Ultralytics
 
-# Set Ultralytics config directory
 ENV YOLO_CONFIG_DIR=/tmp/Ultralytics
 ENV ULTRALYTICS_SETTINGS_JSON='{"runs_dir": "/app/runs"}'
 
-# Download YOLO11 model weights
+# Download YOLO11 models
 RUN python3 -c "from ultralytics import YOLO; YOLO('yolo11n.pt'); YOLO('yolo11n-seg.pt'); YOLO('yolo11n-pose.pt')"
 
-# Expose ports
+# Non-root user
+RUN groupadd -g 1000 yolo && useradd -u 1000 -g yolo -s /bin/sh -m yolo \
+    && chown -R yolo:yolo /app /tmp/Ultralytics
+
+USER yolo
+
 EXPOSE 8081 50051
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD python3 -c "import requests; requests.get('http://localhost:8081/health')" || exit 1
 
