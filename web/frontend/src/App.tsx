@@ -72,6 +72,17 @@ function AppContent() {
   // Queries
   const { data: cameras = [], isLoading: camerasLoading } = useCameras();
   const { data: events = [], isLoading: eventsLoading, refetch: refetchEvents } = useEvents(eventCameraFilter || undefined);
+
+  // Keep selectedCamera in sync with the latest camera data from the query
+  // This ensures status changes (active/inactive) are reflected in the CameraFeed
+  useEffect(() => {
+    if (selectedCamera) {
+      const updatedCamera = cameras.find(c => c.id === selectedCamera.id);
+      if (updatedCamera && updatedCamera.status !== selectedCamera.status) {
+        setSelectedCamera(updatedCamera);
+      }
+    }
+  }, [cameras, selectedCamera]);
   const { data: systemStatus } = useSystemStatus();
   const { data: telegramConfig } = useTelegramConfig();
   const { data: yoloConfig } = useYoloConfig();
