@@ -8,6 +8,7 @@ interface WebCodecsPlayerProps {
   cameraName: string;
   enabled: boolean;
   alertsEnabled?: boolean;
+  rawMode?: boolean; // Use raw stream without annotations/bounding boxes
   className?: string;
   onFullscreen?: () => void;
 }
@@ -17,6 +18,7 @@ export default function WebCodecsPlayer({
   cameraName,
   enabled,
   alertsEnabled = true,
+  rawMode = false,
   className = '',
   onFullscreen,
 }: WebCodecsPlayerProps) {
@@ -58,6 +60,7 @@ export default function WebCodecsPlayer({
   } = useWebCodecsStream({
     cameraId,
     enabled,
+    rawMode,
     onFrame: handleFrame,
   });
 

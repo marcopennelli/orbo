@@ -13,6 +13,7 @@ interface WebCodecsStreamState {
 interface UseWebCodecsStreamOptions {
   cameraId: string;
   enabled: boolean;
+  rawMode?: boolean; // Use raw stream without annotations/bounding boxes
   onFrame?: (imageData: ImageData, isAnnotated: boolean) => void;
 }
 
@@ -22,6 +23,7 @@ const FRAME_TYPE_ANNOTATED = 1;
 export function useWebCodecsStream({
   cameraId,
   enabled,
+  rawMode = false,
   onFrame,
 }: UseWebCodecsStreamOptions) {
   const [state, setState] = useState<WebCodecsStreamState>({
@@ -150,7 +152,10 @@ export function useWebCodecsStream({
     if (!enabled || !cameraId) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/video/${cameraId}`;
+    // Use /ws/video/raw/{id} for raw stream, /ws/video/{id} for processed stream
+    const wsUrl = rawMode
+      ? `${protocol}//${window.location.host}/ws/video/raw/${cameraId}`
+      : `${protocol}//${window.location.host}/ws/video/${cameraId}`;
 
     console.log(`[WebCodecs] Connecting to ${wsUrl}`);
     setState(prev => ({ ...prev, isLoading: true, hasError: false, errorMessage: null }));
@@ -205,7 +210,7 @@ export function useWebCodecsStream({
     };
 
     wsRef.current = ws;
-  }, [cameraId, enabled, createMessageHandler]);
+  }, [cameraId, enabled, rawMode, createMessageHandler]);
 
   // Disconnect
   const disconnect = useCallback(() => {

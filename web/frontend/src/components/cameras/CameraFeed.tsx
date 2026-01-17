@@ -11,6 +11,7 @@ interface CameraFeedProps {
   onFullscreen?: () => void;
   className?: string;
   defaultMode?: StreamMode;
+  rawMode?: boolean; // Use raw stream without annotations/bounding boxes
 }
 
 // Debug logging helper
@@ -28,6 +29,7 @@ export default function CameraFeed({
   onFullscreen,
   className = '',
   defaultMode = 'webcodecs',
+  rawMode = false,
 }: CameraFeedProps) {
   const [streamMode, setStreamMode] = useState<StreamMode>(() => {
     const saved = localStorage.getItem(STREAM_MODE_KEY);
@@ -51,6 +53,7 @@ export default function CameraFeed({
   }, [streamMode, camera.id]);
 
   // Build MJPEG stream URL with cache-busting param
+  // Note: MJPEG doesn't support raw mode yet, only WebCodecs does
   const streamUrl = `/video/stream/${camera.id}?t=${streamKey}`;
 
   // Handle component mount/unmount and stream connection
@@ -124,6 +127,7 @@ export default function CameraFeed({
           cameraName={camera.name}
           enabled={isActive}
           alertsEnabled={camera.alerts_enabled}
+          rawMode={rawMode}
           onFullscreen={onFullscreen}
           className="h-full"
         />

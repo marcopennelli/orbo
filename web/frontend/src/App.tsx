@@ -302,6 +302,7 @@ function AppContent() {
                   <CameraFeed
                     camera={selectedCamera}
                     className="h-full"
+                    rawMode={true} // Cameras tab shows raw stream without annotations
                   />
                 ) : (
                   <div className="h-full flex items-center justify-center text-text-muted">
