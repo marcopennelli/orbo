@@ -69,8 +69,13 @@ var CameraInfo = Type("CameraInfo", func() {
     Field(7, "created_at", String, "Creation timestamp", func() {
         Format(FormatDateTime)
     })
-    Field(8, "alerts_enabled", Boolean, "Whether events and alerts are enabled for this camera", func() {
-        Description("When false, detection pipeline still runs for bounding boxes but no events are created or alerts sent.")
+    Field(8, "events_enabled", Boolean, "Whether to create and store detection events for this camera", func() {
+        Description("When true, detection events are created and stored. When false, detection runs for live view only.")
+        Default(true)
+    })
+    Field(9, "notifications_enabled", Boolean, "Whether to send Telegram notifications for this camera", func() {
+        Description("When true, Telegram alerts are sent for detections. Requires events_enabled to also be true.")
+        Default(true)
     })
     Required("id", "name", "device", "status")
 })
@@ -363,7 +368,10 @@ var _ = Service("camera", func() {
             Field(4, "fps", Int, "Frames per second", func() {
                 Default(30)
             })
-            Field(5, "alerts_enabled", Boolean, "Enable events and alerts for this camera", func() {
+            Field(5, "events_enabled", Boolean, "Enable event creation for this camera", func() {
+                Default(true)
+            })
+            Field(6, "notifications_enabled", Boolean, "Enable Telegram notifications for this camera", func() {
                 Default(true)
             })
             Required("name", "device")
@@ -387,7 +395,8 @@ var _ = Service("camera", func() {
             Field(3, "device", String, "Camera device path (only when inactive)")
             Field(4, "resolution", String, "Camera resolution")
             Field(5, "fps", Int, "Frames per second")
-            Field(6, "alerts_enabled", Boolean, "Enable events and alerts for this camera")
+            Field(6, "events_enabled", Boolean, "Enable event creation for this camera")
+            Field(7, "notifications_enabled", Boolean, "Enable Telegram notifications for this camera")
             Required("id")
         })
         Result(CameraInfo)

@@ -86,14 +86,27 @@ func EncodeStopDetectionResponse(encoder func(context.Context, http.ResponseWrit
 // *CameraInfoResponseBody from a value of type *system.CameraInfo.
 func marshalSystemCameraInfoToCameraInfoResponseBody(v *system.CameraInfo) *CameraInfoResponseBody {
 	res := &CameraInfoResponseBody{
-		ID:            v.ID,
-		Name:          v.Name,
-		Device:        v.Device,
-		Status:        v.Status,
-		Resolution:    v.Resolution,
-		Fps:           v.Fps,
-		CreatedAt:     v.CreatedAt,
-		AlertsEnabled: v.AlertsEnabled,
+		ID:                   v.ID,
+		Name:                 v.Name,
+		Device:               v.Device,
+		Status:               v.Status,
+		Resolution:           v.Resolution,
+		Fps:                  v.Fps,
+		CreatedAt:            v.CreatedAt,
+		EventsEnabled:        v.EventsEnabled,
+		NotificationsEnabled: v.NotificationsEnabled,
+	}
+	{
+		var zero bool
+		if res.EventsEnabled == zero {
+			res.EventsEnabled = true
+		}
+	}
+	{
+		var zero bool
+		if res.NotificationsEnabled == zero {
+			res.NotificationsEnabled = true
+		}
 	}
 
 	return res

@@ -517,6 +517,16 @@ func (sd *StreamDetector) analyzeFrames(cameraID string, stopCh chan struct{}) {
 			faceEnabled := sd.isDetectorEnabled(cameraID, "face") && sd.hasFaceRecognizer()
 			continuousMode := sd.isContinuousMode(cameraID)
 
+			// Log pipeline config periodically
+			if frameCount%300 == 1 {
+				modeStr := "motion_triggered"
+				if continuousMode {
+					modeStr = "continuous"
+				}
+				fmt.Printf("[Pipeline] Camera %s: mode=%s, yolo=%v, face=%v\n",
+					cameraID, modeStr, yoloEnabled, faceEnabled)
+			}
+
 			if continuousMode {
 				// CONTINUOUS/VISUAL_ONLY MODE: Run detection on EVERY frame
 				// This creates a smooth annotated stream (uniformly delayed, no time-travel)
@@ -547,19 +557,35 @@ func (sd *StreamDetector) analyzeFrames(cameraID string, stopCh chan struct{}) {
 					if hasMotion {
 						// Motion detected - run AI detection
 						if yoloEnabled {
-							isHealthy := sd.gpuDetector.IsHealthy()
-							if isHealthy {
-								fmt.Printf("Motion detected - Running YOLO for camera %s (frame %d)\n", cameraID, frameCount)
+							// Check gRPC detector first, then HTTP fallback
+							sd.mu.RLock()
+							grpcDet := sd.grpcDetector
+							sd.mu.RUnlock()
+
+							grpcHealthy := grpcDet != nil && grpcDet.IsHealthy()
+							httpHealthy := sd.gpuDetector.IsHealthy()
+
+							if grpcHealthy {
+								fmt.Printf("[Motion-Triggered] Running YOLO (gRPC) for camera %s (frame %d)\n", cameraID, frameCount)
 								sd.runDirectYOLODetectionWithSeq(cameraID, frameData, uint64(captureSeq))
+							} else if httpHealthy {
+								fmt.Printf("[Motion-Triggered] Running YOLO (HTTP) for camera %s (frame %d)\n", cameraID, frameCount)
+								sd.runDirectYOLODetectionWithSeq(cameraID, frameData, uint64(captureSeq))
+							} else if frameCount%60 == 0 {
+								fmt.Printf("[Motion-Triggered] YOLO not healthy (gRPC=%v, HTTP=%v) for camera %s\n",
+									grpcHealthy, httpHealthy, cameraID)
 							}
 						} else if faceEnabled {
-							fmt.Printf("Motion detected - Running Face for camera %s (frame %d)\n", cameraID, frameCount)
+							fmt.Printf("[Motion-Triggered] Running Face for camera %s (frame %d)\n", cameraID, frameCount)
 							sd.runDirectFaceDetection(cameraID, frameData, uint64(captureSeq))
 						} else {
 							// Basic motion event (no AI)
+							fmt.Printf("[Motion-Triggered] Basic motion event for camera %s (no AI detectors)\n", cameraID)
 							sd.createMotionEvent(cameraID, frameData, backgroundImg, currentImg)
 						}
 					}
+				} else if frameCount%100 == 1 {
+					fmt.Printf("[Motion-Triggered] Waiting for background frame for camera %s\n", cameraID)
 				}
 			}
 		}
@@ -720,6 +746,10 @@ func (sd *StreamDetector) runDirectYOLODetectionAnnotatedWithSeq(cameraID string
 	// - If YOLO+Face: YOLO does NOT send to stream, Face sends ALL frames
 	// This ensures consistent frame rate and no time-travel effect
 	faceDetectorEnabled := sd.isDetectorEnabled(cameraID, "face") && sd.hasFaceRecognizer()
+
+	// Log YOLO result
+	fmt.Printf("[YOLO] Camera %s: detected %d objects (%.1fms on %s), face_next=%v\n",
+		cameraID, annotatedResult.Count, annotatedResult.InferenceTimeMs, annotatedResult.Device, faceDetectorEnabled)
 
 	// YOLO sends to stream ONLY if Face is NOT enabled (YOLO-only mode)
 	// When Face is enabled, Face will send ALL frames (including ones without persons)
@@ -1532,13 +1562,23 @@ func (sd *StreamDetector) saveFrame(img image.Image, path string) error {
 }
 
 func (sd *StreamDetector) addEvent(event *MotionEvent) {
-	// Check if alerts are enabled for this camera
-	// If not, skip event storage and notifications (pipeline still runs for bounding boxes)
+	// Check camera settings for events and notifications
+	// Pipeline still runs for bounding boxes even if both are disabled
+	var eventsEnabled, notificationsEnabled bool = true, true // Default to enabled
 	if sd.db != nil {
-		if cam, err := sd.db.GetCamera(event.CameraID); err == nil && cam != nil && !cam.AlertsEnabled {
-			// Alerts disabled for this camera - skip event storage and notifications
-			return
+		if cam, err := sd.db.GetCamera(event.CameraID); err == nil && cam != nil {
+			eventsEnabled = cam.EventsEnabled
+			notificationsEnabled = cam.NotificationsEnabled
 		}
+	}
+
+	// If events are disabled, skip event storage (but still check notifications)
+	if !eventsEnabled {
+		// Only send notification if enabled (even without storing event)
+		if notificationsEnabled && sd.telegramBot != nil && sd.telegramBot.IsEnabled() {
+			go sd.sendTelegramNotification(event)
+		}
+		return
 	}
 
 	sd.mu.Lock()
@@ -1583,8 +1623,8 @@ func (sd *StreamDetector) addEvent(event *MotionEvent) {
 		}
 	}
 
-	// Send Telegram notification if configured
-	if sd.telegramBot != nil && sd.telegramBot.IsEnabled() && !event.NotificationSent {
+	// Send Telegram notification if configured and enabled for this camera
+	if notificationsEnabled && sd.telegramBot != nil && sd.telegramBot.IsEnabled() && !event.NotificationSent {
 		go sd.sendTelegramNotification(event)
 	}
 
@@ -1892,6 +1932,31 @@ func (sd *StreamDetector) SetFrameProvider(fp pipeline.FrameProvider) {
 	defer sd.mu.Unlock()
 	sd.frameProvider = fp
 	fmt.Println("[StreamDetector] Frame provider set - will use shared frame source")
+}
+
+// SetMotionSensitivity updates the motion detection sensitivity threshold
+// Values: 0.0 (most sensitive) to 1.0 (least sensitive)
+// Typical values: 0.05-0.10 (sensitive), 0.15 (default), 0.20-0.30 (less sensitive)
+func (sd *StreamDetector) SetMotionSensitivity(sensitivity float32) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.sensitivity = sensitivity
+	fmt.Printf("[StreamDetector] Motion sensitivity updated to %.2f\n", sensitivity)
+}
+
+// GetMotionSensitivity returns the current motion detection sensitivity threshold
+func (sd *StreamDetector) GetMotionSensitivity() float32 {
+	sd.mu.RLock()
+	defer sd.mu.RUnlock()
+	return sd.sensitivity
+}
+
+// SetMinMotionArea updates the minimum motion area threshold (in pixels)
+func (sd *StreamDetector) SetMinMotionArea(area int) {
+	sd.mu.Lock()
+	defer sd.mu.Unlock()
+	sd.minMotionArea = area
+	fmt.Printf("[StreamDetector] Min motion area updated to %d pixels\n", area)
 }
 
 // ConfigureGRPCYOLO sends configuration to the gRPC YOLO service

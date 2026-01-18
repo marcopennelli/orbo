@@ -15,14 +15,15 @@ import (
 
 // Camera represents a USB camera device with direct system access
 type Camera struct {
-	ID            string
-	Name          string
-	Device        string
-	Resolution    string
-	FPS           int
-	Status        string
-	AlertsEnabled bool // Whether events and alerts are enabled for this camera (pipeline still runs for bounding boxes)
-	CreatedAt     time.Time
+	ID                   string
+	Name                 string
+	Device               string
+	Resolution           string
+	FPS                  int
+	Status               string
+	EventsEnabled        bool // Whether to create and store detection events
+	NotificationsEnabled bool // Whether to send Telegram notifications
+	CreatedAt            time.Time
 
 	// Internal fields for system access
 	mu       sync.RWMutex
@@ -97,18 +98,19 @@ func (cm *CameraManager) loadCamerasFromDB() error {
 
 	for _, record := range records {
 		camera := &Camera{
-			ID:            record.ID,
-			Name:          record.Name,
-			Device:        record.Device,
-			Resolution:    record.Resolution,
-			FPS:           record.FPS,
-			Status:        "inactive", // Always start inactive
-			AlertsEnabled: record.AlertsEnabled,
-			CreatedAt:     record.CreatedAt,
-			stopCh:        make(chan struct{}),
+			ID:                   record.ID,
+			Name:                 record.Name,
+			Device:               record.Device,
+			Resolution:           record.Resolution,
+			FPS:                  record.FPS,
+			Status:               "inactive", // Always start inactive
+			EventsEnabled:        record.EventsEnabled,
+			NotificationsEnabled: record.NotificationsEnabled,
+			CreatedAt:            record.CreatedAt,
+			stopCh:               make(chan struct{}),
 		}
 		cm.cameras[camera.ID] = camera
-		fmt.Printf("Loaded camera from database: %s (%s) alerts_enabled=%v\n", camera.Name, camera.ID, camera.AlertsEnabled)
+		fmt.Printf("Loaded camera from database: %s (%s) events=%v notifications=%v\n", camera.Name, camera.ID, camera.EventsEnabled, camera.NotificationsEnabled)
 	}
 
 	fmt.Printf("Loaded %d cameras from database\n", len(records))
@@ -118,15 +120,16 @@ func (cm *CameraManager) loadCamerasFromDB() error {
 // NewCamera creates a new camera instance
 func NewCamera(id, name, device, resolution string, fps int) *Camera {
 	return &Camera{
-		ID:            id,
-		Name:          name,
-		Device:        device,
-		Resolution:    resolution,
-		FPS:           fps,
-		Status:        "inactive",
-		AlertsEnabled: true, // Default to alerts enabled
-		CreatedAt:     time.Now(),
-		stopCh:        make(chan struct{}),
+		ID:                   id,
+		Name:                 name,
+		Device:               device,
+		Resolution:           resolution,
+		FPS:                  fps,
+		Status:               "inactive",
+		EventsEnabled:        true, // Default to events enabled
+		NotificationsEnabled: true, // Default to notifications enabled
+		CreatedAt:            time.Now(),
+		stopCh:               make(chan struct{}),
 	}
 }
 
@@ -145,14 +148,15 @@ func (cm *CameraManager) AddCamera(camera *Camera) error {
 	// Persist to database
 	if cm.db != nil {
 		record := &database.CameraRecord{
-			ID:            camera.ID,
-			Name:          camera.Name,
-			Device:        camera.Device,
-			Resolution:    camera.Resolution,
-			FPS:           camera.FPS,
-			Status:        camera.Status,
-			AlertsEnabled: camera.AlertsEnabled,
-			CreatedAt:     camera.CreatedAt,
+			ID:                   camera.ID,
+			Name:                 camera.Name,
+			Device:               camera.Device,
+			Resolution:           camera.Resolution,
+			FPS:                  camera.FPS,
+			Status:               camera.Status,
+			EventsEnabled:        camera.EventsEnabled,
+			NotificationsEnabled: camera.NotificationsEnabled,
+			CreatedAt:            camera.CreatedAt,
 		}
 		if err := cm.db.SaveCamera(record); err != nil {
 			fmt.Printf("Warning: failed to persist camera to database: %v\n", err)
@@ -382,11 +386,13 @@ func (c *Camera) CaptureFrame() ([]byte, error) {
 	return c.captureFrameWithFfmpeg()
 }
 
-// isNetworkSource checks if device is an HTTP/RTSP URL
+// isNetworkSource checks if device is a network stream URL
 func isNetworkSource(device string) bool {
 	return strings.HasPrefix(device, "http://") ||
 		strings.HasPrefix(device, "https://") ||
-		strings.HasPrefix(device, "rtsp://")
+		strings.HasPrefix(device, "rtsp://") ||
+		strings.HasPrefix(device, "rtmp://") ||
+		strings.HasPrefix(device, "srt://")
 }
 
 // deviceExists checks if a camera device exists
@@ -534,6 +540,10 @@ func (cm *CameraManager) GetCameraSource(cameraID string) (device string, camera
 	cameraType = "usb"
 	if strings.HasPrefix(device, "rtsp://") {
 		cameraType = "rtsp"
+	} else if strings.HasPrefix(device, "rtmp://") {
+		cameraType = "rtmp"
+	} else if strings.HasPrefix(device, "srt://") {
+		cameraType = "srt"
 	} else if strings.HasPrefix(device, "http://") || strings.HasPrefix(device, "https://") {
 		cameraType = "http"
 	}
@@ -573,9 +583,9 @@ func (c *Camera) UpdateConfiguration(name, resolution string, fps int) error {
 	return nil
 }
 
-// SetAlertsEnabled enables or disables events and alerts for this camera
-// When disabled, the detection pipeline still runs for bounding boxes but no events are created
-func (cm *CameraManager) SetAlertsEnabled(id string, enabled bool) error {
+// SetEventsEnabled enables or disables event creation for this camera
+// When disabled, the detection pipeline still runs for bounding boxes but no events are stored
+func (cm *CameraManager) SetEventsEnabled(id string, enabled bool) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
@@ -585,22 +595,22 @@ func (cm *CameraManager) SetAlertsEnabled(id string, enabled bool) error {
 	}
 
 	camera.mu.Lock()
-	camera.AlertsEnabled = enabled
+	camera.EventsEnabled = enabled
 	camera.mu.Unlock()
 
 	// Persist to database
 	if cm.db != nil {
-		if err := cm.db.UpdateCameraAlertsEnabled(id, enabled); err != nil {
-			fmt.Printf("Warning: failed to update camera alerts_enabled in database: %v\n", err)
+		if err := cm.db.UpdateCameraEventsEnabled(id, enabled); err != nil {
+			fmt.Printf("Warning: failed to update camera events_enabled in database: %v\n", err)
 		}
 	}
 
-	fmt.Printf("Camera %s alerts_enabled set to %v\n", id, enabled)
+	fmt.Printf("Camera %s events_enabled set to %v\n", id, enabled)
 	return nil
 }
 
-// IsAlertsEnabled returns whether alerts are enabled for a camera
-func (cm *CameraManager) IsAlertsEnabled(id string) bool {
+// IsEventsEnabled returns whether events are enabled for a camera
+func (cm *CameraManager) IsEventsEnabled(id string) bool {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 
@@ -611,5 +621,45 @@ func (cm *CameraManager) IsAlertsEnabled(id string) bool {
 
 	camera.mu.RLock()
 	defer camera.mu.RUnlock()
-	return camera.AlertsEnabled
+	return camera.EventsEnabled
+}
+
+// SetNotificationsEnabled enables or disables Telegram notifications for this camera
+func (cm *CameraManager) SetNotificationsEnabled(id string, enabled bool) error {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	camera, exists := cm.cameras[id]
+	if !exists {
+		return fmt.Errorf("camera with ID %s not found", id)
+	}
+
+	camera.mu.Lock()
+	camera.NotificationsEnabled = enabled
+	camera.mu.Unlock()
+
+	// Persist to database
+	if cm.db != nil {
+		if err := cm.db.UpdateCameraNotificationsEnabled(id, enabled); err != nil {
+			fmt.Printf("Warning: failed to update camera notifications_enabled in database: %v\n", err)
+		}
+	}
+
+	fmt.Printf("Camera %s notifications_enabled set to %v\n", id, enabled)
+	return nil
+}
+
+// IsNotificationsEnabled returns whether notifications are enabled for a camera
+func (cm *CameraManager) IsNotificationsEnabled(id string) bool {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
+	camera, exists := cm.cameras[id]
+	if !exists {
+		return false
+	}
+
+	camera.mu.RLock()
+	defer camera.mu.RUnlock()
+	return camera.NotificationsEnabled
 }

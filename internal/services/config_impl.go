@@ -211,6 +211,12 @@ func (c *ConfigImplementation) wireYOLOConfigProvider() {
 		defer c.mu.RUnlock()
 		return c.yoloCfg.ConfidenceThreshold
 	})
+
+	// Apply loaded motion sensitivity to the detector
+	c.mu.RLock()
+	sensitivity := c.pipelineCfg.MotionSensitivity
+	c.mu.RUnlock()
+	c.motionDetector.SetMotionSensitivity(sensitivity)
 }
 
 // SetGRPCYoloDetector sets the gRPC YOLO detector for updating tasks at runtime
@@ -1038,6 +1044,11 @@ func (c *ConfigImplementation) UpdatePipeline(ctx context.Context, cfg *config.P
 	c.pipelineCfg.ScheduleInterval = cfg.ScheduleInterval
 	c.pipelineCfg.MotionSensitivity = cfg.MotionSensitivity
 	c.pipelineCfg.MotionCooldownSeconds = cfg.MotionCooldownSeconds
+
+	// Apply motion sensitivity to the motion detector
+	if c.motionDetector != nil {
+		c.motionDetector.SetMotionSensitivity(cfg.MotionSensitivity)
+	}
 
 	// Save to database
 	c.savePipelineConfigToDB()

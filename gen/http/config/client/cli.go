@@ -23,7 +23,7 @@ func BuildUpdatePayload(configUpdateBody string) (*config.NotificationConfig, er
 	{
 		err = json.Unmarshal([]byte(configUpdateBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"cooldown_seconds\": 4173248364901550452,\n      \"min_confidence\": 0.10383743,\n      \"telegram_bot_token\": \"Earum ex.\",\n      \"telegram_chat_id\": \"Nesciunt a aut eos nam minima.\",\n      \"telegram_enabled\": false\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"cooldown_seconds\": 5607953147742756681,\n      \"min_confidence\": 0.6545222,\n      \"telegram_bot_token\": \"Voluptas architecto sint ea maxime.\",\n      \"telegram_chat_id\": \"Possimus et id esse.\",\n      \"telegram_enabled\": true\n   }'")
 		}
 	}
 	v := &config.NotificationConfig{
@@ -45,7 +45,7 @@ func BuildUpdateDinov3Payload(configUpdateDinov3Body string) (*config.DINOv3Conf
 	{
 		err = json.Unmarshal([]byte(configUpdateDinov3Body), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"confidence_threshold\": 0.29266176,\n      \"enable_scene_analysis\": true,\n      \"enabled\": true,\n      \"fallback_to_basic\": false,\n      \"motion_threshold\": 0.6838521,\n      \"service_endpoint\": \"Nihil aut quisquam sequi velit.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"confidence_threshold\": 0.6524676,\n      \"enable_scene_analysis\": true,\n      \"enabled\": false,\n      \"fallback_to_basic\": false,\n      \"motion_threshold\": 0.96901333,\n      \"service_endpoint\": \"Repellendus ut provident eos perferendis qui eum.\"\n   }'")
 		}
 	}
 	v := &config.DINOv3Config{
@@ -92,7 +92,7 @@ func BuildUpdateYoloPayload(configUpdateYoloBody string) (*config.YOLOConfig, er
 	{
 		err = json.Unmarshal([]byte(configUpdateYoloBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"box_color\": \"Est soluta ad alias omnis dicta soluta.\",\n      \"box_thickness\": 8770274830355288665,\n      \"classes_filter\": \"Ratione quisquam alias omnis laboriosam ut.\",\n      \"confidence_threshold\": 0.25283316,\n      \"draw_boxes\": false,\n      \"enabled\": true,\n      \"security_mode\": true,\n      \"service_endpoint\": \"Numquam neque.\",\n      \"tasks\": [\n         \"detect\",\n         \"pose\"\n      ]\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"box_color\": \"Expedita facilis aut.\",\n      \"box_thickness\": 2416342213437205937,\n      \"classes_filter\": \"Esse aut in.\",\n      \"confidence_threshold\": 0.6078307,\n      \"draw_boxes\": false,\n      \"enabled\": true,\n      \"security_mode\": false,\n      \"service_endpoint\": \"Omnis magni sit.\",\n      \"tasks\": [\n         \"detect\",\n         \"pose\"\n      ]\n   }'")
 		}
 	}
 	v := &config.YOLOConfig{
@@ -147,7 +147,7 @@ func BuildUpdateDetectionPayload(configUpdateDetectionBody string) (*config.Dete
 	{
 		err = json.Unmarshal([]byte(configUpdateDetectionBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"dinov3\": {\n         \"confidence_threshold\": 0.12232191,\n         \"enable_scene_analysis\": true,\n         \"enabled\": true,\n         \"fallback_to_basic\": false,\n         \"motion_threshold\": 0.5484977,\n         \"service_endpoint\": \"Molestias occaecati deserunt iste.\"\n      },\n      \"fallback_enabled\": false,\n      \"primary_detector\": \"basic\",\n      \"yolo\": {\n         \"box_color\": \"Inventore ea corrupti qui.\",\n         \"box_thickness\": 8523763844041114734,\n         \"classes_filter\": \"Cumque praesentium eum ea ad.\",\n         \"confidence_threshold\": 0.75414485,\n         \"draw_boxes\": true,\n         \"enabled\": false,\n         \"security_mode\": true,\n         \"service_endpoint\": \"Quas saepe temporibus ipsa qui temporibus.\",\n         \"tasks\": [\n            \"detect\",\n            \"pose\"\n         ]\n      }\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"dinov3\": {\n         \"confidence_threshold\": 0.5313268,\n         \"enable_scene_analysis\": false,\n         \"enabled\": true,\n         \"fallback_to_basic\": false,\n         \"motion_threshold\": 0.97341186,\n         \"service_endpoint\": \"Sunt quas.\"\n      },\n      \"fallback_enabled\": false,\n      \"primary_detector\": \"basic\",\n      \"yolo\": {\n         \"box_color\": \"Est dolore quas.\",\n         \"box_thickness\": 5871083794999916765,\n         \"classes_filter\": \"Culpa quibusdam mollitia inventore aut dolore.\",\n         \"confidence_threshold\": 0.18854734,\n         \"draw_boxes\": true,\n         \"enabled\": true,\n         \"security_mode\": false,\n         \"service_endpoint\": \"Sequi fugit neque ducimus.\",\n         \"tasks\": [\n            \"detect\",\n            \"pose\"\n         ]\n      }\n   }'")
 		}
 		if !(body.PrimaryDetector == "basic" || body.PrimaryDetector == "yolo" || body.PrimaryDetector == "dinov3") {
 			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.primary_detector", body.PrimaryDetector, []any{"basic", "yolo", "dinov3"}))
@@ -184,7 +184,7 @@ func BuildUpdatePipelinePayload(configUpdatePipelineBody string) (*config.Pipeli
 	{
 		err = json.Unmarshal([]byte(configUpdatePipelineBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"detectors\": [\n         \"yolo\",\n         \"face\"\n      ],\n      \"execution_mode\": \"sequential\",\n      \"mode\": \"continuous\",\n      \"motion_cooldown_seconds\": 3749967334656660534,\n      \"motion_sensitivity\": 0.2647602,\n      \"schedule_interval\": \"Non qui praesentium labore quasi rem id.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"detectors\": [\n         \"yolo\",\n         \"face\"\n      ],\n      \"execution_mode\": \"sequential\",\n      \"mode\": \"visual_only\",\n      \"motion_cooldown_seconds\": 839426708092988466,\n      \"motion_sensitivity\": 0.9904875,\n      \"schedule_interval\": \"Odit sunt sit qui exercitationem.\"\n   }'")
 		}
 		if !(body.Mode == "disabled" || body.Mode == "visual_only" || body.Mode == "continuous" || body.Mode == "motion_triggered" || body.Mode == "scheduled" || body.Mode == "hybrid") {
 			err = goa.MergeErrors(err, goa.InvalidEnumValueError("body.mode", body.Mode, []any{"disabled", "visual_only", "continuous", "motion_triggered", "scheduled", "hybrid"}))
@@ -248,7 +248,7 @@ func BuildUpdateRecognitionPayload(configUpdateRecognitionBody string) (*config.
 	{
 		err = json.Unmarshal([]byte(configUpdateRecognitionBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"box_thickness\": 5035404992028972237,\n      \"enabled\": true,\n      \"known_face_color\": \"Facere ex suscipit dolores quaerat possimus.\",\n      \"service_endpoint\": \"Quo sed optio non est.\",\n      \"similarity_threshold\": 0.5883048,\n      \"unknown_face_color\": \"Aperiam nihil.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"box_thickness\": 8833618832289925279,\n      \"enabled\": false,\n      \"known_face_color\": \"Sapiente similique et voluptatibus et commodi.\",\n      \"service_endpoint\": \"Aut fuga.\",\n      \"similarity_threshold\": 0.09097414,\n      \"unknown_face_color\": \"Tempore similique.\"\n   }'")
 		}
 	}
 	v := &config.RecognitionConfig{

@@ -163,7 +163,7 @@ function AppContent() {
     async (camera: Camera) => {
       setLoadingCameraId(camera.id);
       try {
-        if (camera.alerts_enabled) {
+        if (camera.events_enabled || camera.notifications_enabled) {
           await disableAlerts.mutateAsync(camera.id);
         } else {
           await enableAlerts.mutateAsync(camera.id);

@@ -44,7 +44,7 @@ func UsageExamples() string {
       "username": "Consequuntur placeat qui a et sed."
    }'` + "\n" +
 		os.Args[0] + ` camera list` + "\n" +
-		os.Args[0] + ` motion events --camera-id "3cd51195-f072-11f0-aca2-5847ca7b8ce1" --since "1995-07-27T14:39:00Z" --limit -8628092076975255126` + "\n" +
+		os.Args[0] + ` motion events --camera-id "4272d8ec-f4bb-11f0-8a31-5847ca7b8ce1" --since "2000-08-18T15:58:03Z" --limit -7060901811022506629` + "\n" +
 		os.Args[0] + ` config get` + "\n" +
 		""
 }
@@ -670,7 +670,7 @@ Get camera information by ID
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera get --id "3cd35670-f072-11f0-aca2-5847ca7b8ce1"
+    %[1]s camera get --id "4271ef07-f4bb-11f0-8a31-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -682,10 +682,11 @@ Add a new camera
 
 Example:
     %[1]s camera create --body '{
-      "alerts_enabled": true,
       "device": "Dolore temporibus qui dolor non.",
+      "events_enabled": true,
       "fps": 6629571893810400612,
       "name": "Consectetur ipsa tempora aut fuga.",
+      "notifications_enabled": false,
       "resolution": "Hic suscipit inventore commodi provident."
    }'
 `, os.Args[0])
@@ -700,12 +701,13 @@ Update camera configuration. Device can only be changed when camera is inactive.
 
 Example:
     %[1]s camera update --body '{
-      "alerts_enabled": true,
       "device": "Minus omnis.",
+      "events_enabled": true,
       "fps": 6536155408702514852,
-      "name": "Rerum adipisci cum non vitae et ipsum.",
+      "name": "Cum non vitae et ipsum.",
+      "notifications_enabled": true,
       "resolution": "Et natus qui recusandae natus."
-   }' --id "3cd3f5d0-f072-11f0-aca2-5847ca7b8ce1"
+   }' --id "4272251a-f4bb-11f0-8a31-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -716,7 +718,7 @@ Remove a camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera delete --id "3cd428af-f072-11f0-aca2-5847ca7b8ce1"
+    %[1]s camera delete --id "42723c2f-f4bb-11f0-8a31-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -727,7 +729,7 @@ Activate camera for motion detection
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera activate --id "3cd434d0-f072-11f0-aca2-5847ca7b8ce1"
+    %[1]s camera activate --id "4272486d-f4bb-11f0-8a31-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -738,7 +740,7 @@ Deactivate camera
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera deactivate --id "3cd45373-f072-11f0-aca2-5847ca7b8ce1"
+    %[1]s camera deactivate --id "427261ce-f4bb-11f0-8a31-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -749,7 +751,7 @@ Capture a single frame from camera as base64
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera capture --id "3cd46eab-f072-11f0-aca2-5847ca7b8ce1"
+    %[1]s camera capture --id "4272a0e8-f4bb-11f0-8a31-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -760,7 +762,7 @@ Enable alerts for this camera. Detection pipeline will create events and send no
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera enable-alerts --id "3cd47e3f-f072-11f0-aca2-5847ca7b8ce1"
+    %[1]s camera enable-alerts --id "4272ad92-f4bb-11f0-8a31-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -771,7 +773,7 @@ Disable alerts for this camera. Detection pipeline still runs for bounding boxes
     -id STRING: Camera ID
 
 Example:
-    %[1]s camera disable-alerts --id "3cd49c3a-f072-11f0-aca2-5847ca7b8ce1"
+    %[1]s camera disable-alerts --id "4272c4b3-f4bb-11f0-8a31-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -800,7 +802,7 @@ List motion detection events
     -limit INT: 
 
 Example:
-    %[1]s motion events --camera-id "3cd51195-f072-11f0-aca2-5847ca7b8ce1" --since "1995-07-27T14:39:00Z" --limit -8628092076975255126
+    %[1]s motion events --camera-id "4272d8ec-f4bb-11f0-8a31-5847ca7b8ce1" --since "2000-08-18T15:58:03Z" --limit -7060901811022506629
 `, os.Args[0])
 }
 
@@ -811,7 +813,7 @@ Get motion event by ID
     -id STRING: Event ID
 
 Example:
-    %[1]s motion event --id "3cd53032-f072-11f0-aca2-5847ca7b8ce1"
+    %[1]s motion event --id "4272f257-f4bb-11f0-8a31-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -822,7 +824,7 @@ Get captured frame for motion event as base64
     -id STRING: Event ID
 
 Example:
-    %[1]s motion frame --id "3cd5564d-f072-11f0-aca2-5847ca7b8ce1"
+    %[1]s motion frame --id "42731231-f4bb-11f0-8a31-5847ca7b8ce1"
 `, os.Args[0])
 }
 
@@ -834,7 +836,7 @@ Get forensic face analysis thumbnail (NSA-style with landmarks) for a motion eve
     -index INT: Face thumbnail index (0-based)
 
 Example:
-    %[1]s motion forensic-thumbnail --id "3cd560aa-f072-11f0-aca2-5847ca7b8ce1" --index 2265401934714453009
+    %[1]s motion forensic-thumbnail --id "427324a1-f4bb-11f0-8a31-5847ca7b8ce1" --index 1647646421727553793
 `, os.Args[0])
 }
 
@@ -884,11 +886,11 @@ Update notification configuration
 
 Example:
     %[1]s config update --body '{
-      "cooldown_seconds": 4173248364901550452,
-      "min_confidence": 0.10383743,
-      "telegram_bot_token": "Earum ex.",
-      "telegram_chat_id": "Nesciunt a aut eos nam minima.",
-      "telegram_enabled": false
+      "cooldown_seconds": 5607953147742756681,
+      "min_confidence": 0.6545222,
+      "telegram_bot_token": "Voluptas architecto sint ea maxime.",
+      "telegram_chat_id": "Possimus et id esse.",
+      "telegram_enabled": true
    }'
 `, os.Args[0])
 }
@@ -921,12 +923,12 @@ Update DINOv3 AI configuration
 
 Example:
     %[1]s config update-dinov3 --body '{
-      "confidence_threshold": 0.29266176,
+      "confidence_threshold": 0.6524676,
       "enable_scene_analysis": true,
-      "enabled": true,
+      "enabled": false,
       "fallback_to_basic": false,
-      "motion_threshold": 0.6838521,
-      "service_endpoint": "Nihil aut quisquam sequi velit."
+      "motion_threshold": 0.96901333,
+      "service_endpoint": "Repellendus ut provident eos perferendis qui eum."
    }'
 `, os.Args[0])
 }
@@ -959,14 +961,14 @@ Update YOLO detection configuration
 
 Example:
     %[1]s config update-yolo --body '{
-      "box_color": "Est soluta ad alias omnis dicta soluta.",
-      "box_thickness": 8770274830355288665,
-      "classes_filter": "Ratione quisquam alias omnis laboriosam ut.",
-      "confidence_threshold": 0.25283316,
+      "box_color": "Expedita facilis aut.",
+      "box_thickness": 2416342213437205937,
+      "classes_filter": "Esse aut in.",
+      "confidence_threshold": 0.6078307,
       "draw_boxes": false,
       "enabled": true,
-      "security_mode": true,
-      "service_endpoint": "Numquam neque.",
+      "security_mode": false,
+      "service_endpoint": "Omnis magni sit.",
       "tasks": [
          "detect",
          "pose"
@@ -1004,24 +1006,24 @@ Update combined detection configuration
 Example:
     %[1]s config update-detection --body '{
       "dinov3": {
-         "confidence_threshold": 0.12232191,
-         "enable_scene_analysis": true,
+         "confidence_threshold": 0.5313268,
+         "enable_scene_analysis": false,
          "enabled": true,
          "fallback_to_basic": false,
-         "motion_threshold": 0.5484977,
-         "service_endpoint": "Molestias occaecati deserunt iste."
+         "motion_threshold": 0.97341186,
+         "service_endpoint": "Sunt quas."
       },
       "fallback_enabled": false,
       "primary_detector": "basic",
       "yolo": {
-         "box_color": "Inventore ea corrupti qui.",
-         "box_thickness": 8523763844041114734,
-         "classes_filter": "Cumque praesentium eum ea ad.",
-         "confidence_threshold": 0.75414485,
+         "box_color": "Est dolore quas.",
+         "box_thickness": 5871083794999916765,
+         "classes_filter": "Culpa quibusdam mollitia inventore aut dolore.",
+         "confidence_threshold": 0.18854734,
          "draw_boxes": true,
-         "enabled": false,
-         "security_mode": true,
-         "service_endpoint": "Quas saepe temporibus ipsa qui temporibus.",
+         "enabled": true,
+         "security_mode": false,
+         "service_endpoint": "Sequi fugit neque ducimus.",
          "tasks": [
             "detect",
             "pose"
@@ -1054,10 +1056,10 @@ Example:
          "face"
       ],
       "execution_mode": "sequential",
-      "mode": "continuous",
-      "motion_cooldown_seconds": 3749967334656660534,
-      "motion_sensitivity": 0.2647602,
-      "schedule_interval": "Non qui praesentium labore quasi rem id."
+      "mode": "visual_only",
+      "motion_cooldown_seconds": 839426708092988466,
+      "motion_sensitivity": 0.9904875,
+      "schedule_interval": "Odit sunt sit qui exercitationem."
    }'
 `, os.Args[0])
 }
@@ -1080,12 +1082,12 @@ Update face recognition configuration
 
 Example:
     %[1]s config update-recognition --body '{
-      "box_thickness": 5035404992028972237,
-      "enabled": true,
-      "known_face_color": "Facere ex suscipit dolores quaerat possimus.",
-      "service_endpoint": "Quo sed optio non est.",
-      "similarity_threshold": 0.5883048,
-      "unknown_face_color": "Aperiam nihil."
+      "box_thickness": 8833618832289925279,
+      "enabled": false,
+      "known_face_color": "Sapiente similique et voluptatibus et commodi.",
+      "service_endpoint": "Aut fuga.",
+      "similarity_threshold": 0.09097414,
+      "unknown_face_color": "Tempore similique."
    }'
 `, os.Args[0])
 }

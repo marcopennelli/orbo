@@ -47,7 +47,8 @@ export default function CameraItem({
 }: CameraItemProps) {
   const isActive = camera.status === 'active';
   const isError = camera.status === 'error';
-  const alertsEnabled = camera.alerts_enabled;
+  // Alerts are considered enabled if either events or notifications are on
+  const alertsEnabled = camera.events_enabled || camera.notifications_enabled;
 
   return (
     <div

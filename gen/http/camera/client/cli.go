@@ -41,15 +41,16 @@ func BuildCreatePayload(cameraCreateBody string) (*camera.CreatePayload, error) 
 	{
 		err = json.Unmarshal([]byte(cameraCreateBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"alerts_enabled\": true,\n      \"device\": \"Dolore temporibus qui dolor non.\",\n      \"fps\": 6629571893810400612,\n      \"name\": \"Consectetur ipsa tempora aut fuga.\",\n      \"resolution\": \"Hic suscipit inventore commodi provident.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Dolore temporibus qui dolor non.\",\n      \"events_enabled\": true,\n      \"fps\": 6629571893810400612,\n      \"name\": \"Consectetur ipsa tempora aut fuga.\",\n      \"notifications_enabled\": false,\n      \"resolution\": \"Hic suscipit inventore commodi provident.\"\n   }'")
 		}
 	}
 	v := &camera.CreatePayload{
-		Name:          body.Name,
-		Device:        body.Device,
-		Resolution:    body.Resolution,
-		Fps:           body.Fps,
-		AlertsEnabled: body.AlertsEnabled,
+		Name:                 body.Name,
+		Device:               body.Device,
+		Resolution:           body.Resolution,
+		Fps:                  body.Fps,
+		EventsEnabled:        body.EventsEnabled,
+		NotificationsEnabled: body.NotificationsEnabled,
 	}
 	{
 		var zero string
@@ -65,8 +66,14 @@ func BuildCreatePayload(cameraCreateBody string) (*camera.CreatePayload, error) 
 	}
 	{
 		var zero bool
-		if v.AlertsEnabled == zero {
-			v.AlertsEnabled = true
+		if v.EventsEnabled == zero {
+			v.EventsEnabled = true
+		}
+	}
+	{
+		var zero bool
+		if v.NotificationsEnabled == zero {
+			v.NotificationsEnabled = true
 		}
 	}
 
@@ -81,7 +88,7 @@ func BuildUpdatePayload(cameraUpdateBody string, cameraUpdateID string) (*camera
 	{
 		err = json.Unmarshal([]byte(cameraUpdateBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"alerts_enabled\": true,\n      \"device\": \"Minus omnis.\",\n      \"fps\": 6536155408702514852,\n      \"name\": \"Rerum adipisci cum non vitae et ipsum.\",\n      \"resolution\": \"Et natus qui recusandae natus.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"device\": \"Minus omnis.\",\n      \"events_enabled\": true,\n      \"fps\": 6536155408702514852,\n      \"name\": \"Cum non vitae et ipsum.\",\n      \"notifications_enabled\": true,\n      \"resolution\": \"Et natus qui recusandae natus.\"\n   }'")
 		}
 	}
 	var id string
@@ -93,11 +100,12 @@ func BuildUpdatePayload(cameraUpdateBody string, cameraUpdateID string) (*camera
 		}
 	}
 	v := &camera.UpdatePayload{
-		Name:          body.Name,
-		Device:        body.Device,
-		Resolution:    body.Resolution,
-		Fps:           body.Fps,
-		AlertsEnabled: body.AlertsEnabled,
+		Name:                 body.Name,
+		Device:               body.Device,
+		Resolution:           body.Resolution,
+		Fps:                  body.Fps,
+		EventsEnabled:        body.EventsEnabled,
+		NotificationsEnabled: body.NotificationsEnabled,
 	}
 	v.ID = id
 

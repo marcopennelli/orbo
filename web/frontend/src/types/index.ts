@@ -7,7 +7,8 @@ export interface Camera {
   resolution?: string;
   fps?: number;
   created_at?: string;
-  alerts_enabled: boolean;  // Whether events/alerts are enabled (detection still runs for bounding boxes)
+  events_enabled: boolean;  // Whether to create and store detection events
+  notifications_enabled: boolean;  // Whether to send Telegram notifications
 }
 
 export interface CameraCreatePayload {
@@ -15,7 +16,8 @@ export interface CameraCreatePayload {
   device: string;
   resolution?: string;
   fps?: number;
-  alerts_enabled?: boolean;
+  events_enabled?: boolean;
+  notifications_enabled?: boolean;
 }
 
 export interface CameraUpdatePayload {
@@ -23,7 +25,8 @@ export interface CameraUpdatePayload {
   device?: string;  // Can only be changed when camera is inactive
   resolution?: string;
   fps?: number;
-  alerts_enabled?: boolean;
+  events_enabled?: boolean;
+  notifications_enabled?: boolean;
 }
 
 // Frame response - matches FrameResponse from design.go

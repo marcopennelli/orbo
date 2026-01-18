@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, BellOff } from 'lucide-react';
+import { Bell, BellOff, Database, Send } from 'lucide-react';
 import type { Camera, CameraCreatePayload, CameraUpdatePayload } from '../../types';
 import { Button, Input, Modal, Switch } from '../ui';
 
@@ -16,7 +16,8 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
   const [device, setDevice] = useState('');
   const [resolution, setResolution] = useState('640x480');
   const [fps, setFps] = useState(30);
-  const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [eventsEnabled, setEventsEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [errors, setErrors] = useState<{ name?: string; device?: string }>({});
 
   const isEditing = !!camera;
@@ -28,13 +29,15 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
       setDevice(camera.device);
       setResolution(camera.resolution || '640x480');
       setFps(camera.fps || 30);
-      setAlertsEnabled(camera.alerts_enabled);
+      setEventsEnabled(camera.events_enabled);
+      setNotificationsEnabled(camera.notifications_enabled);
     } else {
       setName('');
       setDevice('');
       setResolution('640x480');
       setFps(30);
-      setAlertsEnabled(true);
+      setEventsEnabled(true);
+      setNotificationsEnabled(true);
     }
     setErrors({});
   }, [camera, isOpen]);
@@ -64,7 +67,8 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
         name: name.trim(),
         resolution,
         fps,
-        alerts_enabled: alertsEnabled,
+        events_enabled: eventsEnabled,
+        notifications_enabled: notificationsEnabled,
       };
       // Only include device if changed
       if (device.trim() !== camera?.device) {
@@ -77,7 +81,8 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
         device: device.trim(),
         resolution,
         fps,
-        alerts_enabled: alertsEnabled,
+        events_enabled: eventsEnabled,
+        notifications_enabled: notificationsEnabled,
       } as CameraCreatePayload);
     }
   };
@@ -97,15 +102,24 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
           label="Device Path / URL"
           value={device}
           onChange={(e) => setDevice(e.target.value)}
-          placeholder="/dev/video0 or http://..."
+          placeholder="/dev/video0 or rtsp://..."
           error={errors.device}
           disabled={isEditing && isActive}
           hint={
             isEditing && isActive
               ? 'Deactivate the camera first to change the device/URL'
-              : 'USB: /dev/video0, HTTP: http://..., RTSP: rtsp://...'
+              : undefined
           }
         />
+        {(!isEditing || !isActive) && (
+          <div className="text-xs text-text-muted space-y-1 -mt-2 ml-1">
+            <p><span className="text-text-secondary">USB:</span> /dev/video0, /dev/video1</p>
+            <p><span className="text-text-secondary">RTSP:</span> rtsp://user:pass@192.168.1.100:554/stream</p>
+            <p><span className="text-text-secondary">RTMP:</span> rtmp://server/live/stream (OBS output)</p>
+            <p><span className="text-text-secondary">SRT:</span> srt://server:port?streamid=... (low-latency)</p>
+            <p><span className="text-text-secondary">HTTP:</span> http://camera/mjpeg or http://camera/snapshot.jpg</p>
+          </div>
+        )}
 
         <Input
           label="Resolution"
@@ -123,26 +137,45 @@ export default function CameraForm({ isOpen, onClose, onSubmit, camera, isLoadin
           max={60}
         />
 
-        {/* Alerts Toggle */}
+        {/* Events Toggle */}
         <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-bg-card/50">
           <div className="flex items-center gap-3">
-            {alertsEnabled ? (
-              <Bell size={18} className="text-accent" />
-            ) : (
-              <BellOff size={18} className="text-text-muted" />
-            )}
+            <Database size={18} className={eventsEnabled ? 'text-accent' : 'text-text-muted'} />
             <div>
-              <span className="text-sm text-text-secondary block">Enable Alerts</span>
+              <span className="text-sm text-text-secondary block">Store Events</span>
               <span className="text-xs text-text-muted">
-                {alertsEnabled
-                  ? 'Events will be created and notifications sent'
-                  : 'Detection runs for display only, no alerts'}
+                {eventsEnabled
+                  ? 'Detection events will be saved to history'
+                  : 'No events stored (live view only)'}
               </span>
             </div>
           </div>
           <Switch
-            checked={alertsEnabled}
-            onChange={setAlertsEnabled}
+            checked={eventsEnabled}
+            onChange={setEventsEnabled}
+          />
+        </div>
+
+        {/* Notifications Toggle */}
+        <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-bg-card/50">
+          <div className="flex items-center gap-3">
+            {notificationsEnabled ? (
+              <Send size={18} className="text-accent" />
+            ) : (
+              <BellOff size={18} className="text-text-muted" />
+            )}
+            <div>
+              <span className="text-sm text-text-secondary block">Telegram Notifications</span>
+              <span className="text-xs text-text-muted">
+                {notificationsEnabled
+                  ? 'Alerts sent to Telegram when detections occur'
+                  : 'No Telegram notifications for this camera'}
+              </span>
+            </div>
+          </div>
+          <Switch
+            checked={notificationsEnabled}
+            onChange={setNotificationsEnabled}
           />
         </div>
 

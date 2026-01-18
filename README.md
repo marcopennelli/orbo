@@ -9,7 +9,7 @@ Orbo is a modern, open-source video alarm system built with Go and OpenCV. It fe
 ## Features
 
 - **React Web UI**: Modern dashboard with camera management, multi-camera grid layouts, and unified settings panel
-- **Per-Camera Alerts Toggle**: Enable/disable events and notifications per camera (detection runs for bounding boxes)
+- **Per-Camera Event/Notification Control**: Separate toggles for storing events and sending Telegram notifications per camera
 - **Real-Time Streaming**: Low-latency WebSocket streaming with gRPC-based detection pipeline
 - **Dual Streaming Modes**: MJPEG (traditional) and WebCodecs (low-latency WebSocket) streaming
 - **Camera Support**: USB cameras (`/dev/video*`), HTTP endpoints, and RTSP streams
@@ -76,7 +76,7 @@ helm upgrade orbo deploy/helm/orbo --set recognition.enabled=true
 The React-based web UI provides:
 
 - **Camera Management**: Add, edit, delete cameras with live preview
-- **Per-Camera Alerts Control**: Toggle event/notification generation per camera (bounding boxes always visible)
+- **Per-Camera Event/Notification Control**: Separate toggles for storing events and sending Telegram notifications (bounding boxes always visible)
 - **Multi-Camera Grid**: Configurable layouts (1x1, 2x1, 2x2, 3x3) with detection status indicators
 - **Motion Events**: Browse and filter detection events with thumbnails
 - **Settings Panel**: Configure Pipeline, YOLO (multi-task selection, color picker), Face Recognition, and Telegram settings
@@ -214,8 +214,8 @@ Once configured, control Orbo directly from Telegram:
 |---------|-------------|
 | `/enable <name>` | Activate camera (start streaming) |
 | `/disable <name>` | Deactivate camera |
-| `/alerts_on <name>` | Enable alerts (events & notifications) for a camera |
-| `/alerts_off <name>` | Disable alerts (bounding boxes only) |
+| `/alerts_on <name>` | Enable both events and notifications for a camera |
+| `/alerts_off <name>` | Disable both events and notifications (bounding boxes only) |
 
 **Detection:**
 | Command | Description |
@@ -245,7 +245,8 @@ Once configured, control Orbo directly from Telegram:
 - `POST /api/v1/cameras` - Add camera
 - `GET|PUT|DELETE /api/v1/cameras/{id}` - Manage camera
 - `POST /api/v1/cameras/{id}/activate|deactivate` - Control camera streaming
-- `POST /api/v1/cameras/{id}/alerts/enable|disable` - Toggle alerts (events/notifications) per camera
+- `POST /api/v1/cameras/{id}/alerts/enable|disable` - Toggle both events and notifications per camera
+- `PUT /api/v1/cameras/{id}` - Update camera (includes `events_enabled`, `notifications_enabled` fields)
 - `GET /api/v1/cameras/{id}/frame` - Get current frame
 
 ### Motion Events

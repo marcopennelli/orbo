@@ -876,14 +876,25 @@ func DecodeDisableAlertsResponse(decoder func(*http.Response) goahttp.Decoder, r
 // *camera.CameraInfo from a value of type *CameraInfoResponse.
 func unmarshalCameraInfoResponseToCameraCameraInfo(v *CameraInfoResponse) *camera.CameraInfo {
 	res := &camera.CameraInfo{
-		ID:            *v.ID,
-		Name:          *v.Name,
-		Device:        *v.Device,
-		Status:        *v.Status,
-		Resolution:    v.Resolution,
-		Fps:           v.Fps,
-		CreatedAt:     v.CreatedAt,
-		AlertsEnabled: v.AlertsEnabled,
+		ID:         *v.ID,
+		Name:       *v.Name,
+		Device:     *v.Device,
+		Status:     *v.Status,
+		Resolution: v.Resolution,
+		Fps:        v.Fps,
+		CreatedAt:  v.CreatedAt,
+	}
+	if v.EventsEnabled != nil {
+		res.EventsEnabled = *v.EventsEnabled
+	}
+	if v.NotificationsEnabled != nil {
+		res.NotificationsEnabled = *v.NotificationsEnabled
+	}
+	if v.EventsEnabled == nil {
+		res.EventsEnabled = true
+	}
+	if v.NotificationsEnabled == nil {
+		res.NotificationsEnabled = true
 	}
 
 	return res

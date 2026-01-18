@@ -110,29 +110,35 @@ func NewCommandHandler(
 // StartPolling starts the polling loop for Telegram updates
 func (ch *CommandHandler) StartPolling(ctx context.Context) error {
 	if !ch.bot.IsEnabled() {
+		fmt.Println("[Telegram] Bot is disabled, not starting polling")
 		return fmt.Errorf("telegram bot is disabled")
 	}
 
 	ch.bot.mu.RLock()
-	if ch.bot.botToken == "" {
-		ch.bot.mu.RUnlock()
-		return fmt.Errorf("telegram bot token not configured")
-	}
+	botToken := ch.bot.botToken
+	chatID := ch.bot.chatID
 	ch.bot.mu.RUnlock()
 
-	fmt.Println("Starting Telegram command handler polling...")
+	if botToken == "" {
+		fmt.Println("[Telegram] Bot token is empty, not starting polling")
+		return fmt.Errorf("telegram bot token not configured")
+	}
+
+	fmt.Printf("[Telegram] Starting command handler polling (chat_id: %s, token: %s...)\n", chatID, botToken[:min(10, len(botToken))])
 
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
+	fmt.Println("[Telegram] Polling loop started, waiting for commands...")
+
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("Telegram command handler stopped")
+			fmt.Println("[Telegram] Command handler stopped (context cancelled)")
 			return nil
 		case <-ticker.C:
 			if err := ch.pollUpdates(ctx); err != nil {
-				fmt.Printf("Warning: failed to poll Telegram updates: %v\n", err)
+				fmt.Printf("[Telegram] Warning: failed to poll updates: %v\n", err)
 			}
 		}
 	}
@@ -172,6 +178,10 @@ func (ch *CommandHandler) pollUpdates(ctx context.Context) error {
 		return fmt.Errorf("telegram API error %d: %s", updatesResp.ErrorCode, updatesResp.Description)
 	}
 
+	if len(updatesResp.Result) > 0 {
+		fmt.Printf("[Telegram] Received %d update(s)\n", len(updatesResp.Result))
+	}
+
 	for _, update := range updatesResp.Result {
 		ch.mu.Lock()
 		if update.UpdateID > ch.lastUpdateID {
@@ -181,7 +191,10 @@ func (ch *CommandHandler) pollUpdates(ctx context.Context) error {
 
 		// Parse message from update
 		if update.Message != nil {
+			fmt.Printf("[Telegram] Processing message from chat %d: %s\n", update.Message.Chat.ID, update.Message.Text)
 			ch.handleMessage(ctx, update, authorizedChatID)
+		} else {
+			fmt.Printf("[Telegram] Update %d has no message (callback/inline query?)\n", update.UpdateID)
 		}
 	}
 
@@ -192,22 +205,24 @@ func (ch *CommandHandler) pollUpdates(ctx context.Context) error {
 func (ch *CommandHandler) handleMessage(ctx context.Context, update Update, authorizedChatID string) {
 	msg := update.Message
 	if msg == nil || msg.Chat == nil {
+		fmt.Println("[Telegram] Message or chat is nil, skipping")
 		return
 	}
 
 	// Security: Only respond to authorized chat
 	chatIDStr := strconv.FormatInt(msg.Chat.ID, 10)
 	if chatIDStr != authorizedChatID {
-		fmt.Printf("Ignoring message from unauthorized chat: %s (authorized: %s)\n", chatIDStr, authorizedChatID)
+		fmt.Printf("[Telegram] Ignoring message from unauthorized chat: %s (authorized: %s)\n", chatIDStr, authorizedChatID)
 		return
 	}
 
 	// Check if it's a command
 	if msg.Text == "" || !strings.HasPrefix(msg.Text, "/") {
+		fmt.Printf("[Telegram] Non-command message ignored: %s\n", msg.Text)
 		return
 	}
 
-	fmt.Printf("Processing command: %s\n", msg.Text)
+	fmt.Printf("[Telegram] Processing command: %s\n", msg.Text)
 
 	// Parse command and arguments
 	parts := strings.Fields(msg.Text)
@@ -220,6 +235,7 @@ func (ch *CommandHandler) handleMessage(ctx context.Context, update Update, auth
 	}
 
 	// Dispatch command
+	fmt.Printf("[Telegram] Dispatching command: %s (args: %v)\n", command, args)
 	var response string
 	switch command {
 	case "/start":
@@ -253,8 +269,11 @@ func (ch *CommandHandler) handleMessage(ctx context.Context, update Update, auth
 
 	// Send response
 	if response != "" {
+		fmt.Printf("[Telegram] Sending response (%d chars)\n", len(response))
 		if err := ch.sendReply(ctx, response); err != nil {
-			fmt.Printf("Failed to send reply: %v\n", err)
+			fmt.Printf("[Telegram] Failed to send reply: %v\n", err)
+		} else {
+			fmt.Println("[Telegram] Response sent successfully")
 		}
 	}
 }
@@ -312,7 +331,8 @@ func (ch *CommandHandler) handleStatus() string {
 	for _, cam := range cameras {
 		if cam.Status == "active" {
 			activeCount++
-			if cam.AlertsEnabled {
+			// Alerts enabled if either events or notifications are on
+			if cam.EventsEnabled || cam.NotificationsEnabled {
 				alertsEnabledCount++
 			}
 		}
@@ -362,15 +382,17 @@ func (ch *CommandHandler) handleCameras() string {
 		}
 
 		// Detection and alerts status indicators
+		// Alerts enabled if either events or notifications are on
+		alertsEnabled := cam.EventsEnabled || cam.NotificationsEnabled
 		statusSuffix := ""
 		if cam.Status == "active" {
 			if ch.motionDetector.IsDetectionRunning(cam.ID) {
-				if cam.AlertsEnabled {
+				if alertsEnabled {
 					statusSuffix = " 👁️🔔" // Detecting with alerts
 				} else {
 					statusSuffix = " 👁️" // Detecting, no alerts
 				}
-			} else if cam.AlertsEnabled {
+			} else if alertsEnabled {
 				statusSuffix = " 🔔" // Alerts enabled but not detecting
 			}
 		}
@@ -402,13 +424,14 @@ func (ch *CommandHandler) handleStartDetection() string {
 			continue
 		}
 
-		// Start detection for all active cameras (alerts_enabled controls events/notifications)
+		// Start detection for all active cameras (events_enabled/notifications_enabled control what happens)
 		if err := ch.motionDetector.StartDetection(cam.ID, cam.Device); err != nil {
 			fmt.Printf("Failed to start detection on %s: %v\n", cam.Name, err)
 			errors++
 		} else {
 			started++
-			if !cam.AlertsEnabled {
+			// Alerts off if both events and notifications are disabled
+			if !cam.EventsEnabled && !cam.NotificationsEnabled {
 				alertsOff++
 			}
 		}
@@ -595,12 +618,17 @@ func (ch *CommandHandler) handleAlertsOn(args []string) string {
 		return err.Error()
 	}
 
-	if targetCamera.AlertsEnabled {
+	// Check if alerts are already fully enabled (both events and notifications)
+	if targetCamera.EventsEnabled && targetCamera.NotificationsEnabled {
 		return fmt.Sprintf("ℹ️ Alerts are already enabled for '%s'.", targetCamera.Name)
 	}
 
-	if err := ch.cameraManager.SetAlertsEnabled(targetCamera.ID, true); err != nil {
-		return fmt.Sprintf("❌ Failed to enable alerts: %v", err)
+	// Enable both events and notifications
+	if err := ch.cameraManager.SetEventsEnabled(targetCamera.ID, true); err != nil {
+		return fmt.Sprintf("❌ Failed to enable events: %v", err)
+	}
+	if err := ch.cameraManager.SetNotificationsEnabled(targetCamera.ID, true); err != nil {
+		return fmt.Sprintf("❌ Failed to enable notifications: %v", err)
 	}
 
 	response := fmt.Sprintf("🔔 Alerts enabled for '%s'.", targetCamera.Name)
@@ -622,12 +650,17 @@ func (ch *CommandHandler) handleAlertsOff(args []string) string {
 		return err.Error()
 	}
 
-	if !targetCamera.AlertsEnabled {
+	// Check if alerts are already fully disabled (both events and notifications)
+	if !targetCamera.EventsEnabled && !targetCamera.NotificationsEnabled {
 		return fmt.Sprintf("ℹ️ Alerts are already disabled for '%s'.", targetCamera.Name)
 	}
 
-	if err := ch.cameraManager.SetAlertsEnabled(targetCamera.ID, false); err != nil {
-		return fmt.Sprintf("❌ Failed to disable alerts: %v", err)
+	// Disable both events and notifications
+	if err := ch.cameraManager.SetEventsEnabled(targetCamera.ID, false); err != nil {
+		return fmt.Sprintf("❌ Failed to disable events: %v", err)
+	}
+	if err := ch.cameraManager.SetNotificationsEnabled(targetCamera.ID, false); err != nil {
+		return fmt.Sprintf("❌ Failed to disable notifications: %v", err)
 	}
 
 	response := fmt.Sprintf("🔕 Alerts disabled for '%s'.", targetCamera.Name)
@@ -687,4 +720,12 @@ func formatDuration(d time.Duration) string {
 		return fmt.Sprintf("%dh %dm", hours, minutes)
 	}
 	return fmt.Sprintf("%dm", minutes)
+}
+
+// min returns the smaller of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

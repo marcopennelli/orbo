@@ -78,9 +78,12 @@ type CameraInfo struct {
 	Fps *int
 	// Creation timestamp
 	CreatedAt *string
-	// When false, detection pipeline still runs for bounding boxes but no events
-	// are created or alerts sent.
-	AlertsEnabled *bool
+	// When true, detection events are created and stored. When false, detection
+	// runs for live view only.
+	EventsEnabled bool
+	// When true, Telegram alerts are sent for detections. Requires events_enabled
+	// to also be true.
+	NotificationsEnabled bool
 }
 
 // CapturePayload is the payload type of the camera service capture method.
@@ -99,8 +102,10 @@ type CreatePayload struct {
 	Resolution string
 	// Frames per second
 	Fps int
-	// Enable events and alerts for this camera
-	AlertsEnabled bool
+	// Enable event creation for this camera
+	EventsEnabled bool
+	// Enable Telegram notifications for this camera
+	NotificationsEnabled bool
 }
 
 // DeactivatePayload is the payload type of the camera service deactivate
@@ -170,8 +175,10 @@ type UpdatePayload struct {
 	Resolution *string
 	// Frames per second
 	Fps *int
-	// Enable events and alerts for this camera
-	AlertsEnabled *bool
+	// Enable event creation for this camera
+	EventsEnabled *bool
+	// Enable Telegram notifications for this camera
+	NotificationsEnabled *bool
 }
 
 // Error returns an error description.

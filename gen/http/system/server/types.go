@@ -106,9 +106,12 @@ type CameraInfoResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, detection pipeline still runs for bounding boxes but no events
-	// are created or alerts sent.
-	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
+	// When true, detection events are created and stored. When false, detection
+	// runs for live view only.
+	EventsEnabled bool `form:"events_enabled" json:"events_enabled" xml:"events_enabled"`
+	// When true, Telegram alerts are sent for detections. Requires events_enabled
+	// to also be true.
+	NotificationsEnabled bool `form:"notifications_enabled" json:"notifications_enabled" xml:"notifications_enabled"`
 }
 
 // NewStatusResponseBody builds the HTTP response body from the result of the

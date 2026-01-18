@@ -47,16 +47,16 @@ func (s *SystemImplementation) Status(ctx context.Context) (*system_service.Syst
 	cameraInfos := make([]*system_service.CameraInfo, len(cameras))
 	for i, cam := range cameras {
 		createdAtStr := cam.CreatedAt.Format(time.RFC3339)
-		alertsEnabled := cam.AlertsEnabled
 		cameraInfos[i] = &system_service.CameraInfo{
-			ID:            cam.ID,
-			Name:          cam.Name,
-			Device:        cam.Device,
-			Status:        cam.Status,
-			Resolution:    &cam.Resolution,
-			Fps:           &cam.FPS,
-			CreatedAt:     &createdAtStr,
-			AlertsEnabled: &alertsEnabled,
+			ID:                   cam.ID,
+			Name:                 cam.Name,
+			Device:               cam.Device,
+			Status:               cam.Status,
+			Resolution:           &cam.Resolution,
+			Fps:                  &cam.FPS,
+			CreatedAt:            &createdAtStr,
+			EventsEnabled:        cam.EventsEnabled,
+			NotificationsEnabled: cam.NotificationsEnabled,
 		}
 	}
 
@@ -131,10 +131,10 @@ func (s *SystemImplementation) StartDetection(ctx context.Context) (*system_serv
 	for _, cam := range cameras {
 		if cam.Status == "active" {
 			// Detection runs for all active cameras (for bounding boxes on stream)
-			// alerts_enabled only controls whether events are saved and notifications sent
+			// events_enabled/notifications_enabled control whether events are saved and notifications sent
 			if !s.motionDetector.IsDetectionRunning(cam.ID) {
 				alertsNote := ""
-				if !cam.AlertsEnabled {
+				if !cam.EventsEnabled && !cam.NotificationsEnabled {
 					alertsNote = " (alerts disabled - bounding boxes only)"
 				}
 				fmt.Printf("[SystemService] Starting detection for camera %s%s\n", cam.ID, alertsNote)

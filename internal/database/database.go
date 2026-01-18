@@ -17,15 +17,16 @@ type Database struct {
 
 // CameraRecord represents a camera stored in the database
 type CameraRecord struct {
-	ID              string
-	Name            string
-	Device          string
-	Resolution      string
-	FPS             int
-	Status          string
-	AlertsEnabled   bool   // Whether events and alerts are enabled for this camera
-	DetectionConfig string // JSON-encoded detection configuration
-	CreatedAt       time.Time
+	ID                   string
+	Name                 string
+	Device               string
+	Resolution           string
+	FPS                  int
+	Status               string
+	EventsEnabled        bool   // Whether to create and store detection events
+	NotificationsEnabled bool   // Whether to send Telegram notifications
+	DetectionConfig      string // JSON-encoded detection configuration
+	CreatedAt            time.Time
 }
 
 // MotionEventRecord represents a motion event stored in the database
@@ -143,6 +144,12 @@ func (d *Database) Migrate() error {
 		`ALTER TABLE cameras ADD COLUMN alerts_enabled INTEGER DEFAULT 1`,
 		// Migrate existing detection_enabled values to alerts_enabled for existing databases
 		`UPDATE cameras SET alerts_enabled = detection_enabled WHERE alerts_enabled IS NULL`,
+		// Add events_enabled column (whether to create/store events)
+		`ALTER TABLE cameras ADD COLUMN events_enabled INTEGER DEFAULT 1`,
+		// Add notifications_enabled column (whether to send Telegram notifications)
+		`ALTER TABLE cameras ADD COLUMN notifications_enabled INTEGER DEFAULT 1`,
+		// Migrate existing alerts_enabled values to the new columns for existing databases
+		`UPDATE cameras SET events_enabled = alerts_enabled, notifications_enabled = alerts_enabled WHERE events_enabled IS NULL`,
 	}
 
 	for _, migration := range migrations {
@@ -161,22 +168,27 @@ func (d *Database) Migrate() error {
 
 // SaveCamera saves or updates a camera
 func (d *Database) SaveCamera(cam *CameraRecord) error {
-	alertsEnabled := 0
-	if cam.AlertsEnabled {
-		alertsEnabled = 1
+	eventsEnabled := 0
+	if cam.EventsEnabled {
+		eventsEnabled = 1
 	}
-	query := `INSERT INTO cameras (id, name, device, resolution, fps, status, alerts_enabled, detection_config, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	notificationsEnabled := 0
+	if cam.NotificationsEnabled {
+		notificationsEnabled = 1
+	}
+	query := `INSERT INTO cameras (id, name, device, resolution, fps, status, events_enabled, notifications_enabled, detection_config, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			name = excluded.name,
 			device = excluded.device,
 			resolution = excluded.resolution,
 			fps = excluded.fps,
 			status = excluded.status,
-			alerts_enabled = excluded.alerts_enabled,
+			events_enabled = excluded.events_enabled,
+			notifications_enabled = excluded.notifications_enabled,
 			detection_config = excluded.detection_config`
 
-	_, err := d.db.Exec(query, cam.ID, cam.Name, cam.Device, cam.Resolution, cam.FPS, cam.Status, alertsEnabled, cam.DetectionConfig, cam.CreatedAt)
+	_, err := d.db.Exec(query, cam.ID, cam.Name, cam.Device, cam.Resolution, cam.FPS, cam.Status, eventsEnabled, notificationsEnabled, cam.DetectionConfig, cam.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to save camera: %w", err)
 	}
@@ -185,24 +197,25 @@ func (d *Database) SaveCamera(cam *CameraRecord) error {
 
 // GetCamera retrieves a camera by ID
 func (d *Database) GetCamera(id string) (*CameraRecord, error) {
-	query := `SELECT id, name, device, resolution, fps, status, COALESCE(alerts_enabled, 1), COALESCE(detection_config, ''), created_at FROM cameras WHERE id = ?`
+	query := `SELECT id, name, device, resolution, fps, status, COALESCE(events_enabled, 1), COALESCE(notifications_enabled, 1), COALESCE(detection_config, ''), created_at FROM cameras WHERE id = ?`
 
 	var cam CameraRecord
-	var alertsEnabled int
-	err := d.db.QueryRow(query, id).Scan(&cam.ID, &cam.Name, &cam.Device, &cam.Resolution, &cam.FPS, &cam.Status, &alertsEnabled, &cam.DetectionConfig, &cam.CreatedAt)
+	var eventsEnabled, notificationsEnabled int
+	err := d.db.QueryRow(query, id).Scan(&cam.ID, &cam.Name, &cam.Device, &cam.Resolution, &cam.FPS, &cam.Status, &eventsEnabled, &notificationsEnabled, &cam.DetectionConfig, &cam.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get camera: %w", err)
 	}
-	cam.AlertsEnabled = alertsEnabled == 1
+	cam.EventsEnabled = eventsEnabled == 1
+	cam.NotificationsEnabled = notificationsEnabled == 1
 	return &cam, nil
 }
 
 // ListCameras returns all cameras
 func (d *Database) ListCameras() ([]*CameraRecord, error) {
-	query := `SELECT id, name, device, resolution, fps, status, COALESCE(alerts_enabled, 1), COALESCE(detection_config, ''), created_at FROM cameras ORDER BY created_at DESC`
+	query := `SELECT id, name, device, resolution, fps, status, COALESCE(events_enabled, 1), COALESCE(notifications_enabled, 1), COALESCE(detection_config, ''), created_at FROM cameras ORDER BY created_at DESC`
 
 	rows, err := d.db.Query(query)
 	if err != nil {
@@ -213,11 +226,12 @@ func (d *Database) ListCameras() ([]*CameraRecord, error) {
 	var cameras []*CameraRecord
 	for rows.Next() {
 		var cam CameraRecord
-		var alertsEnabled int
-		if err := rows.Scan(&cam.ID, &cam.Name, &cam.Device, &cam.Resolution, &cam.FPS, &cam.Status, &alertsEnabled, &cam.DetectionConfig, &cam.CreatedAt); err != nil {
+		var eventsEnabled, notificationsEnabled int
+		if err := rows.Scan(&cam.ID, &cam.Name, &cam.Device, &cam.Resolution, &cam.FPS, &cam.Status, &eventsEnabled, &notificationsEnabled, &cam.DetectionConfig, &cam.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan camera: %w", err)
 		}
-		cam.AlertsEnabled = alertsEnabled == 1
+		cam.EventsEnabled = eventsEnabled == 1
+		cam.NotificationsEnabled = notificationsEnabled == 1
 		cameras = append(cameras, &cam)
 	}
 	return cameras, nil
@@ -232,15 +246,28 @@ func (d *Database) UpdateCameraDetectionConfig(id, detectionConfig string) error
 	return nil
 }
 
-// UpdateCameraAlertsEnabled updates only the alerts_enabled flag of a camera
-func (d *Database) UpdateCameraAlertsEnabled(id string, enabled bool) error {
-	alertsEnabled := 0
+// UpdateCameraEventsEnabled updates only the events_enabled flag of a camera
+func (d *Database) UpdateCameraEventsEnabled(id string, enabled bool) error {
+	eventsEnabled := 0
 	if enabled {
-		alertsEnabled = 1
+		eventsEnabled = 1
 	}
-	_, err := d.db.Exec("UPDATE cameras SET alerts_enabled = ? WHERE id = ?", alertsEnabled, id)
+	_, err := d.db.Exec("UPDATE cameras SET events_enabled = ? WHERE id = ?", eventsEnabled, id)
 	if err != nil {
-		return fmt.Errorf("failed to update camera alerts_enabled: %w", err)
+		return fmt.Errorf("failed to update camera events_enabled: %w", err)
+	}
+	return nil
+}
+
+// UpdateCameraNotificationsEnabled updates only the notifications_enabled flag of a camera
+func (d *Database) UpdateCameraNotificationsEnabled(id string, enabled bool) error {
+	notificationsEnabled := 0
+	if enabled {
+		notificationsEnabled = 1
+	}
+	_, err := d.db.Exec("UPDATE cameras SET notifications_enabled = ? WHERE id = ?", notificationsEnabled, id)
+	if err != nil {
+		return fmt.Errorf("failed to update camera notifications_enabled: %w", err)
 	}
 	return nil
 }

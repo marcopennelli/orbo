@@ -171,3 +171,19 @@ func (md *MotionDetector) SetYOLOConfig(provider YOLOConfigProvider) {
 func (md *MotionDetector) SetFrameProvider(fp pipeline.FrameProvider) {
 	md.streamDetector.SetFrameProvider(fp)
 }
+
+// SetMotionSensitivity updates the motion detection sensitivity threshold
+// Values: 0.0 (most sensitive) to 1.0 (least sensitive)
+func (md *MotionDetector) SetMotionSensitivity(sensitivity float32) {
+	md.streamDetector.SetMotionSensitivity(sensitivity)
+}
+
+// GetMotionSensitivity returns the current motion detection sensitivity threshold
+func (md *MotionDetector) GetMotionSensitivity() float32 {
+	return md.streamDetector.GetMotionSensitivity()
+}
+
+// SetMinMotionArea updates the minimum motion area threshold (in pixels)
+func (md *MotionDetector) SetMinMotionArea(area int) {
+	md.streamDetector.SetMinMotionArea(area)
+}

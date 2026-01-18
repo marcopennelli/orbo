@@ -47,9 +47,12 @@ type CameraInfo struct {
 	Fps *int
 	// Creation timestamp
 	CreatedAt *string
-	// When false, detection pipeline still runs for bounding boxes but no events
-	// are created or alerts sent.
-	AlertsEnabled *bool
+	// When true, detection events are created and stored. When false, detection
+	// runs for live view only.
+	EventsEnabled bool
+	// When true, Telegram alerts are sent for detections. Requires events_enabled
+	// to also be true.
+	NotificationsEnabled bool
 }
 
 // Internal server error

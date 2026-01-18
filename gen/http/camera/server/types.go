@@ -24,8 +24,10 @@ type CreateRequestBody struct {
 	Resolution *string `form:"resolution,omitempty" json:"resolution,omitempty" xml:"resolution,omitempty"`
 	// Frames per second
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
-	// Enable events and alerts for this camera
-	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
+	// Enable event creation for this camera
+	EventsEnabled *bool `form:"events_enabled,omitempty" json:"events_enabled,omitempty" xml:"events_enabled,omitempty"`
+	// Enable Telegram notifications for this camera
+	NotificationsEnabled *bool `form:"notifications_enabled,omitempty" json:"notifications_enabled,omitempty" xml:"notifications_enabled,omitempty"`
 }
 
 // UpdateRequestBody is the type of the "camera" service "update" endpoint HTTP
@@ -39,8 +41,10 @@ type UpdateRequestBody struct {
 	Resolution *string `form:"resolution,omitempty" json:"resolution,omitempty" xml:"resolution,omitempty"`
 	// Frames per second
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
-	// Enable events and alerts for this camera
-	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
+	// Enable event creation for this camera
+	EventsEnabled *bool `form:"events_enabled,omitempty" json:"events_enabled,omitempty" xml:"events_enabled,omitempty"`
+	// Enable Telegram notifications for this camera
+	NotificationsEnabled *bool `form:"notifications_enabled,omitempty" json:"notifications_enabled,omitempty" xml:"notifications_enabled,omitempty"`
 }
 
 // ListResponseBody is the type of the "camera" service "list" endpoint HTTP
@@ -64,9 +68,12 @@ type GetResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, detection pipeline still runs for bounding boxes but no events
-	// are created or alerts sent.
-	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
+	// When true, detection events are created and stored. When false, detection
+	// runs for live view only.
+	EventsEnabled bool `form:"events_enabled" json:"events_enabled" xml:"events_enabled"`
+	// When true, Telegram alerts are sent for detections. Requires events_enabled
+	// to also be true.
+	NotificationsEnabled bool `form:"notifications_enabled" json:"notifications_enabled" xml:"notifications_enabled"`
 }
 
 // CreateResponseBody is the type of the "camera" service "create" endpoint
@@ -86,9 +93,12 @@ type CreateResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, detection pipeline still runs for bounding boxes but no events
-	// are created or alerts sent.
-	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
+	// When true, detection events are created and stored. When false, detection
+	// runs for live view only.
+	EventsEnabled bool `form:"events_enabled" json:"events_enabled" xml:"events_enabled"`
+	// When true, Telegram alerts are sent for detections. Requires events_enabled
+	// to also be true.
+	NotificationsEnabled bool `form:"notifications_enabled" json:"notifications_enabled" xml:"notifications_enabled"`
 }
 
 // UpdateResponseBody is the type of the "camera" service "update" endpoint
@@ -108,9 +118,12 @@ type UpdateResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, detection pipeline still runs for bounding boxes but no events
-	// are created or alerts sent.
-	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
+	// When true, detection events are created and stored. When false, detection
+	// runs for live view only.
+	EventsEnabled bool `form:"events_enabled" json:"events_enabled" xml:"events_enabled"`
+	// When true, Telegram alerts are sent for detections. Requires events_enabled
+	// to also be true.
+	NotificationsEnabled bool `form:"notifications_enabled" json:"notifications_enabled" xml:"notifications_enabled"`
 }
 
 // ActivateResponseBody is the type of the "camera" service "activate" endpoint
@@ -130,9 +143,12 @@ type ActivateResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, detection pipeline still runs for bounding boxes but no events
-	// are created or alerts sent.
-	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
+	// When true, detection events are created and stored. When false, detection
+	// runs for live view only.
+	EventsEnabled bool `form:"events_enabled" json:"events_enabled" xml:"events_enabled"`
+	// When true, Telegram alerts are sent for detections. Requires events_enabled
+	// to also be true.
+	NotificationsEnabled bool `form:"notifications_enabled" json:"notifications_enabled" xml:"notifications_enabled"`
 }
 
 // DeactivateResponseBody is the type of the "camera" service "deactivate"
@@ -152,9 +168,12 @@ type DeactivateResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, detection pipeline still runs for bounding boxes but no events
-	// are created or alerts sent.
-	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
+	// When true, detection events are created and stored. When false, detection
+	// runs for live view only.
+	EventsEnabled bool `form:"events_enabled" json:"events_enabled" xml:"events_enabled"`
+	// When true, Telegram alerts are sent for detections. Requires events_enabled
+	// to also be true.
+	NotificationsEnabled bool `form:"notifications_enabled" json:"notifications_enabled" xml:"notifications_enabled"`
 }
 
 // CaptureResponseBody is the type of the "camera" service "capture" endpoint
@@ -183,9 +202,12 @@ type EnableAlertsResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, detection pipeline still runs for bounding boxes but no events
-	// are created or alerts sent.
-	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
+	// When true, detection events are created and stored. When false, detection
+	// runs for live view only.
+	EventsEnabled bool `form:"events_enabled" json:"events_enabled" xml:"events_enabled"`
+	// When true, Telegram alerts are sent for detections. Requires events_enabled
+	// to also be true.
+	NotificationsEnabled bool `form:"notifications_enabled" json:"notifications_enabled" xml:"notifications_enabled"`
 }
 
 // DisableAlertsResponseBody is the type of the "camera" service
@@ -205,9 +227,12 @@ type DisableAlertsResponseBody struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, detection pipeline still runs for bounding boxes but no events
-	// are created or alerts sent.
-	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
+	// When true, detection events are created and stored. When false, detection
+	// runs for live view only.
+	EventsEnabled bool `form:"events_enabled" json:"events_enabled" xml:"events_enabled"`
+	// When true, Telegram alerts are sent for detections. Requires events_enabled
+	// to also be true.
+	NotificationsEnabled bool `form:"notifications_enabled" json:"notifications_enabled" xml:"notifications_enabled"`
 }
 
 // GetNotFoundResponseBody is the type of the "camera" service "get" endpoint
@@ -330,9 +355,12 @@ type CameraInfoResponse struct {
 	Fps *int `form:"fps,omitempty" json:"fps,omitempty" xml:"fps,omitempty"`
 	// Creation timestamp
 	CreatedAt *string `form:"created_at,omitempty" json:"created_at,omitempty" xml:"created_at,omitempty"`
-	// When false, detection pipeline still runs for bounding boxes but no events
-	// are created or alerts sent.
-	AlertsEnabled *bool `form:"alerts_enabled,omitempty" json:"alerts_enabled,omitempty" xml:"alerts_enabled,omitempty"`
+	// When true, detection events are created and stored. When false, detection
+	// runs for live view only.
+	EventsEnabled bool `form:"events_enabled" json:"events_enabled" xml:"events_enabled"`
+	// When true, Telegram alerts are sent for detections. Requires events_enabled
+	// to also be true.
+	NotificationsEnabled bool `form:"notifications_enabled" json:"notifications_enabled" xml:"notifications_enabled"`
 }
 
 // NewListResponseBody builds the HTTP response body from the result of the
@@ -349,14 +377,27 @@ func NewListResponseBody(res []*camera.CameraInfo) ListResponseBody {
 // "get" endpoint of the "camera" service.
 func NewGetResponseBody(res *camera.CameraInfo) *GetResponseBody {
 	body := &GetResponseBody{
-		ID:            res.ID,
-		Name:          res.Name,
-		Device:        res.Device,
-		Status:        res.Status,
-		Resolution:    res.Resolution,
-		Fps:           res.Fps,
-		CreatedAt:     res.CreatedAt,
-		AlertsEnabled: res.AlertsEnabled,
+		ID:                   res.ID,
+		Name:                 res.Name,
+		Device:               res.Device,
+		Status:               res.Status,
+		Resolution:           res.Resolution,
+		Fps:                  res.Fps,
+		CreatedAt:            res.CreatedAt,
+		EventsEnabled:        res.EventsEnabled,
+		NotificationsEnabled: res.NotificationsEnabled,
+	}
+	{
+		var zero bool
+		if body.EventsEnabled == zero {
+			body.EventsEnabled = true
+		}
+	}
+	{
+		var zero bool
+		if body.NotificationsEnabled == zero {
+			body.NotificationsEnabled = true
+		}
 	}
 	return body
 }
@@ -365,14 +406,27 @@ func NewGetResponseBody(res *camera.CameraInfo) *GetResponseBody {
 // "create" endpoint of the "camera" service.
 func NewCreateResponseBody(res *camera.CameraInfo) *CreateResponseBody {
 	body := &CreateResponseBody{
-		ID:            res.ID,
-		Name:          res.Name,
-		Device:        res.Device,
-		Status:        res.Status,
-		Resolution:    res.Resolution,
-		Fps:           res.Fps,
-		CreatedAt:     res.CreatedAt,
-		AlertsEnabled: res.AlertsEnabled,
+		ID:                   res.ID,
+		Name:                 res.Name,
+		Device:               res.Device,
+		Status:               res.Status,
+		Resolution:           res.Resolution,
+		Fps:                  res.Fps,
+		CreatedAt:            res.CreatedAt,
+		EventsEnabled:        res.EventsEnabled,
+		NotificationsEnabled: res.NotificationsEnabled,
+	}
+	{
+		var zero bool
+		if body.EventsEnabled == zero {
+			body.EventsEnabled = true
+		}
+	}
+	{
+		var zero bool
+		if body.NotificationsEnabled == zero {
+			body.NotificationsEnabled = true
+		}
 	}
 	return body
 }
@@ -381,14 +435,27 @@ func NewCreateResponseBody(res *camera.CameraInfo) *CreateResponseBody {
 // "update" endpoint of the "camera" service.
 func NewUpdateResponseBody(res *camera.CameraInfo) *UpdateResponseBody {
 	body := &UpdateResponseBody{
-		ID:            res.ID,
-		Name:          res.Name,
-		Device:        res.Device,
-		Status:        res.Status,
-		Resolution:    res.Resolution,
-		Fps:           res.Fps,
-		CreatedAt:     res.CreatedAt,
-		AlertsEnabled: res.AlertsEnabled,
+		ID:                   res.ID,
+		Name:                 res.Name,
+		Device:               res.Device,
+		Status:               res.Status,
+		Resolution:           res.Resolution,
+		Fps:                  res.Fps,
+		CreatedAt:            res.CreatedAt,
+		EventsEnabled:        res.EventsEnabled,
+		NotificationsEnabled: res.NotificationsEnabled,
+	}
+	{
+		var zero bool
+		if body.EventsEnabled == zero {
+			body.EventsEnabled = true
+		}
+	}
+	{
+		var zero bool
+		if body.NotificationsEnabled == zero {
+			body.NotificationsEnabled = true
+		}
 	}
 	return body
 }
@@ -397,14 +464,27 @@ func NewUpdateResponseBody(res *camera.CameraInfo) *UpdateResponseBody {
 // "activate" endpoint of the "camera" service.
 func NewActivateResponseBody(res *camera.CameraInfo) *ActivateResponseBody {
 	body := &ActivateResponseBody{
-		ID:            res.ID,
-		Name:          res.Name,
-		Device:        res.Device,
-		Status:        res.Status,
-		Resolution:    res.Resolution,
-		Fps:           res.Fps,
-		CreatedAt:     res.CreatedAt,
-		AlertsEnabled: res.AlertsEnabled,
+		ID:                   res.ID,
+		Name:                 res.Name,
+		Device:               res.Device,
+		Status:               res.Status,
+		Resolution:           res.Resolution,
+		Fps:                  res.Fps,
+		CreatedAt:            res.CreatedAt,
+		EventsEnabled:        res.EventsEnabled,
+		NotificationsEnabled: res.NotificationsEnabled,
+	}
+	{
+		var zero bool
+		if body.EventsEnabled == zero {
+			body.EventsEnabled = true
+		}
+	}
+	{
+		var zero bool
+		if body.NotificationsEnabled == zero {
+			body.NotificationsEnabled = true
+		}
 	}
 	return body
 }
@@ -413,14 +493,27 @@ func NewActivateResponseBody(res *camera.CameraInfo) *ActivateResponseBody {
 // the "deactivate" endpoint of the "camera" service.
 func NewDeactivateResponseBody(res *camera.CameraInfo) *DeactivateResponseBody {
 	body := &DeactivateResponseBody{
-		ID:            res.ID,
-		Name:          res.Name,
-		Device:        res.Device,
-		Status:        res.Status,
-		Resolution:    res.Resolution,
-		Fps:           res.Fps,
-		CreatedAt:     res.CreatedAt,
-		AlertsEnabled: res.AlertsEnabled,
+		ID:                   res.ID,
+		Name:                 res.Name,
+		Device:               res.Device,
+		Status:               res.Status,
+		Resolution:           res.Resolution,
+		Fps:                  res.Fps,
+		CreatedAt:            res.CreatedAt,
+		EventsEnabled:        res.EventsEnabled,
+		NotificationsEnabled: res.NotificationsEnabled,
+	}
+	{
+		var zero bool
+		if body.EventsEnabled == zero {
+			body.EventsEnabled = true
+		}
+	}
+	{
+		var zero bool
+		if body.NotificationsEnabled == zero {
+			body.NotificationsEnabled = true
+		}
 	}
 	return body
 }
@@ -439,14 +532,27 @@ func NewCaptureResponseBody(res *camera.FrameResponse) *CaptureResponseBody {
 // the "enable_alerts" endpoint of the "camera" service.
 func NewEnableAlertsResponseBody(res *camera.CameraInfo) *EnableAlertsResponseBody {
 	body := &EnableAlertsResponseBody{
-		ID:            res.ID,
-		Name:          res.Name,
-		Device:        res.Device,
-		Status:        res.Status,
-		Resolution:    res.Resolution,
-		Fps:           res.Fps,
-		CreatedAt:     res.CreatedAt,
-		AlertsEnabled: res.AlertsEnabled,
+		ID:                   res.ID,
+		Name:                 res.Name,
+		Device:               res.Device,
+		Status:               res.Status,
+		Resolution:           res.Resolution,
+		Fps:                  res.Fps,
+		CreatedAt:            res.CreatedAt,
+		EventsEnabled:        res.EventsEnabled,
+		NotificationsEnabled: res.NotificationsEnabled,
+	}
+	{
+		var zero bool
+		if body.EventsEnabled == zero {
+			body.EventsEnabled = true
+		}
+	}
+	{
+		var zero bool
+		if body.NotificationsEnabled == zero {
+			body.NotificationsEnabled = true
+		}
 	}
 	return body
 }
@@ -455,14 +561,27 @@ func NewEnableAlertsResponseBody(res *camera.CameraInfo) *EnableAlertsResponseBo
 // of the "disable_alerts" endpoint of the "camera" service.
 func NewDisableAlertsResponseBody(res *camera.CameraInfo) *DisableAlertsResponseBody {
 	body := &DisableAlertsResponseBody{
-		ID:            res.ID,
-		Name:          res.Name,
-		Device:        res.Device,
-		Status:        res.Status,
-		Resolution:    res.Resolution,
-		Fps:           res.Fps,
-		CreatedAt:     res.CreatedAt,
-		AlertsEnabled: res.AlertsEnabled,
+		ID:                   res.ID,
+		Name:                 res.Name,
+		Device:               res.Device,
+		Status:               res.Status,
+		Resolution:           res.Resolution,
+		Fps:                  res.Fps,
+		CreatedAt:            res.CreatedAt,
+		EventsEnabled:        res.EventsEnabled,
+		NotificationsEnabled: res.NotificationsEnabled,
+	}
+	{
+		var zero bool
+		if body.EventsEnabled == zero {
+			body.EventsEnabled = true
+		}
+	}
+	{
+		var zero bool
+		if body.NotificationsEnabled == zero {
+			body.NotificationsEnabled = true
+		}
 	}
 	return body
 }
@@ -605,8 +724,11 @@ func NewCreatePayload(body *CreateRequestBody) *camera.CreatePayload {
 	if body.Fps != nil {
 		v.Fps = *body.Fps
 	}
-	if body.AlertsEnabled != nil {
-		v.AlertsEnabled = *body.AlertsEnabled
+	if body.EventsEnabled != nil {
+		v.EventsEnabled = *body.EventsEnabled
+	}
+	if body.NotificationsEnabled != nil {
+		v.NotificationsEnabled = *body.NotificationsEnabled
 	}
 	if body.Resolution == nil {
 		v.Resolution = "640x480"
@@ -614,8 +736,11 @@ func NewCreatePayload(body *CreateRequestBody) *camera.CreatePayload {
 	if body.Fps == nil {
 		v.Fps = 30
 	}
-	if body.AlertsEnabled == nil {
-		v.AlertsEnabled = true
+	if body.EventsEnabled == nil {
+		v.EventsEnabled = true
+	}
+	if body.NotificationsEnabled == nil {
+		v.NotificationsEnabled = true
 	}
 
 	return v
@@ -624,11 +749,12 @@ func NewCreatePayload(body *CreateRequestBody) *camera.CreatePayload {
 // NewUpdatePayload builds a camera service update endpoint payload.
 func NewUpdatePayload(body *UpdateRequestBody, id string) *camera.UpdatePayload {
 	v := &camera.UpdatePayload{
-		Name:          body.Name,
-		Device:        body.Device,
-		Resolution:    body.Resolution,
-		Fps:           body.Fps,
-		AlertsEnabled: body.AlertsEnabled,
+		Name:                 body.Name,
+		Device:               body.Device,
+		Resolution:           body.Resolution,
+		Fps:                  body.Fps,
+		EventsEnabled:        body.EventsEnabled,
+		NotificationsEnabled: body.NotificationsEnabled,
 	}
 	v.ID = id
 

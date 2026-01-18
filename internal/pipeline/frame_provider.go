@@ -242,6 +242,7 @@ func (c *cameraCapture) captureFFmpeg() {
 	var args []string
 
 	if strings.HasPrefix(c.device, "rtsp://") {
+		// RTSP stream (IP cameras)
 		args = []string{
 			"-rtsp_transport", "tcp",
 			"-i", c.device,
@@ -251,7 +252,29 @@ func (c *cameraCapture) captureFFmpeg() {
 			"-q:v", "5",
 			"-",
 		}
+	} else if strings.HasPrefix(c.device, "rtmp://") {
+		// RTMP stream (OBS, streaming software)
+		args = []string{
+			"-live_start_index", "0",
+			"-i", c.device,
+			"-f", "image2pipe",
+			"-vcodec", "mjpeg",
+			"-r", fmt.Sprintf("%d", c.fps),
+			"-q:v", "5",
+			"-",
+		}
+	} else if strings.HasPrefix(c.device, "srt://") {
+		// SRT stream (OBS with low-latency, secure streaming)
+		args = []string{
+			"-i", c.device,
+			"-f", "image2pipe",
+			"-vcodec", "mjpeg",
+			"-r", fmt.Sprintf("%d", c.fps),
+			"-q:v", "5",
+			"-",
+		}
 	} else if strings.HasPrefix(c.device, "http://") || strings.HasPrefix(c.device, "https://") {
+		// HTTP/MJPEG stream
 		args = []string{
 			"-i", c.device,
 			"-f", "image2pipe",

@@ -37,16 +37,18 @@ func (c *CameraImplementation) List(ctx context.Context) ([]*camera_service.Came
 		fps := cam.FPS
 		createdAt := cam.CreatedAt.Format(time.RFC3339)
 
-		alertsEnabled := cam.AlertsEnabled
+		eventsEnabled := cam.EventsEnabled
+		notificationsEnabled := cam.NotificationsEnabled
 		result[i] = &camera_service.CameraInfo{
-			ID:            cam.ID,
-			Name:          cam.Name,
-			Device:        cam.Device,
-			Status:        cam.GetStatus(),
-			Resolution:    &resolution,
-			Fps:           &fps,
-			CreatedAt:     &createdAt,
-			AlertsEnabled: &alertsEnabled,
+			ID:                   cam.ID,
+			Name:                 cam.Name,
+			Device:               cam.Device,
+			Status:               cam.GetStatus(),
+			Resolution:           &resolution,
+			Fps:                  &fps,
+			CreatedAt:            &createdAt,
+			EventsEnabled:        eventsEnabled,
+			NotificationsEnabled: notificationsEnabled,
 		}
 	}
 
@@ -66,17 +68,19 @@ func (c *CameraImplementation) Get(ctx context.Context, p *camera_service.GetPay
 	resolution := cam.Resolution
 	fps := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	alertsEnabled := cam.AlertsEnabled
+	eventsEnabled := cam.EventsEnabled
+	notificationsEnabled := cam.NotificationsEnabled
 
 	return &camera_service.CameraInfo{
-		ID:            cam.ID,
-		Name:          cam.Name,
-		Device:        cam.Device,
-		Status:        cam.GetStatus(),
-		Resolution:    &resolution,
-		Fps:           &fps,
-		CreatedAt:     &createdAt,
-		AlertsEnabled: &alertsEnabled,
+		ID:                   cam.ID,
+		Name:                 cam.Name,
+		Device:               cam.Device,
+		Status:               cam.GetStatus(),
+		Resolution:           &resolution,
+		Fps:                  &fps,
+		CreatedAt:            &createdAt,
+		EventsEnabled:        eventsEnabled,
+		NotificationsEnabled: notificationsEnabled,
 	}, nil
 }
 
@@ -92,8 +96,9 @@ func (c *CameraImplementation) Create(ctx context.Context, p *camera_service.Cre
 	// Create camera
 	cam := camera.NewCamera(id, p.Name, p.Device, resolution, fps)
 
-	// Set alerts_enabled from payload (defaults to true via Goa)
-	cam.AlertsEnabled = p.AlertsEnabled
+	// Set events_enabled and notifications_enabled from payload (defaults to true via Goa)
+	cam.EventsEnabled = p.EventsEnabled
+	cam.NotificationsEnabled = p.NotificationsEnabled
 
 	// Add to manager
 	err := c.cameraManager.AddCamera(cam)
@@ -108,17 +113,19 @@ func (c *CameraImplementation) Create(ctx context.Context, p *camera_service.Cre
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	alertsEnabled := cam.AlertsEnabled
+	eventsEnabled := cam.EventsEnabled
+	notificationsEnabled := cam.NotificationsEnabled
 
 	return &camera_service.CameraInfo{
-		ID:            cam.ID,
-		Name:          cam.Name,
-		Device:        cam.Device,
-		Status:        cam.GetStatus(),
-		Resolution:    &resolutionPtr,
-		Fps:           &fpsPtr,
-		CreatedAt:     &createdAt,
-		AlertsEnabled: &alertsEnabled,
+		ID:                   cam.ID,
+		Name:                 cam.Name,
+		Device:               cam.Device,
+		Status:               cam.GetStatus(),
+		Resolution:           &resolutionPtr,
+		Fps:                  &fpsPtr,
+		CreatedAt:            &createdAt,
+		EventsEnabled:        eventsEnabled,
+		NotificationsEnabled: notificationsEnabled,
 	}, nil
 }
 
@@ -171,25 +178,32 @@ func (c *CameraImplementation) Update(ctx context.Context, p *camera_service.Upd
 		}
 	}
 
-	// Update alerts_enabled if provided
-	if p.AlertsEnabled != nil {
-		c.cameraManager.SetAlertsEnabled(p.ID, *p.AlertsEnabled)
+	// Update events_enabled if provided
+	if p.EventsEnabled != nil {
+		c.cameraManager.SetEventsEnabled(p.ID, *p.EventsEnabled)
+	}
+
+	// Update notifications_enabled if provided
+	if p.NotificationsEnabled != nil {
+		c.cameraManager.SetNotificationsEnabled(p.ID, *p.NotificationsEnabled)
 	}
 
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	alertsEnabled := cam.AlertsEnabled
+	eventsEnabled := cam.EventsEnabled
+	notificationsEnabled := cam.NotificationsEnabled
 
 	return &camera_service.CameraInfo{
-		ID:            cam.ID,
-		Name:          cam.Name,
-		Device:        cam.Device,
-		Status:        cam.GetStatus(),
-		Resolution:    &resolutionPtr,
-		Fps:           &fpsPtr,
-		CreatedAt:     &createdAt,
-		AlertsEnabled: &alertsEnabled,
+		ID:                   cam.ID,
+		Name:                 cam.Name,
+		Device:               cam.Device,
+		Status:               cam.GetStatus(),
+		Resolution:           &resolutionPtr,
+		Fps:                  &fpsPtr,
+		CreatedAt:            &createdAt,
+		EventsEnabled:        eventsEnabled,
+		NotificationsEnabled: notificationsEnabled,
 	}, nil
 }
 
@@ -227,17 +241,19 @@ func (c *CameraImplementation) Activate(ctx context.Context, p *camera_service.A
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	alertsEnabled := cam.AlertsEnabled
+	eventsEnabled := cam.EventsEnabled
+	notificationsEnabled := cam.NotificationsEnabled
 
 	return &camera_service.CameraInfo{
-		ID:            cam.ID,
-		Name:          cam.Name,
-		Device:        cam.Device,
-		Status:        cam.GetStatus(),
-		Resolution:    &resolutionPtr,
-		Fps:           &fpsPtr,
-		CreatedAt:     &createdAt,
-		AlertsEnabled: &alertsEnabled,
+		ID:                   cam.ID,
+		Name:                 cam.Name,
+		Device:               cam.Device,
+		Status:               cam.GetStatus(),
+		Resolution:           &resolutionPtr,
+		Fps:                  &fpsPtr,
+		CreatedAt:            &createdAt,
+		EventsEnabled:        eventsEnabled,
+		NotificationsEnabled: notificationsEnabled,
 	}, nil
 }
 
@@ -269,17 +285,19 @@ func (c *CameraImplementation) Deactivate(ctx context.Context, p *camera_service
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	alertsEnabled := cam.AlertsEnabled
+	eventsEnabled := cam.EventsEnabled
+	notificationsEnabled := cam.NotificationsEnabled
 
 	return &camera_service.CameraInfo{
-		ID:            cam.ID,
-		Name:          cam.Name,
-		Device:        cam.Device,
-		Status:        cam.GetStatus(),
-		Resolution:    &resolutionPtr,
-		Fps:           &fpsPtr,
-		CreatedAt:     &createdAt,
-		AlertsEnabled: &alertsEnabled,
+		ID:                   cam.ID,
+		Name:                 cam.Name,
+		Device:               cam.Device,
+		Status:               cam.GetStatus(),
+		Resolution:           &resolutionPtr,
+		Fps:                  &fpsPtr,
+		CreatedAt:            &createdAt,
+		EventsEnabled:        eventsEnabled,
+		NotificationsEnabled: notificationsEnabled,
 	}, nil
 }
 
@@ -320,8 +338,15 @@ func (c *CameraImplementation) EnableAlerts(ctx context.Context, p *camera_servi
 		}
 	}
 
-	// Enable alerts for this camera
-	err = c.cameraManager.SetAlertsEnabled(p.ID, true)
+	// Enable both events and notifications for this camera
+	err = c.cameraManager.SetEventsEnabled(p.ID, true)
+	if err != nil {
+		return nil, &camera_service.NotFoundError{
+			Message: "Camera not found",
+			ID:      p.ID,
+		}
+	}
+	err = c.cameraManager.SetNotificationsEnabled(p.ID, true)
 	if err != nil {
 		return nil, &camera_service.NotFoundError{
 			Message: "Camera not found",
@@ -329,22 +354,24 @@ func (c *CameraImplementation) EnableAlerts(ctx context.Context, p *camera_servi
 		}
 	}
 
-	fmt.Printf("[CameraService] Enabled alerts for camera %s\n", p.ID)
+	fmt.Printf("[CameraService] Enabled alerts (events + notifications) for camera %s\n", p.ID)
 
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	alertsEnabled := true // Just set to true since we enabled it
+	eventsEnabled := true
+	notificationsEnabled := true
 
 	return &camera_service.CameraInfo{
-		ID:            cam.ID,
-		Name:          cam.Name,
-		Device:        cam.Device,
-		Status:        cam.GetStatus(),
-		Resolution:    &resolutionPtr,
-		Fps:           &fpsPtr,
-		CreatedAt:     &createdAt,
-		AlertsEnabled: &alertsEnabled,
+		ID:                   cam.ID,
+		Name:                 cam.Name,
+		Device:               cam.Device,
+		Status:               cam.GetStatus(),
+		Resolution:           &resolutionPtr,
+		Fps:                  &fpsPtr,
+		CreatedAt:            &createdAt,
+		EventsEnabled:        eventsEnabled,
+		NotificationsEnabled: notificationsEnabled,
 	}, nil
 }
 
@@ -359,8 +386,15 @@ func (c *CameraImplementation) DisableAlerts(ctx context.Context, p *camera_serv
 		}
 	}
 
-	// Disable alerts for this camera
-	err = c.cameraManager.SetAlertsEnabled(p.ID, false)
+	// Disable both events and notifications for this camera
+	err = c.cameraManager.SetEventsEnabled(p.ID, false)
+	if err != nil {
+		return nil, &camera_service.NotFoundError{
+			Message: "Camera not found",
+			ID:      p.ID,
+		}
+	}
+	err = c.cameraManager.SetNotificationsEnabled(p.ID, false)
 	if err != nil {
 		return nil, &camera_service.NotFoundError{
 			Message: "Camera not found",
@@ -368,21 +402,23 @@ func (c *CameraImplementation) DisableAlerts(ctx context.Context, p *camera_serv
 		}
 	}
 
-	fmt.Printf("[CameraService] Disabled alerts for camera %s (detection continues for bounding boxes)\n", p.ID)
+	fmt.Printf("[CameraService] Disabled alerts (events + notifications) for camera %s (detection continues for bounding boxes)\n", p.ID)
 
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	alertsEnabled := false // Just set to false since we disabled it
+	eventsEnabled := false
+	notificationsEnabled := false
 
 	return &camera_service.CameraInfo{
-		ID:            cam.ID,
-		Name:          cam.Name,
-		Device:        cam.Device,
-		Status:        cam.GetStatus(),
-		Resolution:    &resolutionPtr,
-		Fps:           &fpsPtr,
-		CreatedAt:     &createdAt,
-		AlertsEnabled: &alertsEnabled,
+		ID:                   cam.ID,
+		Name:                 cam.Name,
+		Device:               cam.Device,
+		Status:               cam.GetStatus(),
+		Resolution:           &resolutionPtr,
+		Fps:                  &fpsPtr,
+		CreatedAt:            &createdAt,
+		EventsEnabled:        eventsEnabled,
+		NotificationsEnabled: notificationsEnabled,
 	}, nil
 }

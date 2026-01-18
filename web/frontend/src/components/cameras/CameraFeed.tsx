@@ -126,7 +126,7 @@ export default function CameraFeed({
           cameraId={camera.id}
           cameraName={camera.name}
           enabled={isActive}
-          alertsEnabled={camera.alerts_enabled}
+          alertsEnabled={camera.events_enabled || camera.notifications_enabled}
           rawMode={rawMode}
           onFullscreen={onFullscreen}
           className="h-full"
@@ -166,8 +166,8 @@ export default function CameraFeed({
                 </>
               )}
               {/* Alerts status indicator */}
-              <span title={camera.alerts_enabled ? 'Alerts enabled' : 'Alerts disabled (bounding boxes only)'}>
-                {camera.alerts_enabled ? (
+              <span title={camera.events_enabled || camera.notifications_enabled ? 'Alerts enabled' : 'Alerts disabled (bounding boxes only)'}>
+                {camera.events_enabled || camera.notifications_enabled ? (
                   <Bell className="w-3 h-3 text-accent-green" />
                 ) : (
                   <BellOff className="w-3 h-3 text-text-muted" />
