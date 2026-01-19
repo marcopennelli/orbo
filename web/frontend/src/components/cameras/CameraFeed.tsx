@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Maximize2, Wifi, WifiOff, Video, VideoOff, Zap, Image, Bell, BellOff } from 'lucide-react';
+import { Maximize2, Wifi, WifiOff, Video, VideoOff, Zap, Image, Bell, BellOff, Database, DatabaseZap } from 'lucide-react';
 import type { Camera } from '../../types';
 import { Button, Spinner } from '../ui';
 import WebCodecsPlayer from './WebCodecsPlayer';
@@ -126,7 +126,8 @@ export default function CameraFeed({
           cameraId={camera.id}
           cameraName={camera.name}
           enabled={isActive}
-          alertsEnabled={camera.events_enabled || camera.notifications_enabled}
+          eventsEnabled={camera.events_enabled}
+          notificationsEnabled={camera.notifications_enabled}
           rawMode={rawMode}
           onFullscreen={onFullscreen}
           className="h-full"
@@ -165,9 +166,17 @@ export default function CameraFeed({
                   <VideoOff className="w-3 h-3 text-accent-red" />
                 </>
               )}
-              {/* Alerts status indicator */}
-              <span title={camera.events_enabled || camera.notifications_enabled ? 'Alerts enabled' : 'Alerts disabled (bounding boxes only)'}>
-                {camera.events_enabled || camera.notifications_enabled ? (
+              {/* Events storage status */}
+              <span title={camera.events_enabled ? 'Events stored' : 'Events disabled'}>
+                {camera.events_enabled ? (
+                  <DatabaseZap className="w-3 h-3 text-accent-green" />
+                ) : (
+                  <Database className="w-3 h-3 text-text-muted" />
+                )}
+              </span>
+              {/* Notifications status */}
+              <span title={camera.notifications_enabled ? 'Notifications enabled' : 'Notifications disabled'}>
+                {camera.notifications_enabled ? (
                   <Bell className="w-3 h-3 text-accent-green" />
                 ) : (
                   <BellOff className="w-3 h-3 text-text-muted" />

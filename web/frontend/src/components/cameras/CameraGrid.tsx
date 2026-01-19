@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Grid2X2, Grid3X3, Square, LayoutGrid, Rows2 } from 'lucide-react';
+import { Grid2X2, Grid3X3, Square, LayoutGrid, Rows2, VideoOff } from 'lucide-react';
 import type { Camera, LayoutMode, MotionEvent } from '../../types';
 import { Button } from '../ui';
 import CameraFeed from './CameraFeed';

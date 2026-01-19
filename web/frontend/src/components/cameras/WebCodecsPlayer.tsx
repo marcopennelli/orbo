@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { Wifi, WifiOff, Video, VideoOff, Zap, Bell, BellOff } from 'lucide-react';
+import { Wifi, WifiOff, Video, VideoOff, Zap, Bell, BellOff, Database, DatabaseZap } from 'lucide-react';
 import { Button, Spinner } from '../ui';
 import useWebCodecsStream from '../../hooks/useWebCodecsStream';
 
@@ -7,7 +7,8 @@ interface WebCodecsPlayerProps {
   cameraId: string;
   cameraName: string;
   enabled: boolean;
-  alertsEnabled?: boolean;
+  eventsEnabled?: boolean;
+  notificationsEnabled?: boolean;
   rawMode?: boolean; // Use raw stream without annotations/bounding boxes
   className?: string;
   onFullscreen?: () => void;
@@ -17,39 +18,53 @@ export default function WebCodecsPlayer({
   cameraId,
   cameraName,
   enabled,
-  alertsEnabled = true,
+  eventsEnabled = true,
+  notificationsEnabled = true,
   rawMode = false,
   className = '',
   onFullscreen,
 }: WebCodecsPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const [dimensions, setDimensions] = useState({ width: 640, height: 480 });
 
-  // Initialize canvas context
-  useEffect(() => {
-    if (canvasRef.current) {
-      ctxRef.current = canvasRef.current.getContext('2d', {
-        alpha: false,
-        desynchronized: true, // Reduces latency
-      });
+  // Handle incoming frames - get context lazily to avoid race conditions
+  const handleFrame = useCallback((imageData: ImageData, _isAnnotated: boolean) => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      console.warn(`[WebCodecsPlayer:${cameraId}] handleFrame called but canvas ref is null`);
+      return;
     }
-  }, []);
 
-  // Handle incoming frames
-  const handleFrame = useCallback((imageData: ImageData, isAnnotated: boolean) => {
-    if (!ctxRef.current || !canvasRef.current) return;
+    // Get context lazily on first frame (or re-get if canvas was replaced)
+    let ctx = canvas.getContext('2d', {
+      alpha: false,
+      desynchronized: true, // Reduces latency
+    });
+    if (!ctx) {
+      console.warn(`[WebCodecsPlayer:${cameraId}] Failed to get 2d context`);
+      return;
+    }
 
-    // Update canvas size if needed
-    if (canvasRef.current.width !== imageData.width || canvasRef.current.height !== imageData.height) {
-      canvasRef.current.width = imageData.width;
-      canvasRef.current.height = imageData.height;
+    // Update canvas size if needed - this invalidates the context so we need to re-get it
+    if (canvas.width !== imageData.width || canvas.height !== imageData.height) {
+      console.log(`[WebCodecsPlayer:${cameraId}] Resizing canvas from ${canvas.width}x${canvas.height} to ${imageData.width}x${imageData.height}`);
+      canvas.width = imageData.width;
+      canvas.height = imageData.height;
       setDimensions({ width: imageData.width, height: imageData.height });
+      // Re-get context after resize as it may have been invalidated
+      ctx = canvas.getContext('2d', {
+        alpha: false,
+        desynchronized: true,
+      });
+      if (!ctx) {
+        console.warn(`[WebCodecsPlayer:${cameraId}] Failed to get 2d context after resize`);
+        return;
+      }
     }
 
     // Draw frame directly to canvas
-    ctxRef.current.putImageData(imageData, 0, 0);
-  }, []);
+    ctx.putImageData(imageData, 0, 0);
+  }, [cameraId]);
 
   const {
     isConnected,
@@ -86,9 +101,17 @@ export default function WebCodecsPlayer({
                   <VideoOff className="w-3 h-3 text-accent-red" />
                 </>
               )}
-              {/* Alerts status indicator */}
-              <span title={alertsEnabled ? 'Alerts enabled' : 'Alerts disabled (bounding boxes only)'}>
-                {alertsEnabled ? (
+              {/* Events storage status */}
+              <span title={eventsEnabled ? 'Events stored' : 'Events disabled'}>
+                {eventsEnabled ? (
+                  <DatabaseZap className="w-3 h-3 text-accent-green" />
+                ) : (
+                  <Database className="w-3 h-3 text-text-muted" />
+                )}
+              </span>
+              {/* Notifications status */}
+              <span title={notificationsEnabled ? 'Notifications enabled' : 'Notifications disabled'}>
+                {notificationsEnabled ? (
                   <Bell className="w-3 h-3 text-accent-green" />
                 ) : (
                   <BellOff className="w-3 h-3 text-text-muted" />
