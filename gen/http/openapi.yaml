@@ -40,7 +40,7 @@ paths:
                 "401":
                     description: Unauthorized response.
                     schema:
-                        $ref: '#/definitions/AuthLoginUnauthorizedResponseBody'
+                        $ref: '#/definitions/UnauthorizedError'
                         required:
                             - message
             schemes:
@@ -75,7 +75,7 @@ paths:
                     schema:
                         type: array
                         items:
-                            $ref: '#/definitions/CameraInfoResponse'
+                            $ref: '#/definitions/CameraInfo'
             schemes:
                 - http
         post:
@@ -97,7 +97,7 @@ paths:
                 "201":
                     description: Created response.
                     schema:
-                        $ref: '#/definitions/CameraCreateResponseBody'
+                        $ref: '#/definitions/CameraInfo'
                         required:
                             - id
                             - name
@@ -106,7 +106,7 @@ paths:
                 "400":
                     description: Bad Request response.
                     schema:
-                        $ref: '#/definitions/CameraCreateBadRequestResponseBody'
+                        $ref: '#/definitions/BadRequestError'
                         required:
                             - message
             schemes:
@@ -129,7 +129,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/CameraGetResponseBody'
+                        $ref: '#/definitions/CameraInfo'
                         required:
                             - id
                             - name
@@ -138,7 +138,7 @@ paths:
                 "404":
                     description: Not Found response.
                     schema:
-                        $ref: '#/definitions/CameraGetNotFoundResponseBody'
+                        $ref: '#/definitions/NotFoundError'
                         required:
                             - message
                             - id
@@ -166,7 +166,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/CameraUpdateResponseBody'
+                        $ref: '#/definitions/CameraInfo'
                         required:
                             - id
                             - name
@@ -175,13 +175,13 @@ paths:
                 "400":
                     description: Bad Request response.
                     schema:
-                        $ref: '#/definitions/CameraUpdateBadRequestResponseBody'
+                        $ref: '#/definitions/BadRequestError'
                         required:
                             - message
                 "404":
                     description: Not Found response.
                     schema:
-                        $ref: '#/definitions/CameraUpdateNotFoundResponseBody'
+                        $ref: '#/definitions/NotFoundError'
                         required:
                             - message
                             - id
@@ -206,7 +206,7 @@ paths:
                 "404":
                     description: Not Found response.
                     schema:
-                        $ref: '#/definitions/CameraDeleteNotFoundResponseBody'
+                        $ref: '#/definitions/NotFoundError'
                         required:
                             - message
                             - id
@@ -230,7 +230,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/CameraActivateResponseBody'
+                        $ref: '#/definitions/CameraInfo'
                         required:
                             - id
                             - name
@@ -239,14 +239,14 @@ paths:
                 "404":
                     description: Not Found response.
                     schema:
-                        $ref: '#/definitions/CameraActivateNotFoundResponseBody'
+                        $ref: '#/definitions/NotFoundError'
                         required:
                             - message
                             - id
                 "500":
                     description: Internal Server Error response.
                     schema:
-                        $ref: '#/definitions/CameraActivateInternalResponseBody'
+                        $ref: '#/definitions/InternalError'
                         required:
                             - message
             schemes:
@@ -269,7 +269,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/CameraDisableAlertsResponseBody'
+                        $ref: '#/definitions/CameraInfo'
                         required:
                             - id
                             - name
@@ -278,7 +278,7 @@ paths:
                 "404":
                     description: Not Found response.
                     schema:
-                        $ref: '#/definitions/CameraDisableAlertsNotFoundResponseBody'
+                        $ref: '#/definitions/NotFoundError'
                         required:
                             - message
                             - id
@@ -302,7 +302,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/CameraEnableAlertsResponseBody'
+                        $ref: '#/definitions/CameraInfo'
                         required:
                             - id
                             - name
@@ -311,7 +311,7 @@ paths:
                 "404":
                     description: Not Found response.
                     schema:
-                        $ref: '#/definitions/CameraEnableAlertsNotFoundResponseBody'
+                        $ref: '#/definitions/NotFoundError'
                         required:
                             - message
                             - id
@@ -335,7 +335,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/CameraDeactivateResponseBody'
+                        $ref: '#/definitions/CameraInfo'
                         required:
                             - id
                             - name
@@ -344,7 +344,7 @@ paths:
                 "404":
                     description: Not Found response.
                     schema:
-                        $ref: '#/definitions/CameraDeactivateNotFoundResponseBody'
+                        $ref: '#/definitions/NotFoundError'
                         required:
                             - message
                             - id
@@ -368,21 +368,21 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/CameraCaptureResponseBody'
+                        $ref: '#/definitions/FrameResponse'
                         required:
                             - data
                             - content_type
                 "404":
                     description: Not Found response.
                     schema:
-                        $ref: '#/definitions/CameraCaptureNotFoundResponseBody'
+                        $ref: '#/definitions/NotFoundError'
                         required:
                             - message
                             - id
                 "500":
                     description: Internal Server Error response.
                     schema:
-                        $ref: '#/definitions/CameraCaptureInternalResponseBody'
+                        $ref: '#/definitions/InternalError'
                         required:
                             - message
             schemes:
@@ -398,7 +398,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigGetDetectionResponseBody'
+                        $ref: '#/definitions/DetectionConfig'
                         required:
                             - primary_detector
             schemes:
@@ -414,20 +414,20 @@ paths:
                   in: body
                   required: true
                   schema:
-                    $ref: '#/definitions/ConfigUpdateDetectionRequestBody'
+                    $ref: '#/definitions/DetectionConfig'
                     required:
                         - primary_detector
             responses:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdateDetectionResponseBody'
+                        $ref: '#/definitions/DetectionConfig'
                         required:
                             - primary_detector
                 "400":
                     description: Bad Request response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdateDetectionBadRequestResponseBody'
+                        $ref: '#/definitions/BadRequestError'
                         required:
                             - message
             schemes:
@@ -443,7 +443,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigGetDinov3ResponseBody'
+                        $ref: '#/definitions/DINOv3Config'
                         required:
                             - enabled
             schemes:
@@ -459,20 +459,20 @@ paths:
                   in: body
                   required: true
                   schema:
-                    $ref: '#/definitions/ConfigUpdateDinov3RequestBody'
+                    $ref: '#/definitions/DINOv3Config'
                     required:
                         - enabled
             responses:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdateDinov3ResponseBody'
+                        $ref: '#/definitions/DINOv3Config'
                         required:
                             - enabled
                 "400":
                     description: Bad Request response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdateDinov3BadRequestResponseBody'
+                        $ref: '#/definitions/BadRequestError'
                         required:
                             - message
             schemes:
@@ -495,7 +495,7 @@ paths:
                 "500":
                     description: Internal Server Error response.
                     schema:
-                        $ref: '#/definitions/ConfigTestDinov3InternalResponseBody'
+                        $ref: '#/definitions/InternalError'
                         required:
                             - message
             schemes:
@@ -511,7 +511,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigGetResponseBody'
+                        $ref: '#/definitions/NotificationConfig'
                         required:
                             - telegram_enabled
             schemes:
@@ -527,20 +527,20 @@ paths:
                   in: body
                   required: true
                   schema:
-                    $ref: '#/definitions/ConfigUpdateRequestBody'
+                    $ref: '#/definitions/NotificationConfig'
                     required:
                         - telegram_enabled
             responses:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdateResponseBody'
+                        $ref: '#/definitions/NotificationConfig'
                         required:
                             - telegram_enabled
                 "400":
                     description: Bad Request response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdateBadRequestResponseBody'
+                        $ref: '#/definitions/BadRequestError'
                         required:
                             - message
             schemes:
@@ -563,7 +563,7 @@ paths:
                 "500":
                     description: Internal Server Error response.
                     schema:
-                        $ref: '#/definitions/ConfigTestNotificationInternalResponseBody'
+                        $ref: '#/definitions/InternalError'
                         required:
                             - message
             schemes:
@@ -579,7 +579,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigGetPipelineResponseBody'
+                        $ref: '#/definitions/PipelineConfig'
                         required:
                             - mode
                             - execution_mode
@@ -596,7 +596,7 @@ paths:
                   in: body
                   required: true
                   schema:
-                    $ref: '#/definitions/ConfigUpdatePipelineRequestBody'
+                    $ref: '#/definitions/PipelineConfig'
                     required:
                         - mode
                         - execution_mode
@@ -604,14 +604,14 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdatePipelineResponseBody'
+                        $ref: '#/definitions/PipelineConfig'
                         required:
                             - mode
                             - execution_mode
                 "400":
                     description: Bad Request response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdatePipelineBadRequestResponseBody'
+                        $ref: '#/definitions/BadRequestError'
                         required:
                             - message
             schemes:
@@ -627,7 +627,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigGetRecognitionResponseBody'
+                        $ref: '#/definitions/RecognitionConfig'
                         required:
                             - enabled
             schemes:
@@ -643,20 +643,20 @@ paths:
                   in: body
                   required: true
                   schema:
-                    $ref: '#/definitions/ConfigUpdateRecognitionRequestBody'
+                    $ref: '#/definitions/RecognitionConfig'
                     required:
                         - enabled
             responses:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdateRecognitionResponseBody'
+                        $ref: '#/definitions/RecognitionConfig'
                         required:
                             - enabled
                 "400":
                     description: Bad Request response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdateRecognitionBadRequestResponseBody'
+                        $ref: '#/definitions/BadRequestError'
                         required:
                             - message
             schemes:
@@ -679,7 +679,7 @@ paths:
                 "500":
                     description: Internal Server Error response.
                     schema:
-                        $ref: '#/definitions/ConfigTestRecognitionInternalResponseBody'
+                        $ref: '#/definitions/InternalError'
                         required:
                             - message
             schemes:
@@ -695,7 +695,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigGetYoloResponseBody'
+                        $ref: '#/definitions/YOLOConfig'
                         required:
                             - enabled
             schemes:
@@ -711,20 +711,20 @@ paths:
                   in: body
                   required: true
                   schema:
-                    $ref: '#/definitions/ConfigUpdateYoloRequestBody'
+                    $ref: '#/definitions/YOLOConfig'
                     required:
                         - enabled
             responses:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdateYoloResponseBody'
+                        $ref: '#/definitions/YOLOConfig'
                         required:
                             - enabled
                 "400":
                     description: Bad Request response.
                     schema:
-                        $ref: '#/definitions/ConfigUpdateYoloBadRequestResponseBody'
+                        $ref: '#/definitions/BadRequestError'
                         required:
                             - message
             schemes:
@@ -747,7 +747,7 @@ paths:
                 "500":
                     description: Internal Server Error response.
                     schema:
-                        $ref: '#/definitions/ConfigTestYoloInternalResponseBody'
+                        $ref: '#/definitions/InternalError'
                         required:
                             - message
             schemes:
@@ -785,7 +785,7 @@ paths:
                     schema:
                         type: array
                         items:
-                            $ref: '#/definitions/MotionEventResponse'
+                            $ref: '#/definitions/MotionEvent'
             schemes:
                 - http
     /api/v1/motion/events/{id}:
@@ -806,7 +806,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/MotionEventResponseBody'
+                        $ref: '#/definitions/MotionEvent'
                         required:
                             - id
                             - camera_id
@@ -815,7 +815,7 @@ paths:
                 "404":
                     description: Not Found response.
                     schema:
-                        $ref: '#/definitions/MotionEventNotFoundResponseBody'
+                        $ref: '#/definitions/NotFoundError'
                         required:
                             - message
                             - id
@@ -844,14 +844,14 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/MotionForensicThumbnailResponseBody'
+                        $ref: '#/definitions/FrameResponse'
                         required:
                             - data
                             - content_type
                 "404":
                     description: Not Found response.
                     schema:
-                        $ref: '#/definitions/MotionForensicThumbnailNotFoundResponseBody'
+                        $ref: '#/definitions/NotFoundError'
                         required:
                             - message
                             - id
@@ -875,14 +875,14 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/MotionFrameResponseBody'
+                        $ref: '#/definitions/FrameResponse'
                         required:
                             - data
                             - content_type
                 "404":
                     description: Not Found response.
                     schema:
-                        $ref: '#/definitions/MotionFrameNotFoundResponseBody'
+                        $ref: '#/definitions/NotFoundError'
                         required:
                             - message
                             - id
@@ -899,7 +899,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/SystemStartDetectionResponseBody'
+                        $ref: '#/definitions/SystemStatus'
                         required:
                             - cameras
                             - motion_detection_active
@@ -908,7 +908,7 @@ paths:
                 "500":
                     description: Internal Server Error response.
                     schema:
-                        $ref: '#/definitions/SystemStartDetectionInternalResponseBody'
+                        $ref: '#/definitions/InternalError'
                         required:
                             - message
             schemes:
@@ -924,7 +924,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/SystemStopDetectionResponseBody'
+                        $ref: '#/definitions/SystemStatus'
                         required:
                             - cameras
                             - motion_detection_active
@@ -943,7 +943,7 @@ paths:
                 "200":
                     description: OK response.
                     schema:
-                        $ref: '#/definitions/SystemStatusResponseBody'
+                        $ref: '#/definitions/SystemStatus'
                         required:
                             - cameras
                             - motion_detection_active
@@ -976,7 +976,7 @@ paths:
                 "503":
                     description: Service Unavailable response.
                     schema:
-                        $ref: '#/definitions/HealthReadyzNotReadyResponseBody'
+                        $ref: '#/definitions/NotReadyError'
                         required:
                             - message
             schemes:
@@ -989,14 +989,14 @@ definitions:
             password:
                 type: string
                 description: Password
-                example: Ipsum est.
+                example: Fugiat nemo qui.
             username:
                 type: string
                 description: Username
-                example: Culpa necessitatibus.
+                example: Porro id ut qui.
         example:
-            password: Minima debitis tenetur qui.
-            username: Quis itaque molestiae neque dolores fugiat.
+            password: Nostrum quis aut non.
+            username: Sit earum itaque itaque unde alias.
         required:
             - username
             - password
@@ -1007,31 +1007,18 @@ definitions:
             expires_at:
                 type: integer
                 description: Token expiration timestamp (Unix)
-                example: 8813464254839124356
+                example: 1936690372711677679
                 format: int64
             token:
                 type: string
                 description: JWT access token
-                example: Aspernatur quae officia sed ea.
+                example: Non ut et molestiae.
         example:
-            expires_at: 4749603182868632347
-            token: A voluptas dicta.
+            expires_at: 4232959068314012360
+            token: Ea aut magnam eligendi velit quae aperiam.
         required:
             - token
             - expires_at
-    AuthLoginUnauthorizedResponseBody:
-        title: AuthLoginUnauthorizedResponseBody
-        type: object
-        properties:
-            message:
-                type: string
-                description: Error message
-                example: Pariatur nam et perspiciatis voluptatem eveniet.
-        description: Invalid credentials
-        example:
-            message: Sequi occaecati aliquam rerum ut magnam.
-        required:
-            - message
     AuthStatusResponseBody:
         title: AuthStatusResponseBody
         type: object
@@ -1043,253 +1030,71 @@ definitions:
             enabled:
                 type: boolean
                 description: Whether authentication is enabled
-                example: true
+                example: false
             username:
                 type: string
                 description: Current username if authenticated
-                example: Neque nihil molestiae.
+                example: Alias ducimus tempora rem vero.
         example:
             authenticated: true
-            enabled: false
-            username: Temporibus ad ab recusandae.
+            enabled: true
+            username: Quia numquam.
         required:
             - enabled
             - authenticated
-    BoundingBoxResponse:
-        title: BoundingBoxResponse
-        type: object
-        properties:
-            height:
-                type: integer
-                description: Height
-                example: 1232198356192221643
-                format: int64
-            width:
-                type: integer
-                description: Width
-                example: 4214824659532094783
-                format: int64
-            x:
-                type: integer
-                description: X coordinate
-                example: 2875432093059402803
-                format: int64
-            "y":
-                type: integer
-                description: Y coordinate
-                example: 5367483316212948428
-                format: int64
-        description: Bounding box coordinates
-        example:
-            height: 5294247363703423052
-            width: 962673610452530645
-            x: 1756993471964633886
-            "y": 1638721947283033651
-        required:
-            - x
-            - "y"
-            - width
-            - height
-    BoundingBoxResponseBody:
-        title: BoundingBoxResponseBody
-        type: object
-        properties:
-            height:
-                type: integer
-                description: Height
-                example: 8669962342972046795
-                format: int64
-            width:
-                type: integer
-                description: Width
-                example: 4433755895399892299
-                format: int64
-            x:
-                type: integer
-                description: X coordinate
-                example: 3798013399091485998
-                format: int64
-            "y":
-                type: integer
-                description: Y coordinate
-                example: 7080661187866262458
-                format: int64
-        description: Bounding box coordinates
-        example:
-            height: 8860661673793580460
-            width: 1635512378618042312
-            x: 4865462566064574801
-            "y": 4080053941337162079
-        required:
-            - x
-            - "y"
-            - width
-            - height
-    CameraActivateInternalResponseBody:
-        title: CameraActivateInternalResponseBody
-        type: object
-        properties:
-            message:
-                type: string
-                description: Error message
-                example: Et qui veniam perferendis incidunt iste est.
-        description: Failed to activate camera
-        example:
-            message: Excepturi itaque et facilis nemo.
-        required:
-            - message
-    CameraActivateNotFoundResponseBody:
-        title: CameraActivateNotFoundResponseBody
-        type: object
-        properties:
-            id:
-                type: string
-                description: Resource ID
-                example: Nostrum non sunt dolores quaerat.
-            message:
-                type: string
-                description: Error message
-                example: Omnis nihil.
-        description: Camera not found
-        example:
-            id: Impedit iste porro molestias cum.
-            message: Harum fuga sed ut neque laudantium et.
-        required:
-            - message
-            - id
-    CameraActivateResponseBody:
-        title: CameraActivateResponseBody
-        type: object
-        properties:
-            created_at:
-                type: string
-                description: Creation timestamp
-                example: "2003-12-16T12:52:41Z"
-                format: date-time
-            device:
-                type: string
-                description: Camera device path (e.g., /dev/video0)
-                example: Iusto ab voluptatibus est sapiente dolorum nostrum.
-            events_enabled:
-                type: boolean
-                description: When true, detection events are created and stored. When false, detection runs for live view only.
-                default: true
-                example: false
-            fps:
-                type: integer
-                description: Frames per second
-                example: 322685163722995197
-                format: int64
-            id:
-                type: string
-                description: Camera unique identifier
-                example: 42758080-f4bb-11f0-8a31-5847ca7b8ce1
-                format: uuid
-            name:
-                type: string
-                description: Camera name
-                example: Eius repellendus voluptatem dolor ut.
-            notifications_enabled:
-                type: boolean
-                description: When true, Telegram alerts are sent for detections. Requires events_enabled to also be true.
-                default: true
-                example: true
-            resolution:
-                type: string
-                description: Camera resolution
-                example: Rerum consequatur qui.
-            status:
-                type: string
-                description: Camera status
-                example: inactive
-                enum:
-                    - active
-                    - inactive
-                    - error
-        example:
-            created_at: "1983-04-30T06:22:53Z"
-            device: Velit earum distinctio rerum adipisci hic repellat.
-            events_enabled: true
-            fps: 7966587369188208948
-            id: 4275837f-f4bb-11f0-8a31-5847ca7b8ce1
-            name: Soluta quas soluta nisi occaecati beatae.
-            notifications_enabled: true
-            resolution: Consequuntur iure necessitatibus ea.
-            status: error
-        required:
-            - id
-            - name
-            - device
-            - status
-    CameraCaptureInternalResponseBody:
-        title: CameraCaptureInternalResponseBody
-        type: object
-        properties:
-            message:
-                type: string
-                description: Error message
-                example: Omnis asperiores architecto.
-        description: Failed to capture frame
-        example:
-            message: Ea rerum quo.
-        required:
-            - message
-    CameraCaptureNotFoundResponseBody:
-        title: CameraCaptureNotFoundResponseBody
-        type: object
-        properties:
-            id:
-                type: string
-                description: Resource ID
-                example: Quia ab debitis.
-            message:
-                type: string
-                description: Error message
-                example: Numquam voluptatem voluptatem natus distinctio et.
-        description: Camera not found
-        example:
-            id: Aspernatur voluptas quia et voluptatem non placeat.
-            message: Qui ullam commodi culpa sint soluta eos.
-        required:
-            - message
-            - id
-    CameraCaptureResponseBody:
-        title: CameraCaptureResponseBody
-        type: object
-        properties:
-            content_type:
-                type: string
-                description: Image MIME type
-                default: image/jpeg
-                example: Architecto officiis voluptatem enim temporibus inventore a.
-            data:
-                type: string
-                description: Base64 encoded JPEG image data
-                example: Voluptatibus recusandae sed quisquam.
-        example:
-            content_type: Sint sed eius libero libero magni consequuntur.
-            data: Quia voluptatibus quia eaque porro maiores.
-        required:
-            - data
-            - content_type
-    CameraCreateBadRequestResponseBody:
-        title: CameraCreateBadRequestResponseBody
+    BadRequestError:
+        title: BadRequestError
         type: object
         properties:
             details:
                 type: string
                 description: Error details
-                example: Quibusdam quasi.
+                example: Facilis omnis porro est.
             message:
                 type: string
                 description: Error message
-                example: Harum nobis consectetur tempore qui est.
+                example: Pariatur consequuntur.
         description: Invalid camera configuration
         example:
-            details: Nostrum ducimus iste accusantium.
-            message: Voluptas rem et alias ut.
+            details: Quaerat incidunt cum veritatis quam expedita.
+            message: Sit architecto asperiores exercitationem distinctio necessitatibus.
         required:
             - message
+    BoundingBox:
+        title: BoundingBox
+        type: object
+        properties:
+            height:
+                type: integer
+                description: Height
+                example: 3652781248634700764
+                format: int64
+            width:
+                type: integer
+                description: Width
+                example: 921215167298069415
+                format: int64
+            x:
+                type: integer
+                description: X coordinate
+                example: 2036382173273996000
+                format: int64
+            "y":
+                type: integer
+                description: Y coordinate
+                example: 508871462026030923
+                format: int64
+        description: Bounding box coordinates
+        example:
+            height: 8707605627270730266
+            width: 7926901569228510213
+            x: 7191248869546307951
+            "y": 3298623620112200251
+        required:
+            - x
+            - "y"
+            - width
+            - height
     CameraCreateRequestBody:
         title: CameraCreateRequestBody
         type: object
@@ -1297,22 +1102,22 @@ definitions:
             device:
                 type: string
                 description: Camera device path
-                example: Accusantium harum inventore atque voluptatem ab.
+                example: Et dicta omnis nihil dolores nostrum non.
             events_enabled:
                 type: boolean
                 description: Enable event creation for this camera
                 default: true
-                example: true
+                example: false
             fps:
                 type: integer
                 description: Frames per second
                 default: 30
-                example: 4918466611765758321
+                example: 3279754630583675154
                 format: int64
             name:
                 type: string
                 description: Camera name
-                example: Voluptate voluptas vel.
+                example: Reiciendis placeat voluptatibus et unde veritatis commodi.
             notifications_enabled:
                 type: boolean
                 description: Enable Telegram notifications for this camera
@@ -1322,326 +1127,56 @@ definitions:
                 type: string
                 description: Camera resolution
                 default: 640x480
-                example: Quidem ea.
+                example: Dolores quaerat ut.
         example:
-            device: Unde pariatur perferendis nulla accusantium sint quia.
+            device: Cum suscipit.
             events_enabled: false
-            fps: 1797576714507038593
-            name: Recusandae autem.
+            fps: 6603274765395011773
+            name: Neque laudantium et corporis impedit iste porro.
             notifications_enabled: true
-            resolution: Et eaque qui impedit ad et ratione.
+            resolution: Qui veniam perferendis incidunt iste est.
         required:
             - name
             - device
-    CameraCreateResponseBody:
-        title: CameraCreateResponseBody
+    CameraInfo:
+        title: CameraInfo
         type: object
         properties:
             created_at:
                 type: string
                 description: Creation timestamp
-                example: "1998-09-17T15:29:35Z"
+                example: "2003-04-28T11:33:04Z"
                 format: date-time
             device:
                 type: string
                 description: Camera device path (e.g., /dev/video0)
-                example: Corporis voluptatem earum id dignissimos.
+                example: Nam ullam unde laboriosam quia ut accusantium.
             events_enabled:
                 type: boolean
                 description: When true, detection events are created and stored. When false, detection runs for live view only.
-                default: true
-                example: true
-            fps:
-                type: integer
-                description: Frames per second
-                example: 3127891766866963684
-                format: int64
-            id:
-                type: string
-                description: Camera unique identifier
-                example: 42757309-f4bb-11f0-8a31-5847ca7b8ce1
-                format: uuid
-            name:
-                type: string
-                description: Camera name
-                example: Provident doloremque et suscipit corporis.
-            notifications_enabled:
-                type: boolean
-                description: When true, Telegram alerts are sent for detections. Requires events_enabled to also be true.
-                default: true
-                example: false
-            resolution:
-                type: string
-                description: Camera resolution
-                example: Qui eos cum pariatur.
-            status:
-                type: string
-                description: Camera status
-                example: inactive
-                enum:
-                    - active
-                    - inactive
-                    - error
-        example:
-            created_at: "2004-03-23T05:32:24Z"
-            device: Maiores magni ea culpa.
-            events_enabled: true
-            fps: 5163273400234920967
-            id: 4275751f-f4bb-11f0-8a31-5847ca7b8ce1
-            name: Et ad repellat quo tempora accusantium.
-            notifications_enabled: true
-            resolution: Est tenetur modi quia.
-            status: active
-        required:
-            - id
-            - name
-            - device
-            - status
-    CameraDeactivateNotFoundResponseBody:
-        title: CameraDeactivateNotFoundResponseBody
-        type: object
-        properties:
-            id:
-                type: string
-                description: Resource ID
-                example: Eveniet ea nesciunt quis.
-            message:
-                type: string
-                description: Error message
-                example: At et corporis.
-        description: Camera not found
-        example:
-            id: Maxime ipsam reprehenderit iusto sunt libero ut.
-            message: Consequatur animi soluta.
-        required:
-            - message
-            - id
-    CameraDeactivateResponseBody:
-        title: CameraDeactivateResponseBody
-        type: object
-        properties:
-            created_at:
-                type: string
-                description: Creation timestamp
-                example: "1974-09-21T08:58:38Z"
-                format: date-time
-            device:
-                type: string
-                description: Camera device path (e.g., /dev/video0)
-                example: Illum culpa.
-            events_enabled:
-                type: boolean
-                description: When true, detection events are created and stored. When false, detection runs for live view only.
-                default: true
                 example: false
             fps:
                 type: integer
                 description: Frames per second
-                example: 4551014288754282333
+                example: 1684808153629253452
                 format: int64
             id:
                 type: string
                 description: Camera unique identifier
-                example: 42758793-f4bb-11f0-8a31-5847ca7b8ce1
+                example: 7fe35eda-1d23-4886-a375-29b4674a3602
                 format: uuid
             name:
                 type: string
                 description: Camera name
-                example: Temporibus accusantium similique consequatur maiores omnis natus.
+                example: Porro et.
             notifications_enabled:
                 type: boolean
                 description: When true, Telegram alerts are sent for detections. Requires events_enabled to also be true.
-                default: true
-                example: false
-            resolution:
-                type: string
-                description: Camera resolution
-                example: Sunt saepe sit ut et.
-            status:
-                type: string
-                description: Camera status
-                example: error
-                enum:
-                    - active
-                    - inactive
-                    - error
-        example:
-            created_at: "2013-10-09T19:43:24Z"
-            device: Voluptatem distinctio.
-            events_enabled: false
-            fps: 3292359741775089031
-            id: 42758ad6-f4bb-11f0-8a31-5847ca7b8ce1
-            name: Quidem dolore dolore maxime est.
-            notifications_enabled: false
-            resolution: Molestiae voluptatem itaque officiis molestias magnam non.
-            status: active
-        required:
-            - id
-            - name
-            - device
-            - status
-    CameraDeleteNotFoundResponseBody:
-        title: CameraDeleteNotFoundResponseBody
-        type: object
-        properties:
-            id:
-                type: string
-                description: Resource ID
-                example: Labore ullam.
-            message:
-                type: string
-                description: Error message
-                example: Excepturi et voluptatem rem.
-        description: Camera not found
-        example:
-            id: Saepe alias nisi assumenda ut nulla quo.
-            message: Non commodi deserunt eum vitae excepturi rerum.
-        required:
-            - message
-            - id
-    CameraDisableAlertsNotFoundResponseBody:
-        title: CameraDisableAlertsNotFoundResponseBody
-        type: object
-        properties:
-            id:
-                type: string
-                description: Resource ID
-                example: Perspiciatis officia sint odio aut et.
-            message:
-                type: string
-                description: Error message
-                example: Excepturi dolor et.
-        description: Camera not found
-        example:
-            id: Id dolorem provident aut.
-            message: Aperiam vitae odit sunt.
-        required:
-            - message
-            - id
-    CameraDisableAlertsResponseBody:
-        title: CameraDisableAlertsResponseBody
-        type: object
-        properties:
-            created_at:
-                type: string
-                description: Creation timestamp
-                example: "2014-11-03T12:55:42Z"
-                format: date-time
-            device:
-                type: string
-                description: Camera device path (e.g., /dev/video0)
-                example: Ab non.
-            events_enabled:
-                type: boolean
-                description: When true, detection events are created and stored. When false, detection runs for live view only.
-                default: true
-                example: true
-            fps:
-                type: integer
-                description: Frames per second
-                example: 4280242635068342164
-                format: int64
-            id:
-                type: string
-                description: Camera unique identifier
-                example: 427592bf-f4bb-11f0-8a31-5847ca7b8ce1
-                format: uuid
-            name:
-                type: string
-                description: Camera name
-                example: Id perferendis pariatur tempora nulla aspernatur.
-            notifications_enabled:
-                type: boolean
-                description: When true, Telegram alerts are sent for detections. Requires events_enabled to also be true.
-                default: true
                 example: true
             resolution:
                 type: string
                 description: Camera resolution
-                example: Laudantium labore inventore.
-            status:
-                type: string
-                description: Camera status
-                example: error
-                enum:
-                    - active
-                    - inactive
-                    - error
-        example:
-            created_at: "1979-04-03T15:08:03Z"
-            device: Eum at quasi et.
-            events_enabled: true
-            fps: 2106933248743872201
-            id: 4275949e-f4bb-11f0-8a31-5847ca7b8ce1
-            name: Odio libero ullam.
-            notifications_enabled: true
-            resolution: Ut dolorem accusamus ratione vero unde.
-            status: error
-        required:
-            - id
-            - name
-            - device
-            - status
-    CameraEnableAlertsNotFoundResponseBody:
-        title: CameraEnableAlertsNotFoundResponseBody
-        type: object
-        properties:
-            id:
-                type: string
-                description: Resource ID
-                example: Et sunt delectus voluptas fugit architecto.
-            message:
-                type: string
-                description: Error message
-                example: Soluta nihil quo consectetur possimus itaque.
-        description: Camera not found
-        example:
-            id: Voluptatem repellat nesciunt aut est.
-            message: Voluptas aperiam.
-        required:
-            - message
-            - id
-    CameraEnableAlertsResponseBody:
-        title: CameraEnableAlertsResponseBody
-        type: object
-        properties:
-            created_at:
-                type: string
-                description: Creation timestamp
-                example: "1999-06-22T07:02:16Z"
-                format: date-time
-            device:
-                type: string
-                description: Camera device path (e.g., /dev/video0)
-                example: Nisi est.
-            events_enabled:
-                type: boolean
-                description: When true, detection events are created and stored. When false, detection runs for live view only.
-                default: true
-                example: false
-            fps:
-                type: integer
-                description: Frames per second
-                example: 2447378501984739855
-                format: int64
-            id:
-                type: string
-                description: Camera unique identifier
-                example: 42758ec9-f4bb-11f0-8a31-5847ca7b8ce1
-                format: uuid
-            name:
-                type: string
-                description: Camera name
-                example: Voluptate distinctio aut natus consequatur.
-            notifications_enabled:
-                type: boolean
-                description: When true, Telegram alerts are sent for detections. Requires events_enabled to also be true.
-                default: true
-                example: true
-            resolution:
-                type: string
-                description: Camera resolution
-                example: Rerum possimus delectus at dolorem illo nihil.
+                example: Blanditiis quis excepturi et voluptatem.
             status:
                 type: string
                 description: Camera status
@@ -1650,271 +1185,22 @@ definitions:
                     - active
                     - inactive
                     - error
+        description: Camera information
         example:
-            created_at: "2004-01-02T03:24:25Z"
-            device: Illo corrupti rerum doloremque velit laborum.
-            events_enabled: false
-            fps: 1463349036453790643
-            id: 427590ac-f4bb-11f0-8a31-5847ca7b8ce1
-            name: Totam numquam voluptatem nihil qui.
-            notifications_enabled: false
-            resolution: Magnam earum.
-            status: inactive
-        required:
-            - id
-            - name
-            - device
-            - status
-    CameraGetNotFoundResponseBody:
-        title: CameraGetNotFoundResponseBody
-        type: object
-        properties:
-            id:
-                type: string
-                description: Resource ID
-                example: Aliquam nesciunt nesciunt ab corrupti nulla minus.
-            message:
-                type: string
-                description: Error message
-                example: Voluptatibus autem accusantium vel.
-        description: Camera not found
-        example:
-            id: Voluptatem est.
-            message: Porro fugit.
-        required:
-            - message
-            - id
-    CameraGetResponseBody:
-        title: CameraGetResponseBody
-        type: object
-        properties:
-            created_at:
-                type: string
-                description: Creation timestamp
-                example: "1999-09-08T18:31:31Z"
-                format: date-time
-            device:
-                type: string
-                description: Camera device path (e.g., /dev/video0)
-                example: Sit iure dolorum iure ut a.
-            events_enabled:
-                type: boolean
-                description: When true, detection events are created and stored. When false, detection runs for live view only.
-                default: true
-                example: true
-            fps:
-                type: integer
-                description: Frames per second
-                example: 8049415551425836152
-                format: int64
-            id:
-                type: string
-                description: Camera unique identifier
-                example: 42756e5d-f4bb-11f0-8a31-5847ca7b8ce1
-                format: uuid
-            name:
-                type: string
-                description: Camera name
-                example: Suscipit ducimus corporis mollitia ex ex.
-            notifications_enabled:
-                type: boolean
-                description: When true, Telegram alerts are sent for detections. Requires events_enabled to also be true.
-                default: true
-                example: true
-            resolution:
-                type: string
-                description: Camera resolution
-                example: Porro nihil maxime quia officiis ut molestias.
-            status:
-                type: string
-                description: Camera status
-                example: error
-                enum:
-                    - active
-                    - inactive
-                    - error
-        example:
-            created_at: "1974-10-20T19:40:29Z"
-            device: Dolorem delectus repudiandae in.
+            created_at: "1973-12-10T00:19:19Z"
+            device: Harum vel.
             events_enabled: true
-            fps: 7846733923453920141
-            id: 42757069-f4bb-11f0-8a31-5847ca7b8ce1
-            name: Repellat veniam corporis.
+            fps: 6202103229705728896
+            id: a3c8a4c4-32bf-4e36-ba0d-10916e5b2743
+            name: Perferendis facere sapiente.
             notifications_enabled: true
-            resolution: Ut quidem qui eum qui architecto.
-            status: active
-        required:
-            - id
-            - name
-            - device
-            - status
-    CameraInfoResponse:
-        title: CameraInfoResponse
-        type: object
-        properties:
-            created_at:
-                type: string
-                description: Creation timestamp
-                example: "2000-10-10T18:21:35Z"
-                format: date-time
-            device:
-                type: string
-                description: Camera device path (e.g., /dev/video0)
-                example: Sunt molestiae officia saepe dolores.
-            events_enabled:
-                type: boolean
-                description: When true, detection events are created and stored. When false, detection runs for live view only.
-                default: true
-                example: true
-            fps:
-                type: integer
-                description: Frames per second
-                example: 5335844246800544541
-                format: int64
-            id:
-                type: string
-                description: Camera unique identifier
-                example: 42756a13-f4bb-11f0-8a31-5847ca7b8ce1
-                format: uuid
-            name:
-                type: string
-                description: Camera name
-                example: Doloribus eligendi autem ut corrupti fugiat.
-            notifications_enabled:
-                type: boolean
-                description: When true, Telegram alerts are sent for detections. Requires events_enabled to also be true.
-                default: true
-                example: true
-            resolution:
-                type: string
-                description: Camera resolution
-                example: Accusantium porro laudantium praesentium sapiente illum.
-            status:
-                type: string
-                description: Camera status
-                example: error
-                enum:
-                    - active
-                    - inactive
-                    - error
-        description: Camera information
-        example:
-            created_at: "1978-09-27T07:24:26Z"
-            device: Ullam in perspiciatis non corporis qui iste.
-            events_enabled: false
-            fps: 5355252464170834188
-            id: 42756c4f-f4bb-11f0-8a31-5847ca7b8ce1
-            name: Nihil quas adipisci eaque sit earum.
-            notifications_enabled: true
-            resolution: Minus ipsam veritatis et esse numquam aut.
-            status: active
-        required:
-            - id
-            - name
-            - device
-            - status
-    CameraInfoResponseBody:
-        title: CameraInfoResponseBody
-        type: object
-        properties:
-            created_at:
-                type: string
-                description: Creation timestamp
-                example: "1993-06-12T18:32:10Z"
-                format: date-time
-            device:
-                type: string
-                description: Camera device path (e.g., /dev/video0)
-                example: Sit laborum nihil harum distinctio.
-            events_enabled:
-                type: boolean
-                description: When true, detection events are created and stored. When false, detection runs for live view only.
-                default: true
-                example: true
-            fps:
-                type: integer
-                description: Frames per second
-                example: 7806987198266973964
-                format: int64
-            id:
-                type: string
-                description: Camera unique identifier
-                example: 4275b90e-f4bb-11f0-8a31-5847ca7b8ce1
-                format: uuid
-            name:
-                type: string
-                description: Camera name
-                example: Expedita dolor.
-            notifications_enabled:
-                type: boolean
-                description: When true, Telegram alerts are sent for detections. Requires events_enabled to also be true.
-                default: true
-                example: true
-            resolution:
-                type: string
-                description: Camera resolution
-                example: Similique cumque voluptatem dolor in distinctio.
-            status:
-                type: string
-                description: Camera status
-                example: error
-                enum:
-                    - active
-                    - inactive
-                    - error
-        description: Camera information
-        example:
-            created_at: "2002-08-27T11:38:04Z"
-            device: Quisquam odit.
-            events_enabled: false
-            fps: 3807108165204151329
-            id: 4275bb79-f4bb-11f0-8a31-5847ca7b8ce1
-            name: Fugit et.
-            notifications_enabled: true
-            resolution: Fugit non similique esse quaerat ab.
+            resolution: Non deleniti ut asperiores.
             status: error
         required:
             - id
             - name
             - device
             - status
-    CameraUpdateBadRequestResponseBody:
-        title: CameraUpdateBadRequestResponseBody
-        type: object
-        properties:
-            details:
-                type: string
-                description: Error details
-                example: Vitae accusantium cumque tempora labore cum quae.
-            message:
-                type: string
-                description: Error message
-                example: Consequatur aliquam expedita odio sunt.
-        description: Invalid camera configuration
-        example:
-            details: Optio et sed et.
-            message: Voluptas enim voluptas eos sequi occaecati.
-        required:
-            - message
-    CameraUpdateNotFoundResponseBody:
-        title: CameraUpdateNotFoundResponseBody
-        type: object
-        properties:
-            id:
-                type: string
-                description: Resource ID
-                example: Eligendi rem quia numquam.
-            message:
-                type: string
-                description: Error message
-                example: Alias ducimus tempora rem vero.
-        description: Camera not found
-        example:
-            id: Nemo neque.
-            message: Quo voluptatem ad assumenda voluptatem.
-        required:
-            - message
-            - id
     CameraUpdateRequestBody:
         title: CameraUpdateRequestBody
         type: object
@@ -1922,403 +1208,35 @@ definitions:
             device:
                 type: string
                 description: Camera device path (only when inactive)
-                example: Voluptatum omnis.
+                example: Aperiam libero molestiae.
             events_enabled:
                 type: boolean
                 description: Enable event creation for this camera
-                example: false
+                example: true
             fps:
                 type: integer
                 description: Frames per second
-                example: 6268415910030351599
+                example: 6713931754598957626
                 format: int64
             name:
                 type: string
                 description: Camera name
-                example: Quam quam ex.
+                example: Facilis nemo qui eos cum.
             notifications_enabled:
                 type: boolean
                 description: Enable Telegram notifications for this camera
-                example: true
-            resolution:
-                type: string
-                description: Camera resolution
-                example: Illo id adipisci esse minima sit.
-        example:
-            device: Harum et quis non porro et.
-            events_enabled: false
-            fps: 6770421824832571173
-            name: Minus temporibus.
-            notifications_enabled: true
-            resolution: Nam ullam unde laboriosam quia ut accusantium.
-    CameraUpdateResponseBody:
-        title: CameraUpdateResponseBody
-        type: object
-        properties:
-            created_at:
-                type: string
-                description: Creation timestamp
-                example: "2014-01-16T11:22:45Z"
-                format: date-time
-            device:
-                type: string
-                description: Camera device path (e.g., /dev/video0)
-                example: Minus voluptatem voluptatum et ut.
-            events_enabled:
-                type: boolean
-                description: When true, detection events are created and stored. When false, detection runs for live view only.
-                default: true
-                example: true
-            fps:
-                type: integer
-                description: Frames per second
-                example: 5491233413727170327
-                format: int64
-            id:
-                type: string
-                description: Camera unique identifier
-                example: 42757853-f4bb-11f0-8a31-5847ca7b8ce1
-                format: uuid
-            name:
-                type: string
-                description: Camera name
-                example: Atque dolor est deleniti est ipsa.
-            notifications_enabled:
-                type: boolean
-                description: When true, Telegram alerts are sent for detections. Requires events_enabled to also be true.
-                default: true
                 example: false
             resolution:
                 type: string
                 description: Camera resolution
-                example: Autem unde tempora ipsa et reiciendis et.
-            status:
-                type: string
-                description: Camera status
-                example: error
-                enum:
-                    - active
-                    - inactive
-                    - error
+                example: Est quia atque voluptatum iste autem.
         example:
-            created_at: "1998-07-24T14:31:17Z"
-            device: Totam eveniet.
-            events_enabled: false
-            fps: 1936690372711677679
-            id: 42757b57-f4bb-11f0-8a31-5847ca7b8ce1
-            name: Magni error in ut dolor sed consequatur.
+            device: Eius laboriosam sunt.
+            events_enabled: true
+            fps: 2104037792971342194
+            name: Tempore expedita consequuntur repellat vel quia.
             notifications_enabled: false
-            resolution: Ut et molestiae.
-            status: active
-        required:
-            - id
-            - name
-            - device
-            - status
-    ConfigGetDetectionResponseBody:
-        title: ConfigGetDetectionResponseBody
-        type: object
-        properties:
-            dinov3:
-                $ref: '#/definitions/DINOv3ConfigResponseBody'
-            fallback_enabled:
-                type: boolean
-                description: Enable fallback to basic detection
-                default: true
-                example: true
-            primary_detector:
-                type: string
-                description: Primary detector to use
-                default: basic
-                example: yolo
-                enum:
-                    - basic
-                    - yolo
-                    - dinov3
-            yolo:
-                $ref: '#/definitions/YOLOConfigResponseBody'
-        example:
-            dinov3:
-                confidence_threshold: 0.57788104
-                enable_scene_analysis: false
-                enabled: false
-                fallback_to_basic: false
-                motion_threshold: 0.59455615
-                service_endpoint: Esse earum aliquam itaque quisquam sit.
-            fallback_enabled: false
-            primary_detector: basic
-            yolo:
-                box_color: Officiis impedit quia reiciendis laborum.
-                box_thickness: 1401486359533268354
-                classes_filter: Omnis ipsam doloremque earum ipsa provident non.
-                confidence_threshold: 0.20940988
-                draw_boxes: false
-                enabled: false
-                security_mode: true
-                service_endpoint: Quod dolor molestiae adipisci est ea.
-                tasks:
-                    - detect
-                    - pose
-        required:
-            - primary_detector
-    ConfigGetDinov3ResponseBody:
-        title: ConfigGetDinov3ResponseBody
-        type: object
-        properties:
-            confidence_threshold:
-                type: number
-                description: Minimum confidence for alerts (0-1)
-                default: 0.6
-                example: 0.5391995
-                format: float
-            enable_scene_analysis:
-                type: boolean
-                description: Enable advanced scene analysis
-                default: true
-                example: true
-            enabled:
-                type: boolean
-                description: Enable DINOv3 AI detection
-                example: true
-            fallback_to_basic:
-                type: boolean
-                description: Fallback to basic detection when DINOv3 unavailable
-                default: true
-                example: false
-            motion_threshold:
-                type: number
-                description: Motion detection threshold (0-1)
-                default: 0.85
-                example: 0.81244045
-                format: float
-            service_endpoint:
-                type: string
-                description: DINOv3 service endpoint URL
-                example: Sequi corrupti soluta.
-        example:
-            confidence_threshold: 0.49982378
-            enable_scene_analysis: false
-            enabled: false
-            fallback_to_basic: true
-            motion_threshold: 0.37013134
-            service_endpoint: Consequatur qui.
-        required:
-            - enabled
-    ConfigGetPipelineResponseBody:
-        title: ConfigGetPipelineResponseBody
-        type: object
-        properties:
-            detectors:
-                type: array
-                items:
-                    type: string
-                    example: Ut minus tempora perspiciatis sed.
-                description: 'List of detector names: yolo, face, plate. Order matters for sequential mode.'
-                example:
-                    - yolo
-                    - face
-            execution_mode:
-                type: string
-                description: How detectors are run. Only 'sequential' is supported (chains YOLO → Face → Plate).
-                default: sequential
-                example: sequential
-                enum:
-                    - sequential
-            mode:
-                type: string
-                description: Controls when detection runs
-                default: motion_triggered
-                example: motion_triggered
-                enum:
-                    - disabled
-                    - visual_only
-                    - continuous
-                    - motion_triggered
-                    - scheduled
-                    - hybrid
-            motion_cooldown_seconds:
-                type: integer
-                description: Seconds to wait after motion ends before stopping detection
-                default: 2
-                example: 7019286346570981671
-                minimum: 0
-            motion_sensitivity:
-                type: number
-                description: Lower values = more sensitive. Used in motion_triggered and hybrid modes.
-                default: 0.1
-                example: 0.5274804
-                minimum: 0
-                maximum: 1
-            schedule_interval:
-                type: string
-                description: Go duration string, e.g., '5s', '10s', '1m'
-                default: 5s
-                example: Optio sunt mollitia.
-        example:
-            detectors:
-                - yolo
-                - face
-            execution_mode: sequential
-            mode: continuous
-            motion_cooldown_seconds: 136822151160298605
-            motion_sensitivity: 0.9985884
-            schedule_interval: Ut expedita quos enim ipsa et.
-        required:
-            - mode
-            - execution_mode
-    ConfigGetRecognitionResponseBody:
-        title: ConfigGetRecognitionResponseBody
-        type: object
-        properties:
-            box_thickness:
-                type: integer
-                description: Bounding box line thickness (1-5)
-                default: 2
-                example: 6304287705846953604
-                format: int64
-            enabled:
-                type: boolean
-                description: Enable face recognition
-                example: false
-            known_face_color:
-                type: string
-                description: Color for known/recognized faces in hex format (e.g., '#00FF00')
-                example: Repudiandae tempora fuga maxime.
-            service_endpoint:
-                type: string
-                description: Face recognition service endpoint URL
-                example: Facere velit magnam repellendus et.
-            similarity_threshold:
-                type: number
-                description: Similarity threshold for face matching (0-1)
-                default: 0.5
-                example: 0.17362925
-                format: float
-            unknown_face_color:
-                type: string
-                description: Color for unknown faces in hex format (e.g., '#FF0000')
-                example: Occaecati accusamus quis quia eos.
-        example:
-            box_thickness: 8994217079802190601
-            enabled: false
-            known_face_color: Delectus fugit dicta pariatur et facilis quasi.
-            service_endpoint: Aut magnam quisquam pariatur quibusdam nostrum.
-            similarity_threshold: 0.14309308
-            unknown_face_color: Qui odio velit consequatur.
-        required:
-            - enabled
-    ConfigGetResponseBody:
-        title: ConfigGetResponseBody
-        type: object
-        properties:
-            cooldown_seconds:
-                type: integer
-                description: Cooldown period between notifications
-                example: 6533287280534299054
-                format: int64
-            min_confidence:
-                type: number
-                description: Minimum confidence threshold for notifications
-                example: 0.7063215
-                format: float
-            telegram_bot_token:
-                type: string
-                description: Telegram bot token
-                example: Molestias sunt.
-            telegram_chat_id:
-                type: string
-                description: Telegram chat ID
-                example: Sit cum eum provident et eum.
-            telegram_enabled:
-                type: boolean
-                description: Enable Telegram notifications
-                example: false
-        example:
-            cooldown_seconds: 7146668728631604797
-            min_confidence: 0.6733403
-            telegram_bot_token: Assumenda et illo.
-            telegram_chat_id: Vel et cum labore labore illum.
-            telegram_enabled: false
-        required:
-            - telegram_enabled
-    ConfigGetYoloResponseBody:
-        title: ConfigGetYoloResponseBody
-        type: object
-        properties:
-            box_color:
-                type: string
-                description: Bounding box color in hex format (e.g., '#0066FF')
-                example: Magnam magnam ratione.
-            box_thickness:
-                type: integer
-                description: Bounding box line thickness (1-5)
-                default: 2
-                example: 5311291259389853731
-                format: int64
-            classes_filter:
-                type: string
-                description: Comma-separated class names to filter (empty = all)
-                example: Quis rerum nulla dolores.
-            confidence_threshold:
-                type: number
-                description: Minimum confidence for detections (0-1)
-                default: 0.5
-                example: 0.29492888
-                format: float
-            draw_boxes:
-                type: boolean
-                description: Draw bounding boxes on images (for Telegram, API)
-                default: false
-                example: true
-            enabled:
-                type: boolean
-                description: Enable YOLO object detection
-                example: true
-            security_mode:
-                type: boolean
-                description: Use security-focused detection (person, car, etc.)
-                default: true
-                example: true
-            service_endpoint:
-                type: string
-                description: YOLO service endpoint URL
-                example: Omnis itaque maiores dignissimos.
-            tasks:
-                type: array
-                items:
-                    type: string
-                    example: Est vel ea nesciunt.
-                description: List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose estimation, 'segment' for instance segmentation, 'obb' for oriented bounding boxes, 'classify' for image classification.
-                example:
-                    - detect
-                    - pose
-        example:
-            box_color: Numquam voluptatem veritatis soluta.
-            box_thickness: 2318351202939183284
-            classes_filter: Animi qui eos placeat suscipit sed necessitatibus.
-            confidence_threshold: 0.64405984
-            draw_boxes: false
-            enabled: false
-            security_mode: true
-            service_endpoint: Rerum aut commodi sapiente quaerat explicabo impedit.
-            tasks:
-                - detect
-                - pose
-        required:
-            - enabled
-    ConfigTestDinov3InternalResponseBody:
-        title: ConfigTestDinov3InternalResponseBody
-        type: object
-        properties:
-            message:
-                type: string
-                description: Error message
-                example: Voluptatum harum velit.
-        description: Failed to test DINOv3 service
-        example:
-            message: Voluptas ut tempore quibusdam.
-        required:
-            - message
+            resolution: Labore repellendus sunt aut dolorem error porro.
     ConfigTestDinov3ResponseBody:
         title: ConfigTestDinov3ResponseBody
         type: object
@@ -2326,45 +1244,32 @@ definitions:
             device:
                 type: string
                 description: Detection device
-                example: Quia earum rerum.
+                example: Maxime esse eos adipisci beatae ut.
             endpoint:
                 type: string
                 description: Service endpoint
-                example: Aut rerum.
+                example: Sit rem alias non.
             healthy:
                 type: boolean
                 description: Service health status
-                example: false
+                example: true
             message:
                 type: string
                 description: Status message
-                example: Voluptatum accusamus eius et ratione doloremque laborum.
+                example: Odio autem.
             response_time_ms:
                 type: number
                 description: Response time in milliseconds
-                example: 0.11167421
+                example: 0.6361257
                 format: float
         example:
-            device: Illum quibusdam sed.
-            endpoint: Autem sunt qui perspiciatis cupiditate assumenda.
+            device: Sint quia ullam placeat rerum odio.
+            endpoint: Iusto provident.
             healthy: false
-            message: Mollitia sint.
-            response_time_ms: 0.14532207
+            message: Molestias quis iste natus.
+            response_time_ms: 0.9567149
         required:
             - healthy
-            - message
-    ConfigTestNotificationInternalResponseBody:
-        title: ConfigTestNotificationInternalResponseBody
-        type: object
-        properties:
-            message:
-                type: string
-                description: Error message
-                example: Voluptatem tenetur et delectus et veniam.
-        description: Failed to send test notification
-        example:
-            message: Eius aut.
-        required:
             - message
     ConfigTestNotificationResponseBody:
         title: ConfigTestNotificationResponseBody
@@ -2373,29 +1278,16 @@ definitions:
             message:
                 type: string
                 description: Result message
-                example: Aut harum maiores non est.
+                example: Tempora nulla aspernatur.
             success:
                 type: boolean
                 description: Test result
-                example: true
+                example: false
         example:
-            message: Aut veniam dolores.
-            success: true
+            message: Non at expedita laudantium labore.
+            success: false
         required:
             - success
-            - message
-    ConfigTestRecognitionInternalResponseBody:
-        title: ConfigTestRecognitionInternalResponseBody
-        type: object
-        properties:
-            message:
-                type: string
-                description: Error message
-                example: Perspiciatis similique repellendus qui.
-        description: Failed to test recognition service
-        example:
-            message: Placeat consequuntur aut est vitae dicta harum.
-        required:
             - message
     ConfigTestRecognitionResponseBody:
         title: ConfigTestRecognitionResponseBody
@@ -2404,11 +1296,11 @@ definitions:
             device:
                 type: string
                 description: Detection device
-                example: Eum quidem alias sint tempora fuga.
+                example: Alias aut.
             endpoint:
                 type: string
                 description: Service endpoint
-                example: Sapiente qui debitis dolore fuga nulla.
+                example: Quisquam voluptatibus repellat facere.
             healthy:
                 type: boolean
                 description: Service health status
@@ -2416,44 +1308,31 @@ definitions:
             known_faces_count:
                 type: integer
                 description: Number of registered faces
-                example: 7084827205349956589
+                example: 5378515227607097740
                 format: int64
             message:
                 type: string
                 description: Status message
-                example: Quae maxime sed aut velit aliquam cumque.
+                example: Praesentium rerum ut quod.
             model_loaded:
                 type: boolean
                 description: Model loaded status
-                example: false
+                example: true
             response_time_ms:
                 type: number
                 description: Response time in milliseconds
-                example: 0.88199776
+                example: 0.7837464
                 format: float
         example:
-            device: Sed autem voluptatibus laborum saepe voluptatem.
-            endpoint: Illum aliquam soluta dolore.
-            healthy: false
-            known_faces_count: 2137655209971989849
-            message: Id possimus.
-            model_loaded: false
-            response_time_ms: 0.8671219
+            device: Voluptas qui.
+            endpoint: Iusto officia non rem et.
+            healthy: true
+            known_faces_count: 7311050996694337354
+            message: Aliquam non ut.
+            model_loaded: true
+            response_time_ms: 0.7450145
         required:
             - healthy
-            - message
-    ConfigTestYoloInternalResponseBody:
-        title: ConfigTestYoloInternalResponseBody
-        type: object
-        properties:
-            message:
-                type: string
-                description: Error message
-                example: Doloremque ratione voluptatem et nam.
-        description: Failed to test YOLO service
-        example:
-            message: Optio voluptas beatae.
-        required:
             - message
     ConfigTestYoloResponseBody:
         title: ConfigTestYoloResponseBody
@@ -2462,19 +1341,19 @@ definitions:
             device:
                 type: string
                 description: Detection device (cpu/cuda)
-                example: Nostrum quisquam impedit nesciunt qui quod.
+                example: Corrupti eos architecto dolor ad quo.
             endpoint:
                 type: string
                 description: Service endpoint
-                example: Illum perspiciatis.
+                example: Ratione vero.
             healthy:
                 type: boolean
                 description: Service health status
-                example: false
+                example: true
             message:
                 type: string
                 description: Status message
-                example: Accusantium odio maiores.
+                example: Repellendus sed est ratione repellat natus.
             model_loaded:
                 type: boolean
                 description: Model loaded status
@@ -2482,65 +1361,72 @@ definitions:
             response_time_ms:
                 type: number
                 description: Response time in milliseconds
-                example: 0.99984396
+                example: 0.3725812
                 format: float
         example:
-            device: Vel repellat tempore.
-            endpoint: Molestias aut amet.
+            device: Consequatur reprehenderit velit nisi.
+            endpoint: Tempore voluptates quo est eos ea recusandae.
             healthy: false
-            message: Impedit minus commodi quis et.
-            model_loaded: false
-            response_time_ms: 0.42831984
+            message: Veritatis numquam deserunt dicta aliquid.
+            model_loaded: true
+            response_time_ms: 0.5091493
         required:
             - healthy
             - message
-    ConfigUpdateBadRequestResponseBody:
-        title: ConfigUpdateBadRequestResponseBody
+    DINOv3Config:
+        title: DINOv3Config
         type: object
         properties:
-            details:
+            confidence_threshold:
+                type: number
+                description: Minimum confidence for alerts (0-1)
+                default: 0.6
+                example: 0.1918375
+                format: float
+            enable_scene_analysis:
+                type: boolean
+                description: Enable advanced scene analysis
+                default: true
+                example: false
+            enabled:
+                type: boolean
+                description: Enable DINOv3 AI detection
+                example: true
+            fallback_to_basic:
+                type: boolean
+                description: Fallback to basic detection when DINOv3 unavailable
+                default: true
+                example: false
+            motion_threshold:
+                type: number
+                description: Motion detection threshold (0-1)
+                default: 0.85
+                example: 0.9792626
+                format: float
+            service_endpoint:
                 type: string
-                description: Error details
-                example: Laudantium veritatis corrupti.
-            message:
-                type: string
-                description: Error message
-                example: Ipsam minus totam animi eius.
-        description: Invalid configuration
+                description: DINOv3 service endpoint URL
+                example: Est quia molestiae beatae exercitationem.
         example:
-            details: Aspernatur eligendi mollitia quos hic.
-            message: Quod aut in dolorem nihil laboriosam doloremque.
+            confidence_threshold: 0.731938
+            enable_scene_analysis: false
+            enabled: false
+            fallback_to_basic: false
+            motion_threshold: 0.75412005
+            service_endpoint: Sed optio nobis sunt qui qui.
         required:
-            - message
-    ConfigUpdateDetectionBadRequestResponseBody:
-        title: ConfigUpdateDetectionBadRequestResponseBody
-        type: object
-        properties:
-            details:
-                type: string
-                description: Error details
-                example: Optio in quod.
-            message:
-                type: string
-                description: Error message
-                example: Expedita ex necessitatibus temporibus temporibus qui.
-        description: Invalid detection configuration
-        example:
-            details: Voluptates harum.
-            message: Officia non vel quaerat.
-        required:
-            - message
-    ConfigUpdateDetectionRequestBody:
-        title: ConfigUpdateDetectionRequestBody
+            - enabled
+    DetectionConfig:
+        title: DetectionConfig
         type: object
         properties:
             dinov3:
-                $ref: '#/definitions/DINOv3ConfigRequestBody'
+                $ref: '#/definitions/DINOv3Config'
             fallback_enabled:
                 type: boolean
                 description: Enable fallback to basic detection
                 default: true
-                example: true
+                example: false
             primary_detector:
                 type: string
                 description: Primary detector to use
@@ -2551,795 +1437,94 @@ definitions:
                     - yolo
                     - dinov3
             yolo:
-                $ref: '#/definitions/YOLOConfigRequestBody'
+                $ref: '#/definitions/YOLOConfig'
         example:
             dinov3:
-                confidence_threshold: 0.5313268
-                enable_scene_analysis: false
-                enabled: true
-                fallback_to_basic: false
-                motion_threshold: 0.97341186
-                service_endpoint: Sunt quas.
-            fallback_enabled: false
-            primary_detector: dinov3
-            yolo:
-                box_color: Est dolore quas.
-                box_thickness: 5871083794999916765
-                classes_filter: Culpa quibusdam mollitia inventore aut dolore.
-                confidence_threshold: 0.18854734
-                draw_boxes: true
-                enabled: true
-                security_mode: false
-                service_endpoint: Sequi fugit neque ducimus.
-                tasks:
-                    - detect
-                    - pose
-        required:
-            - primary_detector
-    ConfigUpdateDetectionResponseBody:
-        title: ConfigUpdateDetectionResponseBody
-        type: object
-        properties:
-            dinov3:
-                $ref: '#/definitions/DINOv3ConfigResponseBody'
-            fallback_enabled:
-                type: boolean
-                description: Enable fallback to basic detection
-                default: true
-                example: true
-            primary_detector:
-                type: string
-                description: Primary detector to use
-                default: basic
-                example: dinov3
-                enum:
-                    - basic
-                    - yolo
-                    - dinov3
-            yolo:
-                $ref: '#/definitions/YOLOConfigResponseBody'
-        example:
-            dinov3:
-                confidence_threshold: 0.57788104
-                enable_scene_analysis: false
+                confidence_threshold: 0.93685156
+                enable_scene_analysis: true
                 enabled: false
                 fallback_to_basic: false
-                motion_threshold: 0.59455615
-                service_endpoint: Esse earum aliquam itaque quisquam sit.
+                motion_threshold: 0.08645629
+                service_endpoint: Tenetur sunt similique.
             fallback_enabled: true
             primary_detector: basic
             yolo:
-                box_color: Officiis impedit quia reiciendis laborum.
-                box_thickness: 1401486359533268354
-                classes_filter: Omnis ipsam doloremque earum ipsa provident non.
-                confidence_threshold: 0.20940988
+                box_color: Reprehenderit sint.
+                box_thickness: 8131404703511313555
+                classes_filter: Cum itaque at enim in illo.
+                confidence_threshold: 0.13947289
                 draw_boxes: false
                 enabled: false
-                security_mode: true
-                service_endpoint: Quod dolor molestiae adipisci est ea.
+                security_mode: false
+                service_endpoint: Facere blanditiis ratione sunt consequatur.
                 tasks:
                     - detect
                     - pose
         required:
             - primary_detector
-    ConfigUpdateDinov3BadRequestResponseBody:
-        title: ConfigUpdateDinov3BadRequestResponseBody
+    FrameResponse:
+        title: FrameResponse
         type: object
         properties:
-            details:
+            content_type:
                 type: string
-                description: Error details
-                example: Praesentium eos laborum eos minima.
+                description: Image MIME type
+                default: image/jpeg
+                example: Est sunt saepe sit ut.
+            data:
+                type: string
+                description: Base64 encoded JPEG image data
+                example: Illum culpa.
+        example:
+            content_type: Totam numquam omnis suscipit sed tempora.
+            data: Veniam doloribus vero.
+        required:
+            - data
+            - content_type
+    InternalError:
+        title: InternalError
+        type: object
+        properties:
             message:
                 type: string
                 description: Error message
-                example: Inventore ad et ipsam ut et.
-        description: Invalid DINOv3 configuration
+                example: Consequatur quae neque.
+        description: Failed to activate camera
         example:
-            details: Aut voluptas officiis beatae voluptates nesciunt.
-            message: Exercitationem beatae qui ut nemo dignissimos aliquid.
+            message: Temporibus accusantium similique consequatur maiores omnis natus.
         required:
             - message
-    ConfigUpdateDinov3RequestBody:
-        title: ConfigUpdateDinov3RequestBody
-        type: object
-        properties:
-            confidence_threshold:
-                type: number
-                description: Minimum confidence for alerts (0-1)
-                default: 0.6
-                example: 0.61191505
-                format: float
-            enable_scene_analysis:
-                type: boolean
-                description: Enable advanced scene analysis
-                default: true
-                example: false
-            enabled:
-                type: boolean
-                description: Enable DINOv3 AI detection
-                example: true
-            fallback_to_basic:
-                type: boolean
-                description: Fallback to basic detection when DINOv3 unavailable
-                default: true
-                example: false
-            motion_threshold:
-                type: number
-                description: Motion detection threshold (0-1)
-                default: 0.85
-                example: 0.16283762
-                format: float
-            service_endpoint:
-                type: string
-                description: DINOv3 service endpoint URL
-                example: Cumque optio voluptas consequuntur veniam.
-        example:
-            confidence_threshold: 0.913372
-            enable_scene_analysis: false
-            enabled: true
-            fallback_to_basic: false
-            motion_threshold: 0.43523648
-            service_endpoint: Non cumque nihil eum rem recusandae est.
-        required:
-            - enabled
-    ConfigUpdateDinov3ResponseBody:
-        title: ConfigUpdateDinov3ResponseBody
-        type: object
-        properties:
-            confidence_threshold:
-                type: number
-                description: Minimum confidence for alerts (0-1)
-                default: 0.6
-                example: 0.89636946
-                format: float
-            enable_scene_analysis:
-                type: boolean
-                description: Enable advanced scene analysis
-                default: true
-                example: true
-            enabled:
-                type: boolean
-                description: Enable DINOv3 AI detection
-                example: false
-            fallback_to_basic:
-                type: boolean
-                description: Fallback to basic detection when DINOv3 unavailable
-                default: true
-                example: false
-            motion_threshold:
-                type: number
-                description: Motion detection threshold (0-1)
-                default: 0.85
-                example: 0.32127416
-                format: float
-            service_endpoint:
-                type: string
-                description: DINOv3 service endpoint URL
-                example: Repellat quas et omnis.
-        example:
-            confidence_threshold: 0.17755751
-            enable_scene_analysis: false
-            enabled: true
-            fallback_to_basic: false
-            motion_threshold: 0.6660673
-            service_endpoint: Rerum consectetur.
-        required:
-            - enabled
-    ConfigUpdatePipelineBadRequestResponseBody:
-        title: ConfigUpdatePipelineBadRequestResponseBody
-        type: object
-        properties:
-            details:
-                type: string
-                description: Error details
-                example: Porro est rem ea.
-            message:
-                type: string
-                description: Error message
-                example: Excepturi eos sapiente voluptate debitis tempora necessitatibus.
-        description: Invalid pipeline configuration
-        example:
-            details: Distinctio saepe veniam et eos.
-            message: Et facere dolorem sint animi.
-        required:
-            - message
-    ConfigUpdatePipelineRequestBody:
-        title: ConfigUpdatePipelineRequestBody
-        type: object
-        properties:
-            detectors:
-                type: array
-                items:
-                    type: string
-                    example: Rerum qui dolorum.
-                description: 'List of detector names: yolo, face, plate. Order matters for sequential mode.'
-                example:
-                    - yolo
-                    - face
-            execution_mode:
-                type: string
-                description: How detectors are run. Only 'sequential' is supported (chains YOLO → Face → Plate).
-                default: sequential
-                example: sequential
-                enum:
-                    - sequential
-            mode:
-                type: string
-                description: Controls when detection runs
-                default: motion_triggered
-                example: scheduled
-                enum:
-                    - disabled
-                    - visual_only
-                    - continuous
-                    - motion_triggered
-                    - scheduled
-                    - hybrid
-            motion_cooldown_seconds:
-                type: integer
-                description: Seconds to wait after motion ends before stopping detection
-                default: 2
-                example: 564624082198268204
-                minimum: 0
-            motion_sensitivity:
-                type: number
-                description: Lower values = more sensitive. Used in motion_triggered and hybrid modes.
-                default: 0.1
-                example: 0.082734965
-                minimum: 0
-                maximum: 1
-            schedule_interval:
-                type: string
-                description: Go duration string, e.g., '5s', '10s', '1m'
-                default: 5s
-                example: Nemo sed vel sint occaecati molestiae fuga.
-        example:
-            detectors:
-                - yolo
-                - face
-            execution_mode: sequential
-            mode: disabled
-            motion_cooldown_seconds: 2133683675129313077
-            motion_sensitivity: 0.9139851
-            schedule_interval: Dolorem est eum optio consectetur nihil omnis.
-        required:
-            - mode
-            - execution_mode
-    ConfigUpdatePipelineResponseBody:
-        title: ConfigUpdatePipelineResponseBody
-        type: object
-        properties:
-            detectors:
-                type: array
-                items:
-                    type: string
-                    example: Beatae omnis sint ea aut vel.
-                description: 'List of detector names: yolo, face, plate. Order matters for sequential mode.'
-                example:
-                    - yolo
-                    - face
-            execution_mode:
-                type: string
-                description: How detectors are run. Only 'sequential' is supported (chains YOLO → Face → Plate).
-                default: sequential
-                example: sequential
-                enum:
-                    - sequential
-            mode:
-                type: string
-                description: Controls when detection runs
-                default: motion_triggered
-                example: scheduled
-                enum:
-                    - disabled
-                    - visual_only
-                    - continuous
-                    - motion_triggered
-                    - scheduled
-                    - hybrid
-            motion_cooldown_seconds:
-                type: integer
-                description: Seconds to wait after motion ends before stopping detection
-                default: 2
-                example: 3712805606453969346
-                minimum: 0
-            motion_sensitivity:
-                type: number
-                description: Lower values = more sensitive. Used in motion_triggered and hybrid modes.
-                default: 0.1
-                example: 0.29502523
-                minimum: 0
-                maximum: 1
-            schedule_interval:
-                type: string
-                description: Go duration string, e.g., '5s', '10s', '1m'
-                default: 5s
-                example: Esse excepturi blanditiis quidem.
-        example:
-            detectors:
-                - yolo
-                - face
-            execution_mode: sequential
-            mode: hybrid
-            motion_cooldown_seconds: 4602841471999363733
-            motion_sensitivity: 0.78147024
-            schedule_interval: Quisquam possimus eligendi excepturi eveniet.
-        required:
-            - mode
-            - execution_mode
-    ConfigUpdateRecognitionBadRequestResponseBody:
-        title: ConfigUpdateRecognitionBadRequestResponseBody
-        type: object
-        properties:
-            details:
-                type: string
-                description: Error details
-                example: At officiis qui eos.
-            message:
-                type: string
-                description: Error message
-                example: Amet culpa vel.
-        description: Invalid recognition configuration
-        example:
-            details: Enim quos.
-            message: Labore eligendi ut exercitationem.
-        required:
-            - message
-    ConfigUpdateRecognitionRequestBody:
-        title: ConfigUpdateRecognitionRequestBody
-        type: object
-        properties:
-            box_thickness:
-                type: integer
-                description: Bounding box line thickness (1-5)
-                default: 2
-                example: 8545594748454461256
-                format: int64
-            enabled:
-                type: boolean
-                description: Enable face recognition
-                example: false
-            known_face_color:
-                type: string
-                description: Color for known/recognized faces in hex format (e.g., '#00FF00')
-                example: Rerum molestiae voluptatem est quia nulla eligendi.
-            service_endpoint:
-                type: string
-                description: Face recognition service endpoint URL
-                example: Minima ab voluptatem ex modi libero voluptatem.
-            similarity_threshold:
-                type: number
-                description: Similarity threshold for face matching (0-1)
-                default: 0.5
-                example: 0.9155901
-                format: float
-            unknown_face_color:
-                type: string
-                description: Color for unknown faces in hex format (e.g., '#FF0000')
-                example: Praesentium debitis aperiam.
-        example:
-            box_thickness: 7114015490623016364
-            enabled: true
-            known_face_color: Natus officia sed autem atque ducimus.
-            service_endpoint: Dolore culpa est dignissimos nihil dolorem quo.
-            similarity_threshold: 0.9296993
-            unknown_face_color: Omnis officia qui quae nostrum.
-        required:
-            - enabled
-    ConfigUpdateRecognitionResponseBody:
-        title: ConfigUpdateRecognitionResponseBody
-        type: object
-        properties:
-            box_thickness:
-                type: integer
-                description: Bounding box line thickness (1-5)
-                default: 2
-                example: 1567619759928994225
-                format: int64
-            enabled:
-                type: boolean
-                description: Enable face recognition
-                example: false
-            known_face_color:
-                type: string
-                description: Color for known/recognized faces in hex format (e.g., '#00FF00')
-                example: Dolores expedita occaecati.
-            service_endpoint:
-                type: string
-                description: Face recognition service endpoint URL
-                example: Ut pariatur sed rerum totam architecto aliquam.
-            similarity_threshold:
-                type: number
-                description: Similarity threshold for face matching (0-1)
-                default: 0.5
-                example: 0.80065423
-                format: float
-            unknown_face_color:
-                type: string
-                description: Color for unknown faces in hex format (e.g., '#FF0000')
-                example: Qui consectetur nesciunt velit voluptatem non eum.
-        example:
-            box_thickness: 7992156806091190505
-            enabled: true
-            known_face_color: Vero iste occaecati porro dolorem et beatae.
-            service_endpoint: Vel voluptas.
-            similarity_threshold: 0.36771122
-            unknown_face_color: Sint fuga ipsam culpa ullam.
-        required:
-            - enabled
-    ConfigUpdateRequestBody:
-        title: ConfigUpdateRequestBody
-        type: object
-        properties:
-            cooldown_seconds:
-                type: integer
-                description: Cooldown period between notifications
-                example: 1973336216190900454
-                format: int64
-            min_confidence:
-                type: number
-                description: Minimum confidence threshold for notifications
-                example: 0.48450395
-                format: float
-            telegram_bot_token:
-                type: string
-                description: Telegram bot token
-                example: Quidem voluptatem qui.
-            telegram_chat_id:
-                type: string
-                description: Telegram chat ID
-                example: Ex est voluptatem aut sit ut sapiente.
-            telegram_enabled:
-                type: boolean
-                description: Enable Telegram notifications
-                example: false
-        example:
-            cooldown_seconds: 906430330805009171
-            min_confidence: 0.7450554
-            telegram_bot_token: Exercitationem et aliquid.
-            telegram_chat_id: Nostrum voluptatum quis dolores in vel ipsam.
-            telegram_enabled: false
-        required:
-            - telegram_enabled
-    ConfigUpdateResponseBody:
-        title: ConfigUpdateResponseBody
-        type: object
-        properties:
-            cooldown_seconds:
-                type: integer
-                description: Cooldown period between notifications
-                example: 5195100607425396800
-                format: int64
-            min_confidence:
-                type: number
-                description: Minimum confidence threshold for notifications
-                example: 0.8834343
-                format: float
-            telegram_bot_token:
-                type: string
-                description: Telegram bot token
-                example: A fugit sunt hic quo odit.
-            telegram_chat_id:
-                type: string
-                description: Telegram chat ID
-                example: Illum eum exercitationem quia.
-            telegram_enabled:
-                type: boolean
-                description: Enable Telegram notifications
-                example: false
-        example:
-            cooldown_seconds: 6485483389139887213
-            min_confidence: 0.38621458
-            telegram_bot_token: Perferendis ea.
-            telegram_chat_id: Nisi et non.
-            telegram_enabled: true
-        required:
-            - telegram_enabled
-    ConfigUpdateYoloBadRequestResponseBody:
-        title: ConfigUpdateYoloBadRequestResponseBody
-        type: object
-        properties:
-            details:
-                type: string
-                description: Error details
-                example: Aut quisquam optio quibusdam non alias laudantium.
-            message:
-                type: string
-                description: Error message
-                example: Eos natus.
-        description: Invalid YOLO configuration
-        example:
-            details: Quibusdam excepturi enim esse et sunt rerum.
-            message: Impedit iusto voluptatem voluptatem amet.
-        required:
-            - message
-    ConfigUpdateYoloRequestBody:
-        title: ConfigUpdateYoloRequestBody
-        type: object
-        properties:
-            box_color:
-                type: string
-                description: Bounding box color in hex format (e.g., '#0066FF')
-                example: Tempore quaerat quae numquam vero.
-            box_thickness:
-                type: integer
-                description: Bounding box line thickness (1-5)
-                default: 2
-                example: 4935626641314988002
-                format: int64
-            classes_filter:
-                type: string
-                description: Comma-separated class names to filter (empty = all)
-                example: Qui amet.
-            confidence_threshold:
-                type: number
-                description: Minimum confidence for detections (0-1)
-                default: 0.5
-                example: 0.29543087
-                format: float
-            draw_boxes:
-                type: boolean
-                description: Draw bounding boxes on images (for Telegram, API)
-                default: false
-                example: false
-            enabled:
-                type: boolean
-                description: Enable YOLO object detection
-                example: false
-            security_mode:
-                type: boolean
-                description: Use security-focused detection (person, car, etc.)
-                default: true
-                example: true
-            service_endpoint:
-                type: string
-                description: YOLO service endpoint URL
-                example: Perferendis excepturi magni.
-            tasks:
-                type: array
-                items:
-                    type: string
-                    example: Debitis totam consequuntur neque.
-                description: List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose estimation, 'segment' for instance segmentation, 'obb' for oriented bounding boxes, 'classify' for image classification.
-                example:
-                    - detect
-                    - pose
-        example:
-            box_color: Eius officiis error architecto modi dolores aut.
-            box_thickness: 7086868918122453759
-            classes_filter: Veniam numquam ipsam enim sed aperiam molestiae.
-            confidence_threshold: 0.71197385
-            draw_boxes: true
-            enabled: true
-            security_mode: true
-            service_endpoint: Rem accusantium.
-            tasks:
-                - detect
-                - pose
-        required:
-            - enabled
-    ConfigUpdateYoloResponseBody:
-        title: ConfigUpdateYoloResponseBody
-        type: object
-        properties:
-            box_color:
-                type: string
-                description: Bounding box color in hex format (e.g., '#0066FF')
-                example: Nesciunt id.
-            box_thickness:
-                type: integer
-                description: Bounding box line thickness (1-5)
-                default: 2
-                example: 5819753992218444830
-                format: int64
-            classes_filter:
-                type: string
-                description: Comma-separated class names to filter (empty = all)
-                example: Provident ea aut a.
-            confidence_threshold:
-                type: number
-                description: Minimum confidence for detections (0-1)
-                default: 0.5
-                example: 0.6826354
-                format: float
-            draw_boxes:
-                type: boolean
-                description: Draw bounding boxes on images (for Telegram, API)
-                default: false
-                example: true
-            enabled:
-                type: boolean
-                description: Enable YOLO object detection
-                example: false
-            security_mode:
-                type: boolean
-                description: Use security-focused detection (person, car, etc.)
-                default: true
-                example: false
-            service_endpoint:
-                type: string
-                description: YOLO service endpoint URL
-                example: Qui sed alias.
-            tasks:
-                type: array
-                items:
-                    type: string
-                    example: Molestiae illum praesentium necessitatibus quos nisi.
-                description: List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose estimation, 'segment' for instance segmentation, 'obb' for oriented bounding boxes, 'classify' for image classification.
-                example:
-                    - detect
-                    - pose
-        example:
-            box_color: Necessitatibus dicta accusantium pariatur dolor magni.
-            box_thickness: 7076869328529366555
-            classes_filter: Voluptatem quis corporis sit qui ab perspiciatis.
-            confidence_threshold: 0.4520569
-            draw_boxes: false
-            enabled: false
-            security_mode: false
-            service_endpoint: Quidem maxime voluptates.
-            tasks:
-                - detect
-                - pose
-        required:
-            - enabled
-    DINOv3ConfigRequestBody:
-        title: DINOv3ConfigRequestBody
-        type: object
-        properties:
-            confidence_threshold:
-                type: number
-                description: Minimum confidence for alerts (0-1)
-                default: 0.6
-                example: 0.24560063
-                format: float
-            enable_scene_analysis:
-                type: boolean
-                description: Enable advanced scene analysis
-                default: true
-                example: true
-            enabled:
-                type: boolean
-                description: Enable DINOv3 AI detection
-                example: false
-            fallback_to_basic:
-                type: boolean
-                description: Fallback to basic detection when DINOv3 unavailable
-                default: true
-                example: true
-            motion_threshold:
-                type: number
-                description: Motion detection threshold (0-1)
-                default: 0.85
-                example: 0.8440717
-                format: float
-            service_endpoint:
-                type: string
-                description: DINOv3 service endpoint URL
-                example: Ut laboriosam delectus dolores et possimus et.
-        description: DINOv3 AI detection configuration
-        example:
-            confidence_threshold: 0.01733897
-            enable_scene_analysis: false
-            enabled: true
-            fallback_to_basic: true
-            motion_threshold: 0.69344145
-            service_endpoint: Qui sit amet ex.
-        required:
-            - enabled
-    DINOv3ConfigResponseBody:
-        title: DINOv3ConfigResponseBody
-        type: object
-        properties:
-            confidence_threshold:
-                type: number
-                description: Minimum confidence for alerts (0-1)
-                default: 0.6
-                example: 0.18244085
-                format: float
-            enable_scene_analysis:
-                type: boolean
-                description: Enable advanced scene analysis
-                default: true
-                example: true
-            enabled:
-                type: boolean
-                description: Enable DINOv3 AI detection
-                example: true
-            fallback_to_basic:
-                type: boolean
-                description: Fallback to basic detection when DINOv3 unavailable
-                default: true
-                example: false
-            motion_threshold:
-                type: number
-                description: Motion detection threshold (0-1)
-                default: 0.85
-                example: 0.77622604
-                format: float
-            service_endpoint:
-                type: string
-                description: DINOv3 service endpoint URL
-                example: Totam ullam.
-        description: DINOv3 AI detection configuration
-        example:
-            confidence_threshold: 0.6477174
-            enable_scene_analysis: false
-            enabled: true
-            fallback_to_basic: false
-            motion_threshold: 0.18748441
-            service_endpoint: Molestiae qui error.
-        required:
-            - enabled
-    HealthReadyzNotReadyResponseBody:
-        title: HealthReadyzNotReadyResponseBody
-        type: object
-        properties:
-            details:
-                type: string
-                description: Additional error details
-                example: Repellendus facilis ipsam tempore.
-            message:
-                type: string
-                description: Error message
-                example: Tempora rerum.
-        description: Service is not ready
-        example:
-            details: Sint tempora architecto.
-            message: Saepe mollitia maxime.
-        required:
-            - message
-    MotionEventNotFoundResponseBody:
-        title: MotionEventNotFoundResponseBody
-        type: object
-        properties:
-            id:
-                type: string
-                description: Resource ID
-                example: Amet nam.
-            message:
-                type: string
-                description: Error message
-                example: Laudantium ea quia.
-        description: Event not found
-        example:
-            id: Voluptate id.
-            message: Consequatur qui voluptatem quis non.
-        required:
-            - message
-            - id
-    MotionEventResponse:
-        title: MotionEventResponse
+    MotionEvent:
+        title: MotionEvent
         type: object
         properties:
             bounding_boxes:
                 type: array
                 items:
-                    $ref: '#/definitions/BoundingBoxResponse'
+                    $ref: '#/definitions/BoundingBox'
                 description: Detected motion areas
                 example:
-                    - height: 1660660723522816125
-                      width: 4593388236180247823
-                      x: 6547508911293909021
-                      "y": 1383651303829643259
-                    - height: 1660660723522816125
-                      width: 4593388236180247823
-                      x: 6547508911293909021
-                      "y": 1383651303829643259
-                    - height: 1660660723522816125
-                      width: 4593388236180247823
-                      x: 6547508911293909021
-                      "y": 1383651303829643259
+                    - height: 4135917581243998397
+                      width: 6154682138056734891
+                      x: 9103686172990983152
+                      "y": 989066992458198934
+                    - height: 4135917581243998397
+                      width: 6154682138056734891
+                      x: 9103686172990983152
+                      "y": 989066992458198934
+                    - height: 4135917581243998397
+                      width: 6154682138056734891
+                      x: 9103686172990983152
+                      "y": 989066992458198934
             camera_id:
                 type: string
                 description: Camera ID
-                example: 4275977b-f4bb-11f0-8a31-5847ca7b8ce1
+                example: fbe524db-8caf-4646-a303-82f009747116
                 format: uuid
             confidence:
                 type: number
                 description: Motion confidence score (0-1)
-                example: 0.8524808
+                example: 0.7140271
                 format: float
             detection_device:
                 type: string
@@ -3352,59 +1537,60 @@ definitions:
             faces_detected:
                 type: integer
                 description: Number of faces detected in frame
-                example: 3111601605061449217
+                example: 8195358758577532413
                 format: int64
             forensic_thumbnails:
                 type: array
                 items:
                     type: string
-                    example: Quod sed corporis.
+                    example: Rerum quo omnis id qui in laudantium.
                 description: Paths to forensic face analysis images with landmarks
                 example:
-                    - Aut voluptatem.
-                    - Expedita et quos error eaque sed.
+                    - Eveniet et ratione quas.
+                    - Impedit laudantium.
+                    - Magni repudiandae numquam quo.
+                    - Dolor eligendi.
             frame_path:
                 type: string
                 description: Path to captured frame
-                example: Nisi quas.
+                example: Maiores dolor sint.
             id:
                 type: string
                 description: Event unique identifier
-                example: 427596b9-f4bb-11f0-8a31-5847ca7b8ce1
+                example: 8db78812-a6b5-4073-a478-47abd6ff8ac5
                 format: uuid
             inference_time_ms:
                 type: number
                 description: AI inference time in milliseconds
-                example: 0.73293513
+                example: 0.57004267
                 format: float
             known_identities:
                 type: array
                 items:
                     type: string
-                    example: Sit ut corrupti dolores minus quia dolores.
+                    example: Natus distinctio et sit quia ab.
                 description: Names of recognized known faces
                 example:
-                    - Est voluptatibus.
-                    - Placeat et tempora.
-                    - Odio fugiat quo maiores.
-                    - Vel et placeat maxime recusandae voluptas quos.
+                    - Qui ullam commodi culpa sint soluta eos.
+                    - Aspernatur voluptas quia et voluptatem non placeat.
+                    - Omnis asperiores architecto.
             notification_sent:
                 type: boolean
                 description: Whether notification was sent
-                example: true
+                example: false
             object_class:
                 type: string
                 description: Detected object class
-                example: Accusantium fugit.
+                example: Libero libero.
             object_confidence:
                 type: number
                 description: AI detection confidence
-                example: 0.6983898
+                example: 0.5003708
                 format: float
             threat_level:
                 type: string
                 description: Threat level assessment
-                example: medium
+                example: high
                 enum:
                     - none
                     - low
@@ -3413,671 +1599,371 @@ definitions:
             timestamp:
                 type: string
                 description: Event timestamp
-                example: "2010-05-10T02:58:32Z"
+                example: "1994-07-25T20:05:36Z"
                 format: date-time
             unknown_faces_count:
                 type: integer
                 description: Number of unknown/unrecognized faces
-                example: 1678992491207511685
+                example: 5935928605853431577
                 format: int64
         description: Motion detection event
         example:
             bounding_boxes:
-                - height: 1660660723522816125
-                  width: 4593388236180247823
-                  x: 6547508911293909021
-                  "y": 1383651303829643259
-                - height: 1660660723522816125
-                  width: 4593388236180247823
-                  x: 6547508911293909021
-                  "y": 1383651303829643259
-            camera_id: 42759b21-f4bb-11f0-8a31-5847ca7b8ce1
-            confidence: 0.42170474
+                - height: 4135917581243998397
+                  width: 6154682138056734891
+                  x: 9103686172990983152
+                  "y": 989066992458198934
+                - height: 4135917581243998397
+                  width: 6154682138056734891
+                  x: 9103686172990983152
+                  "y": 989066992458198934
+                - height: 4135917581243998397
+                  width: 6154682138056734891
+                  x: 9103686172990983152
+                  "y": 989066992458198934
+            camera_id: ac03b066-a635-44da-96ea-26ab25edc525
+            confidence: 0.22975269
             detection_device: dinov3
-            faces_detected: 4789836582589451570
+            faces_detected: 3119075432154950963
             forensic_thumbnails:
-                - Doloremque omnis eius.
-                - Quasi et.
-                - Quis iure est porro aut maxime.
-            frame_path: Impedit exercitationem aut.
-            id: 42759a5d-f4bb-11f0-8a31-5847ca7b8ce1
-            inference_time_ms: 0.39036885
+                - Repellat nesciunt aut.
+                - Quae facilis deserunt ad.
+                - Quos adipisci officiis est ipsum.
+                - Voluptatem id fuga corrupti enim.
+            frame_path: Repudiandae fugiat.
+            id: 69f24ac3-76a6-4664-b41e-6c49d9480402
+            inference_time_ms: 0.6772948
             known_identities:
-                - Et ut id optio et.
-                - Deleniti eius rem quos.
-                - Velit ea.
-                - Harum quibusdam pariatur ducimus.
+                - Excepturi soluta nihil quo consectetur.
+                - Itaque sit et sunt delectus voluptas fugit.
+                - Saepe voluptas.
             notification_sent: true
-            object_class: Enim consequatur dolores.
-            object_confidence: 0.25770727
-            threat_level: medium
-            timestamp: "1991-11-30T06:53:50Z"
-            unknown_faces_count: 4226216378144602459
+            object_class: Molestiae distinctio officia sint ea perspiciatis.
+            object_confidence: 0.94659007
+            threat_level: none
+            timestamp: "1998-11-10T02:03:23Z"
+            unknown_faces_count: 8532035293356800532
         required:
             - id
             - camera_id
             - timestamp
             - confidence
-    MotionEventResponseBody:
-        title: MotionEventResponseBody
+    NotFoundError:
+        title: NotFoundError
         type: object
         properties:
-            bounding_boxes:
-                type: array
-                items:
-                    $ref: '#/definitions/BoundingBoxResponseBody'
-                description: Detected motion areas
-                example:
-                    - height: 5415603702478034374
-                      width: 676563091504187757
-                      x: 801087721165181155
-                      "y": 7690773432440394694
-                    - height: 5415603702478034374
-                      width: 676563091504187757
-                      x: 801087721165181155
-                      "y": 7690773432440394694
-            camera_id:
-                type: string
-                description: Camera ID
-                example: 42759de5-f4bb-11f0-8a31-5847ca7b8ce1
-                format: uuid
-            confidence:
-                type: number
-                description: Motion confidence score (0-1)
-                example: 0.89883953
-                format: float
-            detection_device:
-                type: string
-                description: Device used for detection
-                example: dinov3
-                enum:
-                    - cpu
-                    - cuda
-                    - dinov3
-            faces_detected:
-                type: integer
-                description: Number of faces detected in frame
-                example: 9164720113129366874
-                format: int64
-            forensic_thumbnails:
-                type: array
-                items:
-                    type: string
-                    example: Occaecati omnis tenetur nisi id.
-                description: Paths to forensic face analysis images with landmarks
-                example:
-                    - Ut ab excepturi.
-                    - Perspiciatis incidunt est nihil sapiente fugiat hic.
-            frame_path:
-                type: string
-                description: Path to captured frame
-                example: Alias laudantium doloribus omnis exercitationem recusandae.
             id:
                 type: string
-                description: Event unique identifier
-                example: 42759d19-f4bb-11f0-8a31-5847ca7b8ce1
-                format: uuid
-            inference_time_ms:
+                description: Resource ID
+                example: Voluptatibus pariatur voluptatum et.
+            message:
+                type: string
+                description: Error message
+                example: Necessitatibus ea.
+        description: Camera not found
+        example:
+            id: Eum id deleniti est.
+            message: Et quisquam sunt quo.
+        required:
+            - message
+            - id
+    NotReadyError:
+        title: NotReadyError
+        type: object
+        properties:
+            details:
+                type: string
+                description: Additional error details
+                example: In ut.
+            message:
+                type: string
+                description: Error message
+                example: Cumque quia ut quos non.
+        description: Service is not ready
+        example:
+            details: Consequatur aliquid totam eveniet.
+            message: Error in ut dolor.
+        required:
+            - message
+    NotificationConfig:
+        title: NotificationConfig
+        type: object
+        properties:
+            cooldown_seconds:
+                type: integer
+                description: Cooldown period between notifications
+                example: 8309451235232166498
+                format: int64
+            min_confidence:
                 type: number
-                description: AI inference time in milliseconds
-                example: 0.63647217
+                description: Minimum confidence threshold for notifications
+                example: 0.20416704
                 format: float
-            known_identities:
-                type: array
-                items:
-                    type: string
-                    example: Eum nesciunt id commodi est est doloremque.
-                description: Names of recognized known faces
-                example:
-                    - Laudantium et.
-                    - Sint facilis ad omnis delectus.
-                    - Cum voluptates.
-            notification_sent:
+            telegram_bot_token:
+                type: string
+                description: Telegram bot token
+                example: Nobis est voluptatibus quidem ad eveniet.
+            telegram_chat_id:
+                type: string
+                description: Telegram chat ID
+                example: Quos quam est inventore.
+            telegram_enabled:
                 type: boolean
-                description: Whether notification was sent
-                example: false
-            object_class:
+                description: Enable Telegram notifications
+                example: true
+        example:
+            cooldown_seconds: 7847962086460073055
+            min_confidence: 0.049241807
+            telegram_bot_token: Soluta impedit eum voluptatem quo soluta.
+            telegram_chat_id: Asperiores eligendi consequatur doloribus.
+            telegram_enabled: true
+        required:
+            - telegram_enabled
+    PipelineConfig:
+        title: PipelineConfig
+        type: object
+        properties:
+            detectors:
+                type: array
+                items:
+                    type: string
+                    example: Quia maxime aliquid doloremque.
+                description: 'List of detector names: yolo, face, plate. Order matters for sequential mode.'
+                example:
+                    - yolo
+                    - face
+            execution_mode:
                 type: string
-                description: Detected object class
-                example: Dolorem non.
-            object_confidence:
-                type: number
-                description: AI detection confidence
-                example: 0.28413716
-                format: float
-            threat_level:
-                type: string
-                description: Threat level assessment
-                example: none
+                description: How detectors are run. Only 'sequential' is supported (chains YOLO → Face → Plate).
+                default: sequential
+                example: sequential
                 enum:
-                    - none
-                    - low
-                    - medium
-                    - high
-            timestamp:
+                    - sequential
+            mode:
                 type: string
-                description: Event timestamp
-                example: "1992-01-02T17:14:14Z"
-                format: date-time
-            unknown_faces_count:
+                description: Controls when detection runs
+                default: motion_triggered
+                example: scheduled
+                enum:
+                    - disabled
+                    - visual_only
+                    - continuous
+                    - motion_triggered
+                    - scheduled
+                    - hybrid
+            motion_cooldown_seconds:
                 type: integer
-                description: Number of unknown/unrecognized faces
-                example: 7613399894264516081
+                description: Seconds to wait after motion ends before stopping detection
+                default: 2
+                example: 5801438619166011379
                 format: int64
+                minimum: 0
+            motion_sensitivity:
+                type: number
+                description: Lower values = more sensitive. Used in motion_triggered and hybrid modes.
+                default: 0.1
+                example: 0.54474014
+                format: float
+                minimum: 0
+                maximum: 1
+            schedule_interval:
+                type: string
+                description: Go duration string, e.g., '5s', '10s', '1m'
+                default: 5s
+                example: Dolor et reprehenderit.
         example:
-            bounding_boxes:
-                - height: 5415603702478034374
-                  width: 676563091504187757
-                  x: 801087721165181155
-                  "y": 7690773432440394694
-                - height: 5415603702478034374
-                  width: 676563091504187757
-                  x: 801087721165181155
-                  "y": 7690773432440394694
-            camera_id: 4275a195-f4bb-11f0-8a31-5847ca7b8ce1
-            confidence: 0.9265505
-            detection_device: cuda
-            faces_detected: 5131110099342320024
-            forensic_thumbnails:
-                - Itaque facilis ad.
-                - Dicta ratione et qui.
-                - Voluptatem consequuntur nihil.
-                - Culpa laudantium iusto doloremque et molestiae.
-            frame_path: Sit et ab ipsum.
-            id: 4275a0a7-f4bb-11f0-8a31-5847ca7b8ce1
-            inference_time_ms: 0.030960426
-            known_identities:
-                - Quis modi consequatur occaecati quibusdam dignissimos excepturi.
-                - Ut ut.
-                - Sit odio.
-                - Dignissimos quisquam quos molestias aut blanditiis iure.
-            notification_sent: true
-            object_class: Possimus qui similique ex nulla quo.
-            object_confidence: 0.019035336
-            threat_level: high
-            timestamp: "2000-12-11T20:06:55Z"
-            unknown_faces_count: 7517579069206646680
+            detectors:
+                - yolo
+                - face
+            execution_mode: sequential
+            mode: hybrid
+            motion_cooldown_seconds: 8160230905841584447
+            motion_sensitivity: 0.59969527
+            schedule_interval: Et ad aperiam vitae.
         required:
-            - id
-            - camera_id
-            - timestamp
-            - confidence
-    MotionForensicThumbnailNotFoundResponseBody:
-        title: MotionForensicThumbnailNotFoundResponseBody
+            - mode
+            - execution_mode
+    RecognitionConfig:
+        title: RecognitionConfig
         type: object
         properties:
-            id:
+            box_thickness:
+                type: integer
+                description: Bounding box line thickness (1-5)
+                default: 2
+                example: 7815525546998725366
+                format: int64
+            enabled:
+                type: boolean
+                description: Enable face recognition
+                example: false
+            known_face_color:
                 type: string
-                description: Resource ID
-                example: Voluptates ut nulla est rerum ut omnis.
-            message:
+                description: Color for known/recognized faces in hex format (e.g., '#00FF00')
+                example: Hic sapiente aut.
+            service_endpoint:
                 type: string
-                description: Error message
-                example: Ipsam id suscipit saepe aut.
-        description: Event or thumbnail not found
+                description: Face recognition service endpoint URL
+                example: Dolorem provident aut omnis similique.
+            similarity_threshold:
+                type: number
+                description: Similarity threshold for face matching (0-1)
+                default: 0.5
+                example: 0.2834825
+                format: float
+            unknown_face_color:
+                type: string
+                description: Color for unknown faces in hex format (e.g., '#FF0000')
+                example: Qui nihil adipisci sed.
         example:
-            id: Porro tenetur ipsa officia qui corrupti.
-            message: Ipsam doloribus corporis fugiat qui.
+            box_thickness: 5171451417815738708
+            enabled: true
+            known_face_color: Itaque voluptatem quo dolor vel.
+            service_endpoint: Dolores beatae quo.
+            similarity_threshold: 0.628405
+            unknown_face_color: Praesentium est aut est.
         required:
-            - message
-            - id
-    MotionForensicThumbnailResponseBody:
-        title: MotionForensicThumbnailResponseBody
-        type: object
-        properties:
-            content_type:
-                type: string
-                description: Image MIME type
-                default: image/jpeg
-                example: Officiis voluptatem.
-            data:
-                type: string
-                description: Base64 encoded JPEG image data
-                example: Quaerat qui.
-        example:
-            content_type: Autem amet provident et sint est.
-            data: Omnis voluptas occaecati a.
-        required:
-            - data
-            - content_type
-    MotionFrameNotFoundResponseBody:
-        title: MotionFrameNotFoundResponseBody
-        type: object
-        properties:
-            id:
-                type: string
-                description: Resource ID
-                example: Debitis alias asperiores illo.
-            message:
-                type: string
-                description: Error message
-                example: Id ut.
-        description: Event or frame not found
-        example:
-            id: Consequuntur deserunt suscipit illo voluptates.
-            message: Amet quis sunt ipsa.
-        required:
-            - message
-            - id
-    MotionFrameResponseBody:
-        title: MotionFrameResponseBody
-        type: object
-        properties:
-            content_type:
-                type: string
-                description: Image MIME type
-                default: image/jpeg
-                example: Quia porro expedita ab deleniti sit.
-            data:
-                type: string
-                description: Base64 encoded JPEG image data
-                example: Nesciunt voluptatum necessitatibus.
-        example:
-            content_type: Consequatur eos.
-            data: Totam quisquam necessitatibus.
-        required:
-            - data
-            - content_type
-    SystemStartDetectionInternalResponseBody:
-        title: SystemStartDetectionInternalResponseBody
-        type: object
-        properties:
-            message:
-                type: string
-                description: Error message
-                example: Facilis enim.
-        description: Failed to start motion detection
-        example:
-            message: Mollitia qui commodi et nostrum molestias qui.
-        required:
-            - message
-    SystemStartDetectionResponseBody:
-        title: SystemStartDetectionResponseBody
+            - enabled
+    SystemStatus:
+        title: SystemStatus
         type: object
         properties:
             cameras:
                 type: array
                 items:
-                    $ref: '#/definitions/CameraInfoResponseBody'
+                    $ref: '#/definitions/CameraInfo'
                 description: Camera status list
                 example:
-                    - created_at: "1991-04-26T03:17:09Z"
-                      device: Sit quod quas rerum eligendi.
-                      events_enabled: false
-                      fps: 59650149184637284
-                      id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                      name: Pariatur et tempore soluta dicta.
-                      notifications_enabled: true
-                      resolution: Sint quibusdam harum.
-                      status: active
-                    - created_at: "1991-04-26T03:17:09Z"
-                      device: Sit quod quas rerum eligendi.
-                      events_enabled: false
-                      fps: 59650149184637284
-                      id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                      name: Pariatur et tempore soluta dicta.
-                      notifications_enabled: true
-                      resolution: Sint quibusdam harum.
-                      status: active
+                    - created_at: "1979-07-01T17:37:54Z"
+                      device: Voluptas rem et alias ut.
+                      events_enabled: true
+                      fps: 8985836878463536744
+                      id: b31af227-3038-44f9-92a1-fd86993bf0f9
+                      name: Quibusdam quasi.
+                      notifications_enabled: false
+                      resolution: Ducimus iste.
+                      status: error
+                    - created_at: "1979-07-01T17:37:54Z"
+                      device: Voluptas rem et alias ut.
+                      events_enabled: true
+                      fps: 8985836878463536744
+                      id: b31af227-3038-44f9-92a1-fd86993bf0f9
+                      name: Quibusdam quasi.
+                      notifications_enabled: false
+                      resolution: Ducimus iste.
+                      status: error
             detecting_cameras:
                 type: integer
                 description: Number of cameras currently running detection
-                example: 309008106469460059
+                example: 6911030766429559349
                 format: int64
             motion_detection_active:
                 type: boolean
                 description: Motion detection status
-                example: false
+                example: true
             notifications_active:
                 type: boolean
                 description: Notification status
-                example: true
+                example: false
             pipeline_detection_enabled:
                 type: boolean
                 description: Whether AI detection is enabled (false when mode=disabled)
-                example: false
+                example: true
             pipeline_detectors:
                 type: array
                 items:
                     type: string
-                    example: Sint nemo tempora occaecati nulla porro saepe.
+                    example: Animi est perferendis excepturi incidunt rerum vel.
                 description: Enabled detectors in the pipeline
                 example:
-                    - Perferendis consequatur eum ad id quidem.
-                    - Delectus dolorum voluptas quae velit.
+                    - Nulla id officiis vel.
+                    - Accusamus eveniet saepe ut.
+                    - Voluptates vero quia saepe velit voluptas.
+                    - Sunt velit sapiente voluptatibus itaque quo.
             pipeline_execution_mode:
                 type: string
                 description: Pipeline execution mode (always sequential)
-                example: Aut odio.
+                example: Inventore doloribus sapiente ad.
             pipeline_mode:
                 type: string
                 description: Current pipeline detection mode (disabled, continuous, motion_triggered, scheduled, hybrid)
-                example: Architecto adipisci suscipit et sed.
+                example: Optio consectetur nam quia consequatur quisquam et.
             uptime_seconds:
                 type: integer
                 description: System uptime in seconds
-                example: 925000685808482857
+                example: 7916420381759192870
                 format: int64
         example:
             cameras:
-                - created_at: "1991-04-26T03:17:09Z"
-                  device: Sit quod quas rerum eligendi.
-                  events_enabled: false
-                  fps: 59650149184637284
-                  id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                  name: Pariatur et tempore soluta dicta.
-                  notifications_enabled: true
-                  resolution: Sint quibusdam harum.
-                  status: active
-                - created_at: "1991-04-26T03:17:09Z"
-                  device: Sit quod quas rerum eligendi.
-                  events_enabled: false
-                  fps: 59650149184637284
-                  id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                  name: Pariatur et tempore soluta dicta.
-                  notifications_enabled: true
-                  resolution: Sint quibusdam harum.
-                  status: active
-                - created_at: "1991-04-26T03:17:09Z"
-                  device: Sit quod quas rerum eligendi.
-                  events_enabled: false
-                  fps: 59650149184637284
-                  id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                  name: Pariatur et tempore soluta dicta.
-                  notifications_enabled: true
-                  resolution: Sint quibusdam harum.
-                  status: active
-            detecting_cameras: 4444966174926812427
-            motion_detection_active: true
+                - created_at: "1979-07-01T17:37:54Z"
+                  device: Voluptas rem et alias ut.
+                  events_enabled: true
+                  fps: 8985836878463536744
+                  id: b31af227-3038-44f9-92a1-fd86993bf0f9
+                  name: Quibusdam quasi.
+                  notifications_enabled: false
+                  resolution: Ducimus iste.
+                  status: error
+                - created_at: "1979-07-01T17:37:54Z"
+                  device: Voluptas rem et alias ut.
+                  events_enabled: true
+                  fps: 8985836878463536744
+                  id: b31af227-3038-44f9-92a1-fd86993bf0f9
+                  name: Quibusdam quasi.
+                  notifications_enabled: false
+                  resolution: Ducimus iste.
+                  status: error
+            detecting_cameras: 3903243977727790585
+            motion_detection_active: false
             notifications_active: false
             pipeline_detection_enabled: false
             pipeline_detectors:
-                - Quam quia qui quo.
-                - Ea nam sunt.
-                - Voluptatem optio.
-                - Nihil modi atque.
-            pipeline_execution_mode: Aspernatur deleniti rerum dicta id ut.
-            pipeline_mode: Corporis dicta in magnam ut sit architecto.
-            uptime_seconds: 7776396143091893670
+                - Incidunt accusantium distinctio.
+                - Vero debitis minima aut nemo ut officiis.
+            pipeline_execution_mode: Qui et id.
+            pipeline_mode: Et corporis necessitatibus.
+            uptime_seconds: 5601172217082452621
         required:
             - cameras
             - motion_detection_active
             - notifications_active
             - uptime_seconds
-    SystemStatusResponseBody:
-        title: SystemStatusResponseBody
+    UnauthorizedError:
+        title: UnauthorizedError
         type: object
         properties:
-            cameras:
-                type: array
-                items:
-                    $ref: '#/definitions/CameraInfoResponseBody'
-                description: Camera status list
-                example:
-                    - created_at: "1991-04-26T03:17:09Z"
-                      device: Sit quod quas rerum eligendi.
-                      events_enabled: false
-                      fps: 59650149184637284
-                      id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                      name: Pariatur et tempore soluta dicta.
-                      notifications_enabled: true
-                      resolution: Sint quibusdam harum.
-                      status: active
-                    - created_at: "1991-04-26T03:17:09Z"
-                      device: Sit quod quas rerum eligendi.
-                      events_enabled: false
-                      fps: 59650149184637284
-                      id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                      name: Pariatur et tempore soluta dicta.
-                      notifications_enabled: true
-                      resolution: Sint quibusdam harum.
-                      status: active
-                    - created_at: "1991-04-26T03:17:09Z"
-                      device: Sit quod quas rerum eligendi.
-                      events_enabled: false
-                      fps: 59650149184637284
-                      id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                      name: Pariatur et tempore soluta dicta.
-                      notifications_enabled: true
-                      resolution: Sint quibusdam harum.
-                      status: active
-            detecting_cameras:
-                type: integer
-                description: Number of cameras currently running detection
-                example: 1985593403873824289
-                format: int64
-            motion_detection_active:
-                type: boolean
-                description: Motion detection status
-                example: true
-            notifications_active:
-                type: boolean
-                description: Notification status
-                example: false
-            pipeline_detection_enabled:
-                type: boolean
-                description: Whether AI detection is enabled (false when mode=disabled)
-                example: true
-            pipeline_detectors:
-                type: array
-                items:
-                    type: string
-                    example: Delectus itaque sed deleniti quas.
-                description: Enabled detectors in the pipeline
-                example:
-                    - Nobis quas est sit aut est quis.
-                    - Aut rerum eum.
-            pipeline_execution_mode:
+            message:
                 type: string
-                description: Pipeline execution mode (always sequential)
-                example: Id reprehenderit iure.
-            pipeline_mode:
-                type: string
-                description: Current pipeline detection mode (disabled, continuous, motion_triggered, scheduled, hybrid)
-                example: At labore enim.
-            uptime_seconds:
-                type: integer
-                description: System uptime in seconds
-                example: 3587867527142031985
-                format: int64
+                description: Error message
+                example: Necessitatibus autem dolorem voluptas sint in ullam.
+        description: Invalid credentials
         example:
-            cameras:
-                - created_at: "1991-04-26T03:17:09Z"
-                  device: Sit quod quas rerum eligendi.
-                  events_enabled: false
-                  fps: 59650149184637284
-                  id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                  name: Pariatur et tempore soluta dicta.
-                  notifications_enabled: true
-                  resolution: Sint quibusdam harum.
-                  status: active
-                - created_at: "1991-04-26T03:17:09Z"
-                  device: Sit quod quas rerum eligendi.
-                  events_enabled: false
-                  fps: 59650149184637284
-                  id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                  name: Pariatur et tempore soluta dicta.
-                  notifications_enabled: true
-                  resolution: Sint quibusdam harum.
-                  status: active
-                - created_at: "1991-04-26T03:17:09Z"
-                  device: Sit quod quas rerum eligendi.
-                  events_enabled: false
-                  fps: 59650149184637284
-                  id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                  name: Pariatur et tempore soluta dicta.
-                  notifications_enabled: true
-                  resolution: Sint quibusdam harum.
-                  status: active
-                - created_at: "1991-04-26T03:17:09Z"
-                  device: Sit quod quas rerum eligendi.
-                  events_enabled: false
-                  fps: 59650149184637284
-                  id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                  name: Pariatur et tempore soluta dicta.
-                  notifications_enabled: true
-                  resolution: Sint quibusdam harum.
-                  status: active
-            detecting_cameras: 2092684439349290425
-            motion_detection_active: false
-            notifications_active: true
-            pipeline_detection_enabled: true
-            pipeline_detectors:
-                - Ex enim eum tempora.
-                - Ut voluptas.
-            pipeline_execution_mode: Error voluptatem eligendi non doloribus.
-            pipeline_mode: Eum ipsum dolor et sed cum cum.
-            uptime_seconds: 4280041750761349971
+            message: Dolor qui deserunt nisi quae.
         required:
-            - cameras
-            - motion_detection_active
-            - notifications_active
-            - uptime_seconds
-    SystemStopDetectionResponseBody:
-        title: SystemStopDetectionResponseBody
-        type: object
-        properties:
-            cameras:
-                type: array
-                items:
-                    $ref: '#/definitions/CameraInfoResponseBody'
-                description: Camera status list
-                example:
-                    - created_at: "1991-04-26T03:17:09Z"
-                      device: Sit quod quas rerum eligendi.
-                      events_enabled: false
-                      fps: 59650149184637284
-                      id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                      name: Pariatur et tempore soluta dicta.
-                      notifications_enabled: true
-                      resolution: Sint quibusdam harum.
-                      status: active
-                    - created_at: "1991-04-26T03:17:09Z"
-                      device: Sit quod quas rerum eligendi.
-                      events_enabled: false
-                      fps: 59650149184637284
-                      id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                      name: Pariatur et tempore soluta dicta.
-                      notifications_enabled: true
-                      resolution: Sint quibusdam harum.
-                      status: active
-                    - created_at: "1991-04-26T03:17:09Z"
-                      device: Sit quod quas rerum eligendi.
-                      events_enabled: false
-                      fps: 59650149184637284
-                      id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                      name: Pariatur et tempore soluta dicta.
-                      notifications_enabled: true
-                      resolution: Sint quibusdam harum.
-                      status: active
-                    - created_at: "1991-04-26T03:17:09Z"
-                      device: Sit quod quas rerum eligendi.
-                      events_enabled: false
-                      fps: 59650149184637284
-                      id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                      name: Pariatur et tempore soluta dicta.
-                      notifications_enabled: true
-                      resolution: Sint quibusdam harum.
-                      status: active
-            detecting_cameras:
-                type: integer
-                description: Number of cameras currently running detection
-                example: 6039187859457220974
-                format: int64
-            motion_detection_active:
-                type: boolean
-                description: Motion detection status
-                example: true
-            notifications_active:
-                type: boolean
-                description: Notification status
-                example: false
-            pipeline_detection_enabled:
-                type: boolean
-                description: Whether AI detection is enabled (false when mode=disabled)
-                example: true
-            pipeline_detectors:
-                type: array
-                items:
-                    type: string
-                    example: Eveniet veniam et expedita placeat dolor.
-                description: Enabled detectors in the pipeline
-                example:
-                    - Rerum perspiciatis qui dicta voluptatem.
-                    - Sapiente non sequi sunt ipsa illo.
-                    - Et similique dolorem illo aperiam aut itaque.
-                    - Sunt earum ab odio hic et.
-            pipeline_execution_mode:
-                type: string
-                description: Pipeline execution mode (always sequential)
-                example: Aut exercitationem nam dolor.
-            pipeline_mode:
-                type: string
-                description: Current pipeline detection mode (disabled, continuous, motion_triggered, scheduled, hybrid)
-                example: Et quidem id est.
-            uptime_seconds:
-                type: integer
-                description: System uptime in seconds
-                example: 8535277435931112897
-                format: int64
-        example:
-            cameras:
-                - created_at: "1991-04-26T03:17:09Z"
-                  device: Sit quod quas rerum eligendi.
-                  events_enabled: false
-                  fps: 59650149184637284
-                  id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                  name: Pariatur et tempore soluta dicta.
-                  notifications_enabled: true
-                  resolution: Sint quibusdam harum.
-                  status: active
-                - created_at: "1991-04-26T03:17:09Z"
-                  device: Sit quod quas rerum eligendi.
-                  events_enabled: false
-                  fps: 59650149184637284
-                  id: 4274b1ad-f4bb-11f0-8a31-5847ca7b8ce1
-                  name: Pariatur et tempore soluta dicta.
-                  notifications_enabled: true
-                  resolution: Sint quibusdam harum.
-                  status: active
-            detecting_cameras: 713187251206736248
-            motion_detection_active: true
-            notifications_active: true
-            pipeline_detection_enabled: true
-            pipeline_detectors:
-                - Rerum quaerat.
-                - Neque totam ducimus possimus.
-            pipeline_execution_mode: Architecto similique officia sint voluptates aliquid quasi.
-            pipeline_mode: Sed rem officiis.
-            uptime_seconds: 784418159745577965
-        required:
-            - cameras
-            - motion_detection_active
-            - notifications_active
-            - uptime_seconds
-    YOLOConfigRequestBody:
-        title: YOLOConfigRequestBody
+            - message
+    YOLOConfig:
+        title: YOLOConfig
         type: object
         properties:
             box_color:
                 type: string
                 description: Bounding box color in hex format (e.g., '#0066FF')
-                example: Sapiente vitae at ex mollitia qui libero.
+                example: Nam minima.
             box_thickness:
                 type: integer
                 description: Bounding box line thickness (1-5)
                 default: 2
-                example: 7411431316984082967
+                example: 1726674920742382964
                 format: int64
             classes_filter:
                 type: string
                 description: Comma-separated class names to filter (empty = all)
-                example: Sit ullam vero id.
+                example: Sed corrupti quis et voluptatibus qui error.
             confidence_threshold:
                 type: number
                 description: Minimum confidence for detections (0-1)
                 default: 0.5
-                example: 0.27613193
+                example: 0.6632185
                 format: float
             draw_boxes:
                 type: boolean
@@ -4087,7 +1973,7 @@ definitions:
             enabled:
                 type: boolean
                 description: Enable YOLO object detection
-                example: false
+                example: true
             security_mode:
                 type: boolean
                 description: Use security-focused detection (person, car, etc.)
@@ -4096,92 +1982,25 @@ definitions:
             service_endpoint:
                 type: string
                 description: YOLO service endpoint URL
-                example: Et accusamus voluptatem.
+                example: Qui deleniti asperiores nobis minima commodi aut.
             tasks:
                 type: array
                 items:
                     type: string
-                    example: Qui saepe delectus et.
+                    example: Distinctio enim.
                 description: List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose estimation, 'segment' for instance segmentation, 'obb' for oriented bounding boxes, 'classify' for image classification.
                 example:
                     - detect
                     - pose
-        description: YOLO object detection configuration
         example:
-            box_color: Aliquid consequuntur incidunt.
-            box_thickness: 7083905075639087017
-            classes_filter: Dolorem voluptatem rerum officiis id dignissimos.
-            confidence_threshold: 0.49780688
-            draw_boxes: false
-            enabled: true
-            security_mode: false
-            service_endpoint: Quia natus ad eius ad.
-            tasks:
-                - detect
-                - pose
-        required:
-            - enabled
-    YOLOConfigResponseBody:
-        title: YOLOConfigResponseBody
-        type: object
-        properties:
-            box_color:
-                type: string
-                description: Bounding box color in hex format (e.g., '#0066FF')
-                example: Accusantium corrupti aut.
-            box_thickness:
-                type: integer
-                description: Bounding box line thickness (1-5)
-                default: 2
-                example: 7013959665336690649
-                format: int64
-            classes_filter:
-                type: string
-                description: Comma-separated class names to filter (empty = all)
-                example: Accusamus aut autem harum.
-            confidence_threshold:
-                type: number
-                description: Minimum confidence for detections (0-1)
-                default: 0.5
-                example: 0.47463784
-                format: float
-            draw_boxes:
-                type: boolean
-                description: Draw bounding boxes on images (for Telegram, API)
-                default: false
-                example: false
-            enabled:
-                type: boolean
-                description: Enable YOLO object detection
-                example: false
-            security_mode:
-                type: boolean
-                description: Use security-focused detection (person, car, etc.)
-                default: true
-                example: false
-            service_endpoint:
-                type: string
-                description: YOLO service endpoint URL
-                example: Et quasi voluptates temporibus.
-            tasks:
-                type: array
-                items:
-                    type: string
-                    example: Non quae.
-                description: List of YOLO11 tasks. 'detect' for object detection, 'pose' for human pose estimation, 'segment' for instance segmentation, 'obb' for oriented bounding boxes, 'classify' for image classification.
-                example:
-                    - detect
-                    - pose
-        description: YOLO object detection configuration
-        example:
-            box_color: Nobis est sunt aut est.
-            box_thickness: 6548514507982624181
-            classes_filter: Possimus ullam laboriosam quo.
-            confidence_threshold: 0.5235598
+            box_color: Quasi et architecto dolorum.
+            box_thickness: 6076299037436991521
+            classes_filter: Libero ullam voluptas.
+            confidence_threshold: 0.29876322
             draw_boxes: true
             enabled: false
-            security_mode: true
-            service_endpoint: Magnam inventore accusantium sunt accusantium.
+            security_mode: false
+            service_endpoint: Esse officiis in magni.
             tasks:
                 - detect
                 - pose

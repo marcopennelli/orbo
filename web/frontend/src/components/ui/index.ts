@@ -5,3 +5,4 @@ export { default as Select } from './Select';
 export { default as Switch } from './Switch';
 export { default as Modal } from './Modal';
 export { default as Spinner } from './Spinner';
+export { default as Tooltip } from './Tooltip';

@@ -71,11 +71,9 @@ var CameraInfo = Type("CameraInfo", func() {
     })
     Field(8, "events_enabled", Boolean, "Whether to create and store detection events for this camera", func() {
         Description("When true, detection events are created and stored. When false, detection runs for live view only.")
-        Default(true)
     })
     Field(9, "notifications_enabled", Boolean, "Whether to send Telegram notifications for this camera", func() {
         Description("When true, Telegram alerts are sent for detections. Requires events_enabled to also be true.")
-        Default(true)
     })
     Required("id", "name", "device", "status")
 })

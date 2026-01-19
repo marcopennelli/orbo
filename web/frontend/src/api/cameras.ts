@@ -37,6 +37,14 @@ export async function disableAlerts(id: string): Promise<Camera> {
   return post<Camera>(`/cameras/${id}/alerts/disable`);
 }
 
+export async function setEventsEnabled(id: string, enabled: boolean): Promise<Camera> {
+  return put<Camera>(`/cameras/${id}`, { events_enabled: enabled });
+}
+
+export async function setNotificationsEnabled(id: string, enabled: boolean): Promise<Camera> {
+  return put<Camera>(`/cameras/${id}`, { notifications_enabled: enabled });
+}
+
 export async function getCameraFrame(id: string): Promise<FrameResponse> {
   return get<FrameResponse>(`/cameras/${id}/frame`);
 }

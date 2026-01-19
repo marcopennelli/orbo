@@ -96,3 +96,27 @@ export function useDisableAlerts() {
     },
   });
 }
+
+export function useSetEventsEnabled() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      camerasApi.setEventsEnabled(id, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cameras'] });
+    },
+  });
+}
+
+export function useSetNotificationsEnabled() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      camerasApi.setNotificationsEnabled(id, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cameras'] });
+    },
+  });
+}

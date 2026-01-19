@@ -47,6 +47,8 @@ func (s *SystemImplementation) Status(ctx context.Context) (*system_service.Syst
 	cameraInfos := make([]*system_service.CameraInfo, len(cameras))
 	for i, cam := range cameras {
 		createdAtStr := cam.CreatedAt.Format(time.RFC3339)
+		eventsEnabled := cam.EventsEnabled
+		notificationsEnabled := cam.NotificationsEnabled
 		cameraInfos[i] = &system_service.CameraInfo{
 			ID:                   cam.ID,
 			Name:                 cam.Name,
@@ -55,8 +57,8 @@ func (s *SystemImplementation) Status(ctx context.Context) (*system_service.Syst
 			Resolution:           &cam.Resolution,
 			Fps:                  &cam.FPS,
 			CreatedAt:            &createdAtStr,
-			EventsEnabled:        cam.EventsEnabled,
-			NotificationsEnabled: cam.NotificationsEnabled,
+			EventsEnabled:        &eventsEnabled,
+			NotificationsEnabled: &notificationsEnabled,
 		}
 	}
 

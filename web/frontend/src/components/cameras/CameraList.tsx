@@ -12,7 +12,8 @@ interface CameraListProps {
   onEditCamera: (camera: Camera) => void;
   onDeleteCamera: (camera: Camera) => void;
   onToggleCameraActive: (camera: Camera) => void;
-  onToggleCameraAlerts: (camera: Camera) => void;
+  onToggleCameraEvents: (camera: Camera) => void;
+  onToggleCameraNotifications: (camera: Camera) => void;
   isLoading?: boolean;
   loadingCameraId?: string;
 }
@@ -25,7 +26,8 @@ export default function CameraList({
   onEditCamera,
   onDeleteCamera,
   onToggleCameraActive,
-  onToggleCameraAlerts,
+  onToggleCameraEvents,
+  onToggleCameraNotifications,
   isLoading,
   loadingCameraId,
 }: CameraListProps) {
@@ -61,7 +63,8 @@ export default function CameraList({
               onEdit={() => onEditCamera(camera)}
               onDelete={() => onDeleteCamera(camera)}
               onToggleActive={() => onToggleCameraActive(camera)}
-              onToggleAlerts={() => onToggleCameraAlerts(camera)}
+              onToggleEvents={() => onToggleCameraEvents(camera)}
+              onToggleNotifications={() => onToggleCameraNotifications(camera)}
               isLoading={loadingCameraId === camera.id}
             />
           ))}

@@ -13,6 +13,11 @@ import (
 	"orbo/internal/motion"
 )
 
+// boolPtr returns a pointer to a bool value
+func boolPtr(b bool) *bool {
+	return &b
+}
+
 // CameraImplementation implements the camera service
 type CameraImplementation struct {
 	cameraManager  *camera.CameraManager
@@ -37,8 +42,6 @@ func (c *CameraImplementation) List(ctx context.Context) ([]*camera_service.Came
 		fps := cam.FPS
 		createdAt := cam.CreatedAt.Format(time.RFC3339)
 
-		eventsEnabled := cam.EventsEnabled
-		notificationsEnabled := cam.NotificationsEnabled
 		result[i] = &camera_service.CameraInfo{
 			ID:                   cam.ID,
 			Name:                 cam.Name,
@@ -47,8 +50,8 @@ func (c *CameraImplementation) List(ctx context.Context) ([]*camera_service.Came
 			Resolution:           &resolution,
 			Fps:                  &fps,
 			CreatedAt:            &createdAt,
-			EventsEnabled:        eventsEnabled,
-			NotificationsEnabled: notificationsEnabled,
+			EventsEnabled:        boolPtr(cam.EventsEnabled),
+			NotificationsEnabled: boolPtr(cam.NotificationsEnabled),
 		}
 	}
 
@@ -68,8 +71,6 @@ func (c *CameraImplementation) Get(ctx context.Context, p *camera_service.GetPay
 	resolution := cam.Resolution
 	fps := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	eventsEnabled := cam.EventsEnabled
-	notificationsEnabled := cam.NotificationsEnabled
 
 	return &camera_service.CameraInfo{
 		ID:                   cam.ID,
@@ -79,8 +80,8 @@ func (c *CameraImplementation) Get(ctx context.Context, p *camera_service.GetPay
 		Resolution:           &resolution,
 		Fps:                  &fps,
 		CreatedAt:            &createdAt,
-		EventsEnabled:        eventsEnabled,
-		NotificationsEnabled: notificationsEnabled,
+		EventsEnabled:        boolPtr(cam.EventsEnabled),
+		NotificationsEnabled: boolPtr(cam.NotificationsEnabled),
 	}, nil
 }
 
@@ -113,8 +114,6 @@ func (c *CameraImplementation) Create(ctx context.Context, p *camera_service.Cre
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	eventsEnabled := cam.EventsEnabled
-	notificationsEnabled := cam.NotificationsEnabled
 
 	return &camera_service.CameraInfo{
 		ID:                   cam.ID,
@@ -124,8 +123,8 @@ func (c *CameraImplementation) Create(ctx context.Context, p *camera_service.Cre
 		Resolution:           &resolutionPtr,
 		Fps:                  &fpsPtr,
 		CreatedAt:            &createdAt,
-		EventsEnabled:        eventsEnabled,
-		NotificationsEnabled: notificationsEnabled,
+		EventsEnabled:        boolPtr(cam.EventsEnabled),
+		NotificationsEnabled: boolPtr(cam.NotificationsEnabled),
 	}, nil
 }
 
@@ -188,11 +187,22 @@ func (c *CameraImplementation) Update(ctx context.Context, p *camera_service.Upd
 		c.cameraManager.SetNotificationsEnabled(p.ID, *p.NotificationsEnabled)
 	}
 
+	// Re-fetch camera to get the updated values after Set calls
+	// This ensures we return the correct current state
+	cam, err = c.cameraManager.GetCamera(p.ID)
+	if err != nil {
+		return nil, &camera_service.NotFoundError{
+			Message: "Camera not found after update",
+			ID:      p.ID,
+		}
+	}
+
+	fmt.Printf("[Update] Camera %s after re-fetch: events_enabled=%v, notifications_enabled=%v\n",
+		p.ID, cam.EventsEnabled, cam.NotificationsEnabled)
+
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	eventsEnabled := cam.EventsEnabled
-	notificationsEnabled := cam.NotificationsEnabled
 
 	return &camera_service.CameraInfo{
 		ID:                   cam.ID,
@@ -202,8 +212,8 @@ func (c *CameraImplementation) Update(ctx context.Context, p *camera_service.Upd
 		Resolution:           &resolutionPtr,
 		Fps:                  &fpsPtr,
 		CreatedAt:            &createdAt,
-		EventsEnabled:        eventsEnabled,
-		NotificationsEnabled: notificationsEnabled,
+		EventsEnabled:        boolPtr(cam.EventsEnabled),
+		NotificationsEnabled: boolPtr(cam.NotificationsEnabled),
 	}, nil
 }
 
@@ -241,8 +251,6 @@ func (c *CameraImplementation) Activate(ctx context.Context, p *camera_service.A
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	eventsEnabled := cam.EventsEnabled
-	notificationsEnabled := cam.NotificationsEnabled
 
 	return &camera_service.CameraInfo{
 		ID:                   cam.ID,
@@ -252,8 +260,8 @@ func (c *CameraImplementation) Activate(ctx context.Context, p *camera_service.A
 		Resolution:           &resolutionPtr,
 		Fps:                  &fpsPtr,
 		CreatedAt:            &createdAt,
-		EventsEnabled:        eventsEnabled,
-		NotificationsEnabled: notificationsEnabled,
+		EventsEnabled:        boolPtr(cam.EventsEnabled),
+		NotificationsEnabled: boolPtr(cam.NotificationsEnabled),
 	}, nil
 }
 
@@ -285,8 +293,6 @@ func (c *CameraImplementation) Deactivate(ctx context.Context, p *camera_service
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	eventsEnabled := cam.EventsEnabled
-	notificationsEnabled := cam.NotificationsEnabled
 
 	return &camera_service.CameraInfo{
 		ID:                   cam.ID,
@@ -296,8 +302,8 @@ func (c *CameraImplementation) Deactivate(ctx context.Context, p *camera_service
 		Resolution:           &resolutionPtr,
 		Fps:                  &fpsPtr,
 		CreatedAt:            &createdAt,
-		EventsEnabled:        eventsEnabled,
-		NotificationsEnabled: notificationsEnabled,
+		EventsEnabled:        boolPtr(cam.EventsEnabled),
+		NotificationsEnabled: boolPtr(cam.NotificationsEnabled),
 	}, nil
 }
 
@@ -359,8 +365,6 @@ func (c *CameraImplementation) EnableAlerts(ctx context.Context, p *camera_servi
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	eventsEnabled := true
-	notificationsEnabled := true
 
 	return &camera_service.CameraInfo{
 		ID:                   cam.ID,
@@ -370,8 +374,8 @@ func (c *CameraImplementation) EnableAlerts(ctx context.Context, p *camera_servi
 		Resolution:           &resolutionPtr,
 		Fps:                  &fpsPtr,
 		CreatedAt:            &createdAt,
-		EventsEnabled:        eventsEnabled,
-		NotificationsEnabled: notificationsEnabled,
+		EventsEnabled:        boolPtr(true),
+		NotificationsEnabled: boolPtr(true),
 	}, nil
 }
 
@@ -407,8 +411,6 @@ func (c *CameraImplementation) DisableAlerts(ctx context.Context, p *camera_serv
 	resolutionPtr := cam.Resolution
 	fpsPtr := cam.FPS
 	createdAt := cam.CreatedAt.Format(time.RFC3339)
-	eventsEnabled := false
-	notificationsEnabled := false
 
 	return &camera_service.CameraInfo{
 		ID:                   cam.ID,
@@ -418,7 +420,7 @@ func (c *CameraImplementation) DisableAlerts(ctx context.Context, p *camera_serv
 		Resolution:           &resolutionPtr,
 		Fps:                  &fpsPtr,
 		CreatedAt:            &createdAt,
-		EventsEnabled:        eventsEnabled,
-		NotificationsEnabled: notificationsEnabled,
+		EventsEnabled:        boolPtr(false),
+		NotificationsEnabled: boolPtr(false),
 	}, nil
 }

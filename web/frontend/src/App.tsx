@@ -16,8 +16,8 @@ import {
   useDeleteCamera,
   useActivateCamera,
   useDeactivateCamera,
-  useEnableAlerts,
-  useDisableAlerts,
+  useSetEventsEnabled,
+  useSetNotificationsEnabled,
 } from './hooks/useCameras';
 import { useEvents } from './hooks/useEvents';
 import {
@@ -74,12 +74,21 @@ function AppContent() {
   const { data: events = [], isLoading: eventsLoading, refetch: refetchEvents } = useEvents(eventCameraFilter || undefined);
 
   // Keep selectedCamera in sync with the latest camera data from the query
-  // This ensures status changes (active/inactive) are reflected in the CameraFeed
+  // This ensures status changes (active/inactive) and other property updates are reflected in the CameraFeed
   useEffect(() => {
     if (selectedCamera) {
       const updatedCamera = cameras.find(c => c.id === selectedCamera.id);
-      if (updatedCamera && updatedCamera.status !== selectedCamera.status) {
-        setSelectedCamera(updatedCamera);
+      if (updatedCamera) {
+        // Compare key properties that affect the UI
+        const needsUpdate =
+          updatedCamera.status !== selectedCamera.status ||
+          updatedCamera.events_enabled !== selectedCamera.events_enabled ||
+          updatedCamera.notifications_enabled !== selectedCamera.notifications_enabled ||
+          updatedCamera.name !== selectedCamera.name;
+
+        if (needsUpdate) {
+          setSelectedCamera(updatedCamera);
+        }
       }
     }
   }, [cameras, selectedCamera]);
@@ -95,8 +104,8 @@ function AppContent() {
   const deleteCamera = useDeleteCamera();
   const activateCamera = useActivateCamera();
   const deactivateCamera = useDeactivateCamera();
-  const enableAlerts = useEnableAlerts();
-  const disableAlerts = useDisableAlerts();
+  const setEventsEnabled = useSetEventsEnabled();
+  const setNotificationsEnabled = useSetNotificationsEnabled();
   const startDetection = useStartDetection();
   const stopDetection = useStopDetection();
   const updateTelegram = useUpdateTelegramConfig();
@@ -147,32 +156,60 @@ function AppContent() {
     async (camera: Camera) => {
       setLoadingCameraId(camera.id);
       try {
+        let updatedCamera: Camera;
         if (camera.status === 'active') {
-          await deactivateCamera.mutateAsync(camera.id);
+          updatedCamera = await deactivateCamera.mutateAsync(camera.id);
         } else {
-          await activateCamera.mutateAsync(camera.id);
+          updatedCamera = await activateCamera.mutateAsync(camera.id);
+        }
+        // Immediately update selectedCamera if it's the same camera
+        // This ensures the stream connects right away without waiting for query refetch
+        if (selectedCamera?.id === camera.id) {
+          setSelectedCamera(updatedCamera);
         }
       } finally {
         setLoadingCameraId(undefined);
       }
     },
-    [activateCamera, deactivateCamera]
+    [activateCamera, deactivateCamera, selectedCamera]
   );
 
-  const handleToggleCameraAlerts = useCallback(
+  const handleToggleCameraEvents = useCallback(
     async (camera: Camera) => {
       setLoadingCameraId(camera.id);
       try {
-        if (camera.events_enabled || camera.notifications_enabled) {
-          await disableAlerts.mutateAsync(camera.id);
-        } else {
-          await enableAlerts.mutateAsync(camera.id);
+        const updatedCamera = await setEventsEnabled.mutateAsync({
+          id: camera.id,
+          enabled: !camera.events_enabled,
+        });
+        // Immediately update selectedCamera if it's the same camera
+        if (selectedCamera?.id === camera.id) {
+          setSelectedCamera(updatedCamera);
         }
       } finally {
         setLoadingCameraId(undefined);
       }
     },
-    [enableAlerts, disableAlerts]
+    [setEventsEnabled, selectedCamera]
+  );
+
+  const handleToggleCameraNotifications = useCallback(
+    async (camera: Camera) => {
+      setLoadingCameraId(camera.id);
+      try {
+        const updatedCamera = await setNotificationsEnabled.mutateAsync({
+          id: camera.id,
+          enabled: !camera.notifications_enabled,
+        });
+        // Immediately update selectedCamera if it's the same camera
+        if (selectedCamera?.id === camera.id) {
+          setSelectedCamera(updatedCamera);
+        }
+      } finally {
+        setLoadingCameraId(undefined);
+      }
+    },
+    [setNotificationsEnabled, selectedCamera]
   );
 
   const handleToggleDetection = useCallback(async () => {
@@ -292,7 +329,8 @@ function AppContent() {
                   onEditCamera={handleEditCamera}
                   onDeleteCamera={handleDeleteCamera}
                   onToggleCameraActive={handleToggleCameraActive}
-                  onToggleCameraAlerts={handleToggleCameraAlerts}
+                  onToggleCameraEvents={handleToggleCameraEvents}
+                  onToggleCameraNotifications={handleToggleCameraNotifications}
                   isLoading={camerasLoading}
                   loadingCameraId={loadingCameraId}
                 />

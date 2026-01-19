@@ -554,7 +554,6 @@ func (cm *CameraManager) GetCameraSource(cameraID string) (device string, camera
 // UpdateConfiguration updates camera settings
 func (c *Camera) UpdateConfiguration(name, resolution string, fps int) error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 
 	wasActive := c.isActive
 
@@ -574,9 +573,11 @@ func (c *Camera) UpdateConfiguration(name, resolution string, fps int) error {
 		c.FPS = fps
 	}
 
+	// Unlock before potentially calling activate (which needs the lock)
+	c.mu.Unlock()
+
 	// Restart camera if it was active
 	if wasActive {
-		c.mu.Unlock() // Unlock before calling activate which needs the lock
 		return c.activate()
 	}
 
