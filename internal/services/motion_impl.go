@@ -32,9 +32,18 @@ func (m *MotionImplementation) Events(ctx context.Context, p *motion_service.Eve
 	if p.Since != nil {
 		t, err := time.Parse(time.RFC3339, *p.Since)
 		if err != nil {
-			return nil, fmt.Errorf("invalid timestamp format: %w", err)
+			return nil, fmt.Errorf("invalid since timestamp format: %w", err)
 		}
 		since = &t
+	}
+
+	var before *time.Time
+	if p.Before != nil {
+		t, err := time.Parse(time.RFC3339, *p.Before)
+		if err != nil {
+			return nil, fmt.Errorf("invalid before timestamp format: %w", err)
+		}
+		before = &t
 	}
 
 	limit := p.Limit
@@ -47,7 +56,7 @@ func (m *MotionImplementation) Events(ctx context.Context, p *motion_service.Eve
 		cameraID = *p.CameraID
 	}
 
-	events := m.motionDetector.GetEvents(cameraID, since, limit)
+	events := m.motionDetector.GetEventsWithBefore(cameraID, since, before, limit)
 	
 	// Convert internal events to service events
 	result := make([]*motion_service.MotionEvent, len(events))

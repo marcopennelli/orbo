@@ -1729,6 +1729,12 @@ func (sd *StreamDetector) cleanupOldEvents() {
 
 // Additional methods to match the original detector interface
 func (sd *StreamDetector) GetEvents(cameraID string, since *time.Time, limit int) []*MotionEvent {
+	return sd.GetEventsWithBefore(cameraID, since, nil, limit)
+}
+
+// GetEventsWithBefore returns motion events with optional filtering including before timestamp
+// Used for pagination - gets events older than 'before' timestamp
+func (sd *StreamDetector) GetEventsWithBefore(cameraID string, since *time.Time, before *time.Time, limit int) []*MotionEvent {
 	sd.mu.RLock()
 	defer sd.mu.RUnlock()
 
@@ -1744,10 +1750,22 @@ func (sd *StreamDetector) GetEvents(cameraID string, since *time.Time, limit int
 		}
 	}
 
+	// Apply since filter (events after this timestamp)
 	if since != nil {
 		filtered := make([]*MotionEvent, 0)
 		for _, event := range events {
 			if event.Timestamp.After(*since) {
+				filtered = append(filtered, event)
+			}
+		}
+		events = filtered
+	}
+
+	// Apply before filter (events before this timestamp, for pagination)
+	if before != nil {
+		filtered := make([]*MotionEvent, 0)
+		for _, event := range events {
+			if event.Timestamp.Before(*before) {
 				filtered = append(filtered, event)
 			}
 		}

@@ -525,12 +525,15 @@ var _ = Service("motion", func() {
             Field(1, "camera_id", String, "Filter by camera ID", func() {
                 Format(FormatUUID)
             })
-            Field(2, "since", String, "Show events since timestamp", func() {
+            Field(2, "since", String, "Show events since timestamp (inclusive)", func() {
                 Format(FormatDateTime)
             })
             Field(3, "limit", Int, "Maximum number of events to return", func() {
                 Default(50)
                 Maximum(500)
+            })
+            Field(4, "before", String, "Show events before timestamp (exclusive, for pagination)", func() {
+                Format(FormatDateTime)
             })
         })
         Result(ArrayOf(MotionEvent))
@@ -539,6 +542,7 @@ var _ = Service("motion", func() {
             Param("camera_id")
             Param("since")
             Param("limit")
+            Param("before")
             Response(StatusOK)
         })
     })

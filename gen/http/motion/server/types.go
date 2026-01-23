@@ -265,11 +265,12 @@ func NewForensicThumbnailNotFoundResponseBody(res *motion.NotFoundError) *Forens
 }
 
 // NewEventsPayload builds a motion service events endpoint payload.
-func NewEventsPayload(cameraID *string, since *string, limit int) *motion.EventsPayload {
+func NewEventsPayload(cameraID *string, since *string, limit int, before *string) *motion.EventsPayload {
 	v := &motion.EventsPayload{}
 	v.CameraID = cameraID
 	v.Since = since
 	v.Limit = limit
+	v.Before = before
 
 	return v
 }

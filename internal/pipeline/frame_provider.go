@@ -22,19 +22,22 @@ type FFmpegFrameProvider struct {
 
 // cameraCapture handles frame capture for a single camera
 type cameraCapture struct {
-	cameraID    string
-	device      string
-	fps         int
-	width       int
-	height      int
-	running     atomic.Bool
-	stopCh      chan struct{}
-	cmd         *exec.Cmd
-	subscribers map[*FrameSubscription]bool
-	subMu       sync.RWMutex
-	frameSeq    atomic.Uint64
-	stats       *CaptureStats
-	statsMu     sync.RWMutex
+	cameraID       string
+	device         string
+	fps            int
+	width          int
+	height         int
+	running        atomic.Bool
+	stopCh         chan struct{}
+	stopped        atomic.Bool // Indicates intentional stop (no restart)
+	cmd            *exec.Cmd
+	subscribers    map[*FrameSubscription]bool
+	subMu          sync.RWMutex
+	frameSeq       atomic.Uint64
+	stats          *CaptureStats
+	statsMu        sync.RWMutex
+	reconnectCount int       // Track reconnection attempts
+	lastReconnect  time.Time // Last reconnection attempt time
 }
 
 // NewFFmpegFrameProvider creates a new FFmpeg-based frame provider
@@ -167,24 +170,74 @@ func (p *FFmpegFrameProvider) GetStats(cameraID string) *CaptureStats {
 	return &stats
 }
 
-// run starts the frame capture loop
+// run starts the frame capture loop with automatic reconnection
 func (c *cameraCapture) run() {
-	c.running.Store(true)
-	defer c.running.Store(false)
+	const maxReconnectDelay = 30 * time.Second
+	const baseReconnectDelay = 2 * time.Second
 
-	log.Printf("[FrameProvider] Starting capture loop for camera %s", c.cameraID)
+	for {
+		// Check if we've been intentionally stopped
+		if c.stopped.Load() {
+			log.Printf("[FrameProvider] Camera %s: intentionally stopped, exiting run loop", c.cameraID)
+			return
+		}
 
-	// Check if it's an HTTP image endpoint (polling mode)
-	if c.isHTTPImageEndpoint() {
-		c.captureHTTPImages()
-		return
+		c.running.Store(true)
+		log.Printf("[FrameProvider] Starting capture loop for camera %s", c.cameraID)
+
+		// Check if it's an HTTP image endpoint (polling mode)
+		if c.isHTTPImageEndpoint() {
+			c.captureHTTPImages()
+		} else {
+			// Use FFmpeg for streaming sources
+			c.captureFFmpeg()
+		}
+
+		c.running.Store(false)
+
+		// Check if we've been intentionally stopped
+		if c.stopped.Load() {
+			log.Printf("[FrameProvider] Camera %s: stopped after capture, exiting run loop", c.cameraID)
+			return
+		}
+
+		// Calculate reconnect delay with exponential backoff
+		c.reconnectCount++
+		delay := time.Duration(c.reconnectCount) * baseReconnectDelay
+		if delay > maxReconnectDelay {
+			delay = maxReconnectDelay
+		}
+
+		// Reset reconnect count if last successful capture was more than 60 seconds ago
+		if time.Since(c.lastReconnect) > 60*time.Second {
+			c.reconnectCount = 1
+			delay = baseReconnectDelay
+		}
+
+		log.Printf("[FrameProvider] Camera %s: capture ended unexpectedly, reconnecting in %v (attempt %d)",
+			c.cameraID, delay, c.reconnectCount)
+
+		c.lastReconnect = time.Now()
+
+		// Update stats to indicate reconnect attempt
+		c.statsMu.Lock()
+		c.stats.ReconnectAttempts++
+		c.statsMu.Unlock()
+
+		// Wait before reconnecting
+		select {
+		case <-c.stopCh:
+			log.Printf("[FrameProvider] Camera %s: received stop signal during reconnect wait", c.cameraID)
+			return
+		case <-time.After(delay):
+			// Continue to next iteration
+		}
 	}
-
-	// Use FFmpeg for streaming sources
-	c.captureFFmpeg()
 }
 
 func (c *cameraCapture) stop() {
+	// Mark as intentionally stopped to prevent reconnection
+	c.stopped.Store(true)
 	close(c.stopCh)
 
 	if c.cmd != nil && c.cmd.Process != nil {
@@ -215,6 +268,10 @@ func (c *cameraCapture) captureHTTPImages() {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
+	// Track consecutive failures for error detection
+	consecutiveFailures := 0
+	maxConsecutiveFailures := 10 // After this many failures, exit to trigger reconnect
+
 	for {
 		select {
 		case <-c.stopCh:
@@ -222,17 +279,33 @@ func (c *cameraCapture) captureHTTPImages() {
 		case <-ticker.C:
 			resp, err := client.Get(c.device)
 			if err != nil {
-				log.Printf("[FrameProvider] Error fetching frame from %s: %v", c.device, err)
+				consecutiveFailures++
+				log.Printf("[FrameProvider] Error fetching frame from %s (failure %d/%d): %v",
+					c.device, consecutiveFailures, maxConsecutiveFailures, err)
+
+				if consecutiveFailures >= maxConsecutiveFailures {
+					log.Printf("[FrameProvider] Camera %s: too many consecutive failures, triggering reconnect", c.cameraID)
+					return // Exit to trigger reconnect
+				}
 				continue
 			}
 
 			frame, err := io.ReadAll(resp.Body)
 			resp.Body.Close()
 			if err != nil {
-				log.Printf("[FrameProvider] Error reading frame: %v", err)
+				consecutiveFailures++
+				log.Printf("[FrameProvider] Error reading frame (failure %d/%d): %v",
+					consecutiveFailures, maxConsecutiveFailures, err)
+
+				if consecutiveFailures >= maxConsecutiveFailures {
+					log.Printf("[FrameProvider] Camera %s: too many consecutive failures, triggering reconnect", c.cameraID)
+					return // Exit to trigger reconnect
+				}
 				continue
 			}
 
+			// Reset failure counter on success
+			consecutiveFailures = 0
 			c.broadcastFrame(frame)
 		}
 	}

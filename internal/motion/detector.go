@@ -74,6 +74,12 @@ func (md *MotionDetector) GetEvents(cameraID string, since *time.Time, limit int
 	return md.streamDetector.GetEvents(cameraID, since, limit)
 }
 
+// GetEventsWithBefore returns motion events with optional filtering including before timestamp
+// Used for pagination - gets events older than 'before' timestamp
+func (md *MotionDetector) GetEventsWithBefore(cameraID string, since *time.Time, before *time.Time, limit int) []*MotionEvent {
+	return md.streamDetector.GetEventsWithBefore(cameraID, since, before, limit)
+}
+
 // GetEvent returns a specific motion event by ID
 func (md *MotionDetector) GetEvent(eventID string) (*MotionEvent, error) {
 	return md.streamDetector.GetEvent(eventID)

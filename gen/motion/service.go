@@ -62,10 +62,12 @@ type EventPayload struct {
 type EventsPayload struct {
 	// Filter by camera ID
 	CameraID *string
-	// Show events since timestamp
+	// Show events since timestamp (inclusive)
 	Since *string
 	// Maximum number of events to return
 	Limit int
+	// Show events before timestamp (exclusive, for pagination)
+	Before *string
 }
 
 // ForensicThumbnailPayload is the payload type of the motion service

@@ -19,7 +19,7 @@ import {
   useSetEventsEnabled,
   useSetNotificationsEnabled,
 } from './hooks/useCameras';
-import { useEvents } from './hooks/useEvents';
+import { useInfiniteEvents } from './hooks/useEvents';
 import {
   useSystemStatus,
   useStartDetection,
@@ -71,7 +71,17 @@ function AppContent() {
 
   // Queries
   const { data: cameras = [], isLoading: camerasLoading } = useCameras();
-  const { data: events = [], isLoading: eventsLoading, refetch: refetchEvents } = useEvents(eventCameraFilter || undefined);
+  const {
+    data: eventsData,
+    isLoading: eventsLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch: refetchEvents,
+  } = useInfiniteEvents(eventCameraFilter || undefined);
+
+  // Flatten paginated events data
+  const events = eventsData?.pages.flat() ?? [];
 
   // Keep selectedCamera in sync with the latest camera data from the query
   // This ensures status changes (active/inactive) and other property updates are reflected in the CameraFeed
@@ -356,7 +366,10 @@ function AppContent() {
               events={events}
               cameras={cameras}
               isLoading={eventsLoading}
+              isFetchingNextPage={isFetchingNextPage}
+              hasNextPage={hasNextPage}
               onRefresh={() => refetchEvents()}
+              onLoadMore={() => fetchNextPage()}
               selectedCameraId={eventCameraFilter}
               onCameraFilterChange={setEventCameraFilter}
             />

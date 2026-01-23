@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ChevronDown } from 'lucide-react';
 import type { MotionEvent, Camera } from '../../types';
 import { Panel } from '../layout';
 import { Button, Select, Spinner } from '../ui';
@@ -10,7 +10,10 @@ interface EventListProps {
   events: MotionEvent[];
   cameras: Camera[];
   isLoading?: boolean;
+  isFetchingNextPage?: boolean;
+  hasNextPage?: boolean;
   onRefresh: () => void;
+  onLoadMore?: () => void;
   selectedCameraId?: string;
   onCameraFilterChange: (cameraId: string) => void;
 }
@@ -19,7 +22,10 @@ export default function EventList({
   events,
   cameras,
   isLoading,
+  isFetchingNextPage,
+  hasNextPage,
   onRefresh,
+  onLoadMore,
   selectedCameraId,
   onCameraFilterChange,
 }: EventListProps) {
@@ -58,15 +64,40 @@ export default function EventList({
             <p>No motion events recorded</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[calc(100vh-250px)] overflow-y-auto">
-            {events.map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                cameras={cameras}
-                onView={() => setSelectedEvent(event)}
-              />
-            ))}
+          <div className="max-h-[calc(100vh-250px)] overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {events.map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  cameras={cameras}
+                  onView={() => setSelectedEvent(event)}
+                />
+              ))}
+            </div>
+            {hasNextPage && onLoadMore && (
+              <div className="flex justify-center py-4 mt-4">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={onLoadMore}
+                  disabled={isFetchingNextPage}
+                  className="gap-2"
+                >
+                  {isFetchingNextPage ? (
+                    <>
+                      <Spinner className="w-4 h-4" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4" />
+                      Load More Events
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Panel>

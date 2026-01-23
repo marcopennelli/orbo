@@ -41,10 +41,15 @@ export function useWebCodecsStream({
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const frameCountRef = useRef(0);
   const lastFpsUpdateRef = useRef(Date.now());
+  const lastFrameTimeRef = useRef(Date.now()); // Track when we last received a frame
   const reconnectTimeoutRef = useRef<number | null>(null);
+  const watchdogIntervalRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const currentCameraIdRef = useRef(cameraId); // Track current camera to filter stale frames
   const lastSeqRef = useRef<bigint>(BigInt(0)); // Track last sequence for ordering validation
+
+  // Watchdog timeout - if no frames received for this duration, reconnect
+  const FRAME_TIMEOUT_MS = 5000; // 5 seconds without frames triggers reconnect
 
   // Keep cameraId ref updated and reset sequence on camera change
   useEffect(() => {
@@ -130,6 +135,9 @@ export function useWebCodecsStream({
         onFrame(imageData, isAnnotated);
       }
 
+      // Update frame timing for watchdog
+      lastFrameTimeRef.current = Date.now();
+
       // Update FPS counter and sequence
       frameCountRef.current++;
       const now = Date.now();
@@ -151,6 +159,12 @@ export function useWebCodecsStream({
   const connect = useCallback(() => {
     if (!enabled || !cameraId) return;
 
+    // Clear any existing watchdog before reconnecting
+    if (watchdogIntervalRef.current) {
+      clearInterval(watchdogIntervalRef.current);
+      watchdogIntervalRef.current = null;
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     // Use /ws/video/raw/{id} for raw stream, /ws/video/{id} for processed stream
     const wsUrl = rawMode
@@ -165,6 +179,9 @@ export function useWebCodecsStream({
 
     ws.onopen = () => {
       console.log(`[WebCodecs] Connected to camera ${cameraId}`);
+      // Reset frame timing on successful connection
+      lastFrameTimeRef.current = Date.now();
+
       if (mountedRef.current) {
         setState(prev => ({
           ...prev,
@@ -172,6 +189,16 @@ export function useWebCodecsStream({
           isLoading: false,
           hasError: false,
         }));
+
+        // Start watchdog timer to detect stalled streams
+        watchdogIntervalRef.current = window.setInterval(() => {
+          const timeSinceLastFrame = Date.now() - lastFrameTimeRef.current;
+          if (timeSinceLastFrame > FRAME_TIMEOUT_MS && wsRef.current?.readyState === WebSocket.OPEN) {
+            console.warn(`[WebCodecs] No frames received for ${timeSinceLastFrame}ms, reconnecting...`);
+            // Close the connection - the onclose handler will trigger reconnect
+            wsRef.current?.close();
+          }
+        }, 1000); // Check every second
       }
     };
 
@@ -192,6 +219,13 @@ export function useWebCodecsStream({
 
     ws.onclose = (event) => {
       console.log(`[WebCodecs] Disconnected from camera ${cameraId}, code: ${event.code}`);
+
+      // Stop watchdog on disconnect
+      if (watchdogIntervalRef.current) {
+        clearInterval(watchdogIntervalRef.current);
+        watchdogIntervalRef.current = null;
+      }
+
       if (mountedRef.current) {
         setState(prev => ({
           ...prev,

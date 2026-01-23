@@ -51,6 +51,9 @@ func EncodeEventsRequest(encoder func(*http.Request) goahttp.Encoder) func(*http
 			values.Add("since", *p.Since)
 		}
 		values.Add("limit", fmt.Sprintf("%v", p.Limit))
+		if p.Before != nil {
+			values.Add("before", *p.Before)
+		}
 		req.URL.RawQuery = values.Encode()
 		return nil
 	}

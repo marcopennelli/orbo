@@ -40,9 +40,9 @@ func UsageCommands() []string {
 // UsageExamples produces an example of a valid invocation of the CLI tool.
 func UsageExamples() string {
 	return os.Args[0] + " " + "health healthz" + "\n" +
-		os.Args[0] + " " + "auth login --body '{\n      \"password\": \"Quia repudiandae neque magni.\",\n      \"username\": \"Eum cum et cumque.\"\n   }'" + "\n" +
+		os.Args[0] + " " + "auth login --body '{\n      \"password\": \"Sint sed dicta sed recusandae est.\",\n      \"username\": \"Numquam ut voluptatem.\"\n   }'" + "\n" +
 		os.Args[0] + " " + "camera list" + "\n" +
-		os.Args[0] + " " + "motion events --camera-id \"66f585c5-f085-411f-9cc1-ae134b05e642\" --since \"1976-02-05T16:52:43Z\" --limit -3417244801850337904" + "\n" +
+		os.Args[0] + " " + "motion events --camera-id \"4760c979-c739-4664-978d-02acdf24a442\" --since \"1982-11-19T14:02:38Z\" --limit -4991830603582297639 --before \"1985-06-13T14:19:33Z\"" + "\n" +
 		os.Args[0] + " " + "config get" + "\n" +
 		""
 }
@@ -108,6 +108,7 @@ func ParseEndpoint(
 		motionEventsCameraIDFlag = motionEventsFlags.String("camera-id", "", "")
 		motionEventsSinceFlag    = motionEventsFlags.String("since", "", "")
 		motionEventsLimitFlag    = motionEventsFlags.String("limit", "50", "")
+		motionEventsBeforeFlag   = motionEventsFlags.String("before", "", "")
 
 		motionEventFlags  = flag.NewFlagSet("event", flag.ExitOnError)
 		motionEventIDFlag = motionEventFlags.String("id", "REQUIRED", "Event ID")
@@ -468,7 +469,7 @@ func ParseEndpoint(
 			switch epn {
 			case "events":
 				endpoint = c.Events()
-				data, err = motionc.BuildEventsPayload(*motionEventsCameraIDFlag, *motionEventsSinceFlag, *motionEventsLimitFlag)
+				data, err = motionc.BuildEventsPayload(*motionEventsCameraIDFlag, *motionEventsSinceFlag, *motionEventsLimitFlag, *motionEventsBeforeFlag)
 			case "event":
 				endpoint = c.Event()
 				data, err = motionc.BuildEventPayload(*motionEventIDFlag)
@@ -609,7 +610,7 @@ func authLoginUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "auth login --body '{\n      \"password\": \"Quia repudiandae neque magni.\",\n      \"username\": \"Eum cum et cumque.\"\n   }'")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "auth login --body '{\n      \"password\": \"Sint sed dicta sed recusandae est.\",\n      \"username\": \"Numquam ut voluptatem.\"\n   }'")
 }
 
 func authStatusUsage() {
@@ -678,7 +679,7 @@ func cameraGetUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera get --id \"823578ec-cd72-4281-9547-f4dc7fbb1da9\"")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera get --id \"78eccd72-2289-4151-92cc-fc46692b9890\"")
 }
 
 func cameraCreateUsage() {
@@ -696,7 +697,7 @@ func cameraCreateUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera create --body '{\n      \"device\": \"Quia reprehenderit.\",\n      \"events_enabled\": true,\n      \"fps\": 3704841809906153186,\n      \"name\": \"Voluptas saepe nihil.\",\n      \"notifications_enabled\": true,\n      \"resolution\": \"Officia voluptatem mollitia sint id.\"\n   }'")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera create --body '{\n      \"device\": \"Ut perferendis ad maiores.\",\n      \"events_enabled\": true,\n      \"fps\": 7453568796447323189,\n      \"name\": \"Est est eveniet quia tempora.\",\n      \"notifications_enabled\": false,\n      \"resolution\": \"Corrupti et.\"\n   }'")
 }
 
 func cameraUpdateUsage() {
@@ -716,7 +717,7 @@ func cameraUpdateUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera update --body '{\n      \"device\": \"Aut repudiandae.\",\n      \"events_enabled\": true,\n      \"fps\": 7013805482669149604,\n      \"name\": \"Aut ut nemo autem commodi sit et.\",\n      \"notifications_enabled\": true,\n      \"resolution\": \"Quos eveniet dolores aut tempora aliquam ducimus.\"\n   }' --id \"edd69d74-9ab2-47e2-aeaa-0de38da72a28\"")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera update --body '{\n      \"device\": \"Neque dicta consequuntur cupiditate dolor non voluptatibus.\",\n      \"events_enabled\": true,\n      \"fps\": 8399337854333876367,\n      \"name\": \"Voluptas est.\",\n      \"notifications_enabled\": true,\n      \"resolution\": \"Odio atque nam.\"\n   }' --id \"c4253fcf-3898-449a-b849-2c7f09e6d1e3\"")
 }
 
 func cameraDeleteUsage() {
@@ -734,7 +735,7 @@ func cameraDeleteUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera delete --id \"fca33111-2a6d-4f6c-9579-87dabbc9bb5a\"")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera delete --id \"be96cf62-237f-45a8-b21d-88e05635c5c9\"")
 }
 
 func cameraActivateUsage() {
@@ -752,7 +753,7 @@ func cameraActivateUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera activate --id \"50cd470f-e56f-40b7-a25e-8ce6e42a6814\"")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera activate --id \"5e8c6ef7-35c1-4020-b09a-f206fdef63a9\"")
 }
 
 func cameraDeactivateUsage() {
@@ -770,7 +771,7 @@ func cameraDeactivateUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera deactivate --id \"972c083e-6072-4da3-ad78-6b094c9f32f1\"")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera deactivate --id \"4d4c7f54-f900-4ad0-a6e5-b09fd4f8cce0\"")
 }
 
 func cameraCaptureUsage() {
@@ -788,7 +789,7 @@ func cameraCaptureUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera capture --id \"4c062439-2c5b-4a40-b924-efe962e79f41\"")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera capture --id \"a4520a86-525a-4793-8114-0e585f51a12a\"")
 }
 
 func cameraEnableAlertsUsage() {
@@ -806,7 +807,7 @@ func cameraEnableAlertsUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera enable-alerts --id \"35a4fa3f-a043-44eb-8b5a-ce85e1163bf9\"")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera enable-alerts --id \"1ed00a9f-ebf3-46e1-af97-694b4cd2f1fe\"")
 }
 
 func cameraDisableAlertsUsage() {
@@ -824,7 +825,7 @@ func cameraDisableAlertsUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera disable-alerts --id \"30aeb0d5-46cf-4c84-b033-aca96173a6b7\"")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "camera disable-alerts --id \"cd916892-0271-42ea-af43-bea2be51fd43\"")
 }
 
 // motionUsage displays the usage of the motion command and its subcommands.
@@ -846,6 +847,7 @@ func motionEventsUsage() {
 	fmt.Fprint(os.Stderr, " -camera-id STRING")
 	fmt.Fprint(os.Stderr, " -since STRING")
 	fmt.Fprint(os.Stderr, " -limit INT")
+	fmt.Fprint(os.Stderr, " -before STRING")
 	fmt.Fprintln(os.Stderr)
 
 	// Description
@@ -856,10 +858,11 @@ func motionEventsUsage() {
 	fmt.Fprintln(os.Stderr, `    -camera-id STRING: `)
 	fmt.Fprintln(os.Stderr, `    -since STRING: `)
 	fmt.Fprintln(os.Stderr, `    -limit INT: `)
+	fmt.Fprintln(os.Stderr, `    -before STRING: `)
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "motion events --camera-id \"66f585c5-f085-411f-9cc1-ae134b05e642\" --since \"1976-02-05T16:52:43Z\" --limit -3417244801850337904")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "motion events --camera-id \"4760c979-c739-4664-978d-02acdf24a442\" --since \"1982-11-19T14:02:38Z\" --limit -4991830603582297639 --before \"1985-06-13T14:19:33Z\"")
 }
 
 func motionEventUsage() {
@@ -877,7 +880,7 @@ func motionEventUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "motion event --id \"b01cef36-c2c1-4549-a253-bf84a8756ae1\"")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "motion event --id \"213280c1-5492-4a8b-9fc7-23d020d43053\"")
 }
 
 func motionFrameUsage() {
@@ -895,7 +898,7 @@ func motionFrameUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "motion frame --id \"ba48af73-a29d-45aa-9788-2d00ca07e876\"")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "motion frame --id \"b0368fc9-a7fb-443e-9e9c-fc18432c0103\"")
 }
 
 func motionForensicThumbnailUsage() {
@@ -915,7 +918,7 @@ func motionForensicThumbnailUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "motion forensic-thumbnail --id \"c7b96055-b8c6-4f8b-89f1-5c782912c3a0\" --index 5260664539340629944")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "motion forensic-thumbnail --id \"342a1f51-677a-405a-8af4-c5760e9e0b88\" --index 1156185421863080669")
 }
 
 // configUsage displays the usage of the config command and its subcommands.
@@ -974,7 +977,7 @@ func configUpdateUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update --body '{\n      \"cooldown_seconds\": 5667207024610732359,\n      \"min_confidence\": 0.13495211,\n      \"telegram_bot_token\": \"Distinctio architecto odio.\",\n      \"telegram_chat_id\": \"Dolore itaque est.\",\n      \"telegram_enabled\": true\n   }'")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update --body '{\n      \"cooldown_seconds\": 872594598635011346,\n      \"min_confidence\": 0.27365533,\n      \"telegram_bot_token\": \"Ducimus corporis mollitia ex.\",\n      \"telegram_chat_id\": \"Cupiditate sit iure dolorum iure ut.\",\n      \"telegram_enabled\": true\n   }'")
 }
 
 func configTestNotificationUsage() {
@@ -1024,7 +1027,7 @@ func configUpdateDinov3Usage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update-dinov3 --body '{\n      \"confidence_threshold\": 0.016302783,\n      \"enable_scene_analysis\": true,\n      \"enabled\": false,\n      \"fallback_to_basic\": true,\n      \"motion_threshold\": 0.69391114,\n      \"service_endpoint\": \"Debitis animi ipsam non.\"\n   }'")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update-dinov3 --body '{\n      \"confidence_threshold\": 0.9781526,\n      \"enable_scene_analysis\": true,\n      \"enabled\": true,\n      \"fallback_to_basic\": false,\n      \"motion_threshold\": 0.25228873,\n      \"service_endpoint\": \"Corporis dolores ullam et tenetur.\"\n   }'")
 }
 
 func configTestDinov3Usage() {
@@ -1074,7 +1077,7 @@ func configUpdateYoloUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update-yolo --body '{\n      \"box_color\": \"Ut omnis error rerum est et magni.\",\n      \"box_thickness\": 3083532263034087331,\n      \"classes_filter\": \"Autem eaque dignissimos rerum.\",\n      \"confidence_threshold\": 0.45829856,\n      \"draw_boxes\": false,\n      \"enabled\": false,\n      \"security_mode\": true,\n      \"service_endpoint\": \"Dolorum deserunt ipsum corporis dolores ullam.\",\n      \"tasks\": [\n         \"detect\",\n         \"pose\"\n      ]\n   }'")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update-yolo --body '{\n      \"box_color\": \"Quaerat qui unde tenetur sunt similique quam.\",\n      \"box_thickness\": 8640930601262424980,\n      \"classes_filter\": \"In illo maiores molestias.\",\n      \"confidence_threshold\": 0.48458412,\n      \"draw_boxes\": true,\n      \"enabled\": false,\n      \"security_mode\": false,\n      \"service_endpoint\": \"Ratione sunt consequatur esse alias voluptatem cum.\",\n      \"tasks\": [\n         \"detect\",\n         \"pose\"\n      ]\n   }'")
 }
 
 func configTestYoloUsage() {
@@ -1124,7 +1127,7 @@ func configUpdateDetectionUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update-detection --body '{\n      \"dinov3\": {\n         \"confidence_threshold\": 0.8039321,\n         \"enable_scene_analysis\": true,\n         \"enabled\": true,\n         \"fallback_to_basic\": true,\n         \"motion_threshold\": 0.017921131,\n         \"service_endpoint\": \"Impedit dolore.\"\n      },\n      \"fallback_enabled\": true,\n      \"primary_detector\": \"dinov3\",\n      \"yolo\": {\n         \"box_color\": \"Fugit saepe voluptatem.\",\n         \"box_thickness\": 297499421035054028,\n         \"classes_filter\": \"Nesciunt ab corrupti nulla minus.\",\n         \"confidence_threshold\": 0.63516176,\n         \"draw_boxes\": true,\n         \"enabled\": true,\n         \"security_mode\": true,\n         \"service_endpoint\": \"Autem accusantium vel.\",\n         \"tasks\": [\n            \"detect\",\n            \"pose\"\n         ]\n      }\n   }'")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update-detection --body '{\n      \"dinov3\": {\n         \"confidence_threshold\": 0.34816083,\n         \"enable_scene_analysis\": true,\n         \"enabled\": false,\n         \"fallback_to_basic\": false,\n         \"motion_threshold\": 0.21232781,\n         \"service_endpoint\": \"Quibusdam iste est est.\"\n      },\n      \"fallback_enabled\": false,\n      \"primary_detector\": \"basic\",\n      \"yolo\": {\n         \"box_color\": \"Iusto quia quas molestiae et reprehenderit.\",\n         \"box_thickness\": 7700377389961996022,\n         \"classes_filter\": \"Excepturi est consectetur velit fugit voluptatem molestiae.\",\n         \"confidence_threshold\": 0.8256007,\n         \"draw_boxes\": true,\n         \"enabled\": true,\n         \"security_mode\": true,\n         \"service_endpoint\": \"Officiis ut occaecati.\",\n         \"tasks\": [\n            \"detect\",\n            \"pose\"\n         ]\n      }\n   }'")
 }
 
 func configGetPipelineUsage() {
@@ -1158,7 +1161,7 @@ func configUpdatePipelineUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update-pipeline --body '{\n      \"detectors\": [\n         \"yolo\",\n         \"face\"\n      ],\n      \"execution_mode\": \"sequential\",\n      \"mode\": \"visual_only\",\n      \"motion_cooldown_seconds\": 8450747842556392749,\n      \"motion_sensitivity\": 0.29052767,\n      \"schedule_interval\": \"Quae nostrum velit.\"\n   }'")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update-pipeline --body '{\n      \"detectors\": [\n         \"yolo\",\n         \"face\"\n      ],\n      \"execution_mode\": \"sequential\",\n      \"mode\": \"disabled\",\n      \"motion_cooldown_seconds\": 4194517551799401304,\n      \"motion_sensitivity\": 0.8264647,\n      \"schedule_interval\": \"Odit fuga ut soluta unde non.\"\n   }'")
 }
 
 func configGetRecognitionUsage() {
@@ -1192,7 +1195,7 @@ func configUpdateRecognitionUsage() {
 
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Example:")
-	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update-recognition --body '{\n      \"box_thickness\": 4809409892930057921,\n      \"enabled\": false,\n      \"known_face_color\": \"Reprehenderit facilis atque consectetur quibusdam iste est.\",\n      \"service_endpoint\": \"Quia quas.\",\n      \"similarity_threshold\": 0.20452018,\n      \"unknown_face_color\": \"Aut voluptatum error doloribus et eos.\"\n   }'")
+	fmt.Fprintf(os.Stderr, "    %s %s\n", os.Args[0], "config update-recognition --body '{\n      \"box_thickness\": 8592834830409368053,\n      \"enabled\": true,\n      \"known_face_color\": \"Ducimus commodi.\",\n      \"service_endpoint\": \"Dolor officiis libero sit et dolorem.\",\n      \"similarity_threshold\": 0.57187164,\n      \"unknown_face_color\": \"Voluptatem vero voluptatum.\"\n   }'")
 }
 
 func configTestRecognitionUsage() {

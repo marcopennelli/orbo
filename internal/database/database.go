@@ -391,6 +391,12 @@ func (d *Database) MarkNotificationSent(eventID string) error {
 
 // ListMotionEvents returns motion events with optional filtering
 func (d *Database) ListMotionEvents(cameraID string, since *time.Time, limit int) ([]*MotionEventRecord, error) {
+	return d.ListMotionEventsWithBefore(cameraID, since, nil, limit)
+}
+
+// ListMotionEventsWithBefore returns motion events with optional filtering including before timestamp
+// Used for pagination - gets events older than 'before' timestamp
+func (d *Database) ListMotionEventsWithBefore(cameraID string, since *time.Time, before *time.Time, limit int) ([]*MotionEventRecord, error) {
 	query := `SELECT id, camera_id, timestamp, confidence, bounding_boxes, frame_path,
 		notification_sent, object_class, object_confidence, threat_level, inference_time_ms, detection_device,
 		faces_detected, known_identities, unknown_faces_count, forensic_thumbnails
@@ -405,6 +411,11 @@ func (d *Database) ListMotionEvents(cameraID string, since *time.Time, limit int
 	if since != nil {
 		query += " AND timestamp >= ?"
 		args = append(args, *since)
+	}
+
+	if before != nil {
+		query += " AND timestamp < ?"
+		args = append(args, *before)
 	}
 
 	query += " ORDER BY timestamp DESC"

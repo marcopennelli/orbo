@@ -75,12 +75,13 @@ type FrameProvider interface {
 
 // CaptureStats contains frame capture statistics
 type CaptureStats struct {
-	CameraID       string
-	FramesCaptured uint64
-	FramesDropped  uint64
-	CurrentFPS     float32
-	AvgLatencyMs   float32
-	LastFrameTime  int64 // Unix timestamp
+	CameraID          string
+	FramesCaptured    uint64
+	FramesDropped     uint64
+	CurrentFPS        float32
+	AvgLatencyMs      float32
+	LastFrameTime     int64 // Unix timestamp
+	ReconnectAttempts uint64
 }
 
 // FrameConsumer receives frames for processing

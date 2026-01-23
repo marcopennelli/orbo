@@ -195,7 +195,10 @@ export default function CameraFeed({
       </div>
 
       {/* Video feed */}
-      <div className="aspect-video bg-bg-dark flex items-center justify-center relative">
+      <div
+        className={`aspect-video bg-bg-dark flex items-center justify-center relative ${onFullscreen && isConnected ? 'cursor-pointer' : ''}`}
+        onClick={isConnected && onFullscreen ? onFullscreen : undefined}
+      >
         {!isActive ? (
           <div className="text-center text-text-muted">
             <VideoOff className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -206,7 +209,7 @@ export default function CameraFeed({
             <VideoOff className="w-8 h-8 mx-auto mb-2 text-accent-red opacity-75" />
             <p>Stream unavailable</p>
             <p className="text-xs mt-1">Check video pipeline service</p>
-            <Button variant="ghost" size="sm" onClick={handleRetry} className="mt-2 text-accent-blue">
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleRetry(); }} className="mt-2 text-accent-blue">
               Retry
             </Button>
           </div>
@@ -236,7 +239,7 @@ export default function CameraFeed({
       <Button
         variant="ghost"
         size="sm"
-        onClick={toggleStreamMode}
+        onClick={(e) => { e.stopPropagation(); toggleStreamMode(); }}
         className="absolute bottom-2 right-2 z-20 text-white/70 hover:text-white hover:bg-black/50"
         title="Switch to WebCodecs (lower latency)"
       >

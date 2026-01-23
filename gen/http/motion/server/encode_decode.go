@@ -38,6 +38,7 @@ func DecodeEventsRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.
 			cameraID *string
 			since    *string
 			limit    int
+			before   *string
 			err      error
 		)
 		qp := r.URL.Query()
@@ -70,10 +71,17 @@ func DecodeEventsRequest(mux goahttp.Muxer, decoder func(*http.Request) goahttp.
 		if limit > 500 {
 			err = goa.MergeErrors(err, goa.InvalidRangeError("limit", limit, 500, false))
 		}
+		beforeRaw := qp.Get("before")
+		if beforeRaw != "" {
+			before = &beforeRaw
+		}
+		if before != nil {
+			err = goa.MergeErrors(err, goa.ValidateFormat("before", *before, goa.FormatDateTime))
+		}
 		if err != nil {
 			return nil, err
 		}
-		payload := NewEventsPayload(cameraID, since, limit)
+		payload := NewEventsPayload(cameraID, since, limit, before)
 
 		return payload, nil
 	}

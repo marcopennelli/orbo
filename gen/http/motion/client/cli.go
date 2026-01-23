@@ -17,7 +17,7 @@ import (
 
 // BuildEventsPayload builds the payload for the motion events endpoint from
 // CLI flags.
-func BuildEventsPayload(motionEventsCameraID string, motionEventsSince string, motionEventsLimit string) (*motion.EventsPayload, error) {
+func BuildEventsPayload(motionEventsCameraID string, motionEventsSince string, motionEventsLimit string, motionEventsBefore string) (*motion.EventsPayload, error) {
 	var err error
 	var cameraID *string
 	{
@@ -56,10 +56,21 @@ func BuildEventsPayload(motionEventsCameraID string, motionEventsSince string, m
 			}
 		}
 	}
+	var before *string
+	{
+		if motionEventsBefore != "" {
+			before = &motionEventsBefore
+			err = goa.MergeErrors(err, goa.ValidateFormat("before", *before, goa.FormatDateTime))
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 	v := &motion.EventsPayload{}
 	v.CameraID = cameraID
 	v.Since = since
 	v.Limit = limit
+	v.Before = before
 
 	return v, nil
 }

@@ -138,7 +138,10 @@ export default function WebCodecsPlayer({
       </div>
 
       {/* Video canvas */}
-      <div className="aspect-video bg-bg-dark flex items-center justify-center relative">
+      <div
+        className={`aspect-video bg-bg-dark flex items-center justify-center relative ${onFullscreen && isConnected ? 'cursor-pointer' : ''}`}
+        onClick={isConnected && onFullscreen ? onFullscreen : undefined}
+      >
         {!enabled ? (
           <div className="text-center text-text-muted">
             <VideoOff className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -152,7 +155,7 @@ export default function WebCodecsPlayer({
             <Button
               variant="ghost"
               size="sm"
-              onClick={reconnect}
+              onClick={(e) => { e.stopPropagation(); reconnect(); }}
               className="mt-2 text-accent-blue"
             >
               Retry

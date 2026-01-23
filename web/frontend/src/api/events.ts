@@ -4,6 +4,7 @@ import type { MotionEvent, FrameResponse } from '../types';
 export interface EventsQuery {
   camera_id?: string;
   since?: string;
+  before?: string; // For pagination - get events older than this timestamp
   limit?: number;
 }
 
@@ -11,6 +12,7 @@ export async function getEvents(query?: EventsQuery): Promise<MotionEvent[]> {
   const params = new URLSearchParams();
   if (query?.camera_id) params.set('camera_id', query.camera_id);
   if (query?.since) params.set('since', query.since);
+  if (query?.before) params.set('before', query.before);
   if (query?.limit) params.set('limit', query.limit.toString());
 
   const queryString = params.toString();

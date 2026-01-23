@@ -21,7 +21,7 @@ func BuildLoginPayload(authLoginBody string) (*auth.LoginPayload, error) {
 	{
 		err = json.Unmarshal([]byte(authLoginBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"password\": \"Quia repudiandae neque magni.\",\n      \"username\": \"Eum cum et cumque.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, \nerror: %s, \nexample of valid JSON:\n%s", err, "'{\n      \"password\": \"Sint sed dicta sed recusandae est.\",\n      \"username\": \"Numquam ut voluptatem.\"\n   }'")
 		}
 	}
 	v := &auth.LoginPayload{
